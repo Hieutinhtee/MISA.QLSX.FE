@@ -1,0 +1,476 @@
+.navbar__app-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    -webkit-mask-position: 0 -35px;
+    width: 24px;
+    height: 24px;
+    background-color: #4b5563;
+    cursor: pointer;
+}
+
+.navbar__logo {
+    background-image: url(/src/assets/icon/svg/logo-recruitment.svg);
+    width: 30px;
+    height: 30px;
+    background-size: contain;
+    margin-left: 16px;
+    margin-right: 12px;
+    background-repeat: no-repeat;
+    cursor: pointer;
+}
+
+.navbar__search {
+    position: relative;
+}
+
+.navbar__search-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -1px -658px;
+    width: 17px;
+    height: 16px;
+    margin: 8px;
+    background-color: #7a8188;
+    position: absolute;
+    top: 0;
+}
+
+.navbar__website-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: 0 -608px;
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    background-color: #4b5563;
+}
+
+.icon__angle-down-small {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    -webkit-mask-position: -32px 0;
+    width: 16px;
+    height: 16px;
+    background-color: #4b5563;
+}
+
+.navbar__export-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    -webkit-mask-position: -744px -36px;
+    width: 24px;
+    height: 24px;
+    background-color: #4b5563;
+    background-color: #4b5563;
+}
+
+.navbar__notify-icon {
+    background-image: url(/src/assets/icon/svg/icon-notify.svg);
+    width: 24px;
+    height: 24px;
+}
+
+.navbar__store-icon {
+    background-image: url(/src/assets/icon/svg/icon-store.svg);
+    width: 20px;
+    height: 20px;
+}
+
+.navbar__chat-icon {
+    background-image: url(/src/assets/icon/svg/chat.svg);
+    width: 24px;
+    height: 24px;
+}
+
+.navbar__package-icon {
+    background-image: url(/src/assets/icon/svg/ic_package.svg);
+    width: 24px;
+    height: 24px;
+}
+
+.navbar__ring-icon {
+    background-image: url(/src/assets/icon/svg/ring.svg);
+    width: 24px;
+    height: 24px;
+}
+
+.navbar__user-icon {
+    background-image: url(/src/assets/icon/svg/user.svg);
+    width: 24px;
+    height: 24px;
+}
+
+.navbar__help-icon {
+    background-image: url(/src/assets/icon/svg/help.svg);
+    width: 24px;
+    height: 24px;
+}
+
+.navbar__more-icon {
+    background-image: url(/src/assets/icon/svg/more.svg);
+    width: 24px;
+    height: 24px;
+}
+
+.navbar__book-icon {
+    background-image: url(/src/assets/icon/svg/book.svg);
+    width: 24px;
+    height: 24px;
+}
+
+.navbar__avatar-icon {
+    background-image: url(/src/assets/image/avatar/avatar.png);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    margin-left: 10px;
+}
+
+.sidebar__toggle-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    mask-position: -140px -16px;
+    background-color: #9ca3af;
+    width: 20px;
+    height: 20px;
+    margin-left: 4px;
+}
+
+.sidebar__toggle-icon--rotated {
+    transform: scaleX(-1);
+}
+
+.sidebar__menu-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -94px -113px;
+    -webkit-mask-repeat: no-repeat;
+    background-color: #c5ccd5;
+    width: 24px;
+    height: 24px;
+}
+
+.sidebar__user-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -24px -112px;
+    -webkit-mask-repeat: no-repeat;
+    background-color: #ffffff;
+    width: 24px;
+    height: 24px;
+}
+
+.sidebar__date-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -144px -113px;
+    -webkit-mask-repeat: no-repeat;
+    background-color: #c5ccd5;
+    width: 24px;
+    height: 24px;
+}
+
+.sidebar__talent-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: 0px -112px;
+    -webkit-mask-repeat: no-repeat;
+    background-color: #c5ccd5;
+    width: 24px;
+    height: 24px;
+}
+
+.sidebar__campaign-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -73px -633px;
+    -webkit-mask-repeat: no-repeat;
+    background-color: #ffffff;
+    width: 23px;
+    height: 24px;
+}
+
+.sidebar__todo-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -336px -113px;
+    -webkit-mask-repeat: no-repeat;
+    background-color: #c5ccd5;
+    width: 24px;
+    height: 24px;
+}
+
+.sidebar__mail-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -160px -248px;
+    -webkit-mask-repeat: no-repeat;
+    background-color: #c5ccd5;
+    width: 24px;
+    height: 24px;
+}
+
+.sidebar__chat-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -72px -845px;
+    -webkit-mask-repeat: no-repeat;
+    background-color: #c5ccd5;
+    width: 24px;
+    height: 24px;
+}
+
+.sidebar__report-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -72px -113px;
+    -webkit-mask-repeat: no-repeat;
+    background-color: #c5ccd5;
+    width: 24px;
+    height: 24px;
+}
+
+.sidebar__setting-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: 0px -136px;
+    -webkit-mask-repeat: no-repeat;
+    background-color: #c5ccd5;
+    width: 24px;
+    height: 24px;
+}
+
+.sidebar__book-icon {
+    background-image: url(/src/assets/icon/svg/book.svg);
+    width: 24px;
+    height: 24px;
+}
+
+.content__delete-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/icon-delete-shift.svg);
+    background-color: #65696e;
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
+}
+
+.content__add-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -20px -656px;
+    background-color: white;
+    width: 20px;
+    height: 20px;
+}
+
+.content__more-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -32px -48px;
+    background-color: white;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.content__filter-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -40px -656px;
+    background-color: #7a8188;
+    width: 20px;
+    height: 20px;
+}
+
+.content__export-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -60px -656px;
+    background-color: #7a8188;
+    width: 20px;
+    height: 20px;
+}
+
+.content__interactive-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: 0 -844px;
+    background-color: #7a8188;
+    width: 24px;
+    height: 24px;
+}
+
+.content__setting-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -24px -608px;
+    background-color: #7a8188;
+    width: 24px;
+    height: 24px;
+}
+
+.form-shift__close-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -73px -136px;
+    background-color: #666666;
+    width: 24px;
+    height: 24px;
+}
+
+.form-shift__icon-more {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    width: 16px;
+    height: 16px;
+    -webkit-mask-position: -96px -80px;
+    -webkit-mask-repeat: no-repeat;
+    background-color: #7a8188;
+    transform: rotate(90deg);
+}
+
+.form-shift__icon-dropdown {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -32px -48px;
+    background-color: #7a8188;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+}
+
+.form-shift__icon-add {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -20px -656px;
+    background-color: var(--primary-color);
+    width: 20px;
+    height: 20px;
+    /* position: absolute; */
+}
+
+.content__table-btn-delete {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    -webkit-mask-position: -288px 0px;
+    background-color: #4b5563;
+    width: 16px;
+    height: 16px;
+}
+
+.content__table-btn-edit {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    -webkit-mask-position: -271px 0px;
+    background-color: #4b5563;
+    width: 16px;
+    height: 16px;
+}
+
+.content__paging-next-btn {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -40px -696px;
+    -webkit-mask-repeat: no-repeat;
+    background-color: #7a8188;
+    width: 20px;
+    height: 20px;
+    margin-left: -12px;
+    cursor: pointer;
+}
+
+.content__paging-prev-btn {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -60px -696px;
+    -webkit-mask-repeat: no-repeat;
+    background-color: #7a8188;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.content__paging-btn--disabled {
+    background-color: #d0d2d4;
+}
+
+.sidebar__icon {
+    height: 20px;
+    width: 20px;
+    min-height: 20px;
+    min-width: 20px;
+    position: relative;
+    background-color: #9ca3af;
+    margin: 0 8px;
+}
+
+.sidebar__home-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/sidebar-icon.svg);
+    mask-position: -6px -7px;
+}
+
+.sidebar__order-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/sidebar-icon.svg);
+    mask-position: -344px -86px;
+}
+
+.sidebar__plan-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/sidebar-icon.svg);
+    mask-position: -32px -7px;
+}
+
+.sidebar__coordinate-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/sidebar-icon.svg);
+    mask-position: -57px -7px;
+}
+
+.sidebar__quality-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/sidebar-icon.svg);
+    mask-position: -110px -6px;
+}
+
+.sidebar__material-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/sidebar-icon.svg);
+    mask-position: -84px -6px;
+}
+
+.sidebar__cost-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/sidebar-icon.svg);
+    mask-position: -345px -5px;
+}
+
+.sidebar__report-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/sidebar-icon.svg);
+    mask-position: -214px -7px;
+}
+
+.sidebar__product-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/sidebar-icon.svg);
+    mask-position: -136px -6px;
+}
+
+.sidebar__production-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/sidebar-icon.svg);
+    mask-position: -189px -6px;
+}
+
+.sidebar__category-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/sidebar-icon.svg);
+    mask-position: -240px -6px;
+}
+
+.sidebar__system-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/sidebar-icon.svg);
+    mask-position: -266px -6px;
+}
+
+.sidebar__process-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/sidebar-icon.svg);
+    mask-position: -162px -6px;
+}
+
+.icon-add {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    mask-position: -80px 0px;
+    background-color: #fff;
+    width: 16px;
+    height: 16px;
+}
+
+.content__search-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    mask-position: 0px 0px;
+    background-color: #4b5563;
+    width: 16px;
+    height: 16px;
+}
+
+.content__reload-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    mask-position: -112px 0px;
+    background-color: #4b5563;
+    width: 16px;
+    height: 16px;
+}

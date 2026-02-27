@@ -1,0 +1,160 @@
+.content__table {
+    min-width: max-content;
+    min-height: max-content;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.content__body-header {
+    padding: 8px 16px;
+}
+
+.content__search-left {
+    position: relative;
+}
+
+.content__search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.content__search-input {
+    border-radius: var(--border-radius);
+    border: 1px solid #dddde4;
+    width: 200px;
+    height: 28px;
+    padding: 6px 36px;
+}
+
+.content__search-input:focus,
+.content__search-input:hover {
+    outline: 1px solid var(--primary-color);
+}
+
+.content__search-input::placeholder {
+    color: #9ea7b4;
+    font-weight: 400;
+}
+
+th {
+    white-space: nowrap;
+}
+
+tr {
+    cursor: pointer;
+    height: 32px;
+    border-bottom: 1px solid #e0e6ec !important;
+}
+
+tr td {
+    border-bottom: 1px solid #e0e6ec;
+    padding: 0 16px;
+}
+
+tbody tr:hover td {
+    background-color: var(--bg-hover);
+}
+
+tbody tr:focus td {
+    background-color: #a4f6d3;
+}
+
+.content__datagrid {
+    overflow: auto;
+}
+
+/* sticky first column */
+tbody .content__table-checkbox {
+    position: sticky;
+    left: 0;
+    background-color: #fff;
+    z-index: 1;
+}
+
+.col-delete {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    border: none;
+    height: 32px;
+    column-gap: 8px;
+    background-color: #fff;
+}
+
+.btn-modify-wrapper {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* sticky header */
+.content__table-header tr th {
+    position: sticky;
+    top: 0;
+    background-color: #f9fafb;
+    z-index: 2;
+    border-bottom: 1px solid #e0e6ec;
+}
+
+.content__table-header-wrapper {
+    position: relative;
+}
+
+.content__table-header-line {
+    width: 1px;
+    background-color: #d1d5db;
+    height: 18px;
+    position: absolute;
+    left: -16px;
+}
+
+/* top-left cell */
+.content__table-header .content__table-checkbox-header {
+    left: 0;
+    padding: 3px 12px 0 12px;
+    z-index: 3;
+    background-color: #f9fafb;
+}
+
+/* Paging style */
+#page-size-select:hover {
+    box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.content__paging {
+    height: 44px;
+    padding: 12px;
+    background-color: #f5f5f5;
+}
+
+.content__table-header {
+    background-color: #f9fafb;
+    border-bottom: 1px solid #e0e6ec;
+    height: 32px;
+    background-color: #f9fafb;
+}
+
+.content__table-header th {
+    text-align: start;
+    padding: 0 16px;
+}
+
+.content__table-checkbox {
+    padding: 3px 12px 0 12px;
+}
+
+/* Kết thúc Style phần content */
+
+.content__table {
+    min-width: max-content;
+    min-height: max-content;
+    border-collapse: collapse;
+}
+
+/* Kết thúc paging style */

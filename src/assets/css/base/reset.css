@@ -1,0 +1,51 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    white-space: nowrap;
+}
+
+body {
+    font-family: Inter;
+    font-size: 13px !important;
+}
+
+/* style lại checkbox mặc định */
+input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+    border: 1px solid #d1d5db;
+}
+
+/* style lại thanh scroll mặc định */
+::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #d6d6d6;
+    border-radius: var(--border-radius);
+}
+
+::-webkit-scrollbar-button {
+    display: none;
+}
+
+/* Ghi đè toast success */
+.Vue-Toastification__toast--success {
+    background-color: #5cb85c; /* màu xanh success bạn muốn */
+    color: #fff;
+}
+
+/* Toast container chung */
+.Vue-Toastification__toast {
+    border-radius: 4px;
+    /* padding: 6px; */
+}
