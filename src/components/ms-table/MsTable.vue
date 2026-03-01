@@ -3,6 +3,7 @@ import { ref, defineProps, watch, computed } from "vue";
 import { renderValue } from "@/utils/renderRowTable.js";
 import MsSelect from "@/components/ms-select/MsSelect.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
+import { formatTimeHHMM } from "@/utils/common.js";
 
 const pageSizeOptions = ref([
     {
@@ -41,6 +42,11 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    type: {
+        type: Array,
+        default: () => [],
+        validator: (value) => Array.isArray(value),
+    },
 });
 //#endregion
 
@@ -58,6 +64,17 @@ let pagingData = ref({
 //#endregion State Data
 
 //#region Methods
+
+/**
+ * Xử lý kiểu field
+ * @param {object} field - Các trường của table
+ * createdBy: TMHieu (28/01/2026)
+ */
+const getFieldType = (field) => {
+    const valid = ["text", "number", "date", "custom", "HH:mm"];
+    return valid.includes(field) ? field : "text";
+};
+
 /**
  * Xử lý khi nhấn nút Prev
  * createdBy: TMHieu (29/01/2026)
@@ -246,10 +263,14 @@ watch(
 
                     <td v-for="column in columns" :key="column.key">
                         <!-- Tùy chỉnh hiển thị cột trong bảng -->
-                        <template v-if="column.type === 'custom'">
+                        <template v-if="getFieldType(column.type) === 'custom'">
                             <slot :name="column.key" :row="row" :value="row[column.key]">
-                                {{ renderValue(row[column.key]) }}
+                                <!-- {{ renderValue(row[column.key]) }} -->
                             </slot>
+                        </template>
+
+                        <template v-else-if="getFieldType(column.type) === 'HH:mm'">
+                            <span>{{ renderValue(formatTimeHHMM(row[column.key])) }}</span>
                         </template>
 
                         <!-- Các cột khác nếu không phải kiểu custom -->

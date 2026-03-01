@@ -3,85 +3,83 @@ import { onMounted, ref, watch } from "vue";
 import MsTable from "@/components/ms-table/MsTable.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import shiftForm from "./ShiftForm.vue";
-import { renderValue, getAvatarColor, getAvatarLetter } from "@/utils/renderRowTable.js";
-import shiftData from "@/common/datas/shift-data";
-import { normalizeshiftData } from "@/utils/common.js";
 import { Modal } from "ant-design-vue";
 import { useToast } from "vue-toastification";
+import ShiftsAPI from "@/apis/components/shifts/shiftsAPI";
 
 const toast = useToast();
 // #region Constants
 
 /**
- * Khóa lưu trữ dữ liệu ứng viên trong LocalStorage
- * createdBy: TMHieu (22/01/2026)
- */
-const shift_STORAGE_KEY = "shiftData";
-
-/**
- * Dữ liệu cột bảng ứng viên
+ * Dữ liệu cột bảng ca làm việc
+ * @property {string} key - Mã cót.
  * @property {string} name - Tên cột.
  * @property {number} width - Chiều rộng cột (px).
  * createdBy: TMHieu (28/01/2026)
  */
 const columns = ref([
     {
-        key: "shiftCode",
+        key: "productionShiftCode",
         name: "Mã ca",
         width: 120,
     },
     {
-        key: "shiftName",
+        key: "productionShiftName",
         name: "Tên ca",
         width: 250,
     },
     {
-        key: "beginShiftTime",
+        key: "productionShiftBeginTime",
         name: "Giờ vào ca",
         width: 130,
+        type: "HH:mm",
     },
     {
-        key: "endShiftTime",
+        key: "productionShiftEndTime",
         name: "Giờ hết ca",
         width: 130,
+        type: "HH:mm",
     },
     {
-        key: "beginBreakTime",
+        key: "productionShiftBeginBreakTime",
         name: "Bắt đầu nghỉ giữa ca",
         width: 200,
+        type: "HH:mm",
     },
     {
-        key: "endBreakTime",
+        key: "productionShiftEndBreakTime",
         name: "Kết thúc nghỉ giữa ca",
         width: 210,
+        type: "HH:mm",
     },
     {
-        key: "workingTime",
+        key: "productionShiftWorkingTime",
         name: "Thời gian làm việc (giờ)",
         width: 210,
     },
     {
-        key: "workingTime",
+        key: "productionShiftBreakTime",
         name: "Thời gian nghỉ giữa ca (giờ)",
         width: 230,
     },
     {
-        key: "inactive",
+        key: "productionShiftIsActive",
         name: "Trạng thái",
         width: 200,
+        type: "custom",
     },
     {
-        key: "createdBy",
+        key: "productionShiftCreatedBy",
         name: "Người tạo",
         width: 160,
     },
     {
-        key: "ModifiedBy",
+        key: "productionShiftModifiedBy",
         name: "Người sửa",
         width: 160,
     },
     {
-        key: "ModifiedDate",
+        key: "productionShiftModifiedDate",
         name: "Ngày sửa",
         width: 160,
     },
@@ -97,7 +95,7 @@ const shiftFormRef = ref(null);
 //#region State Data
 
 /**
- * Dữ liệu bảng ứng viên
+ * Dữ liệu bảng ca làm việc
  * createdBy: TMHieu (28/01/2026)
  */
 const rows = ref([]);
@@ -109,7 +107,7 @@ const rows = ref([]);
 const searchInput = ref("");
 
 /**
- * Các trường dùng để tìm kiếm ứng viên
+ * Các trường dùng để tìm kiếm ca làm việc
  * createdBy: TMHieu (29/01/2026)
  */
 const searchFields = ref(["fullName", "email", "phone"]);
@@ -121,7 +119,7 @@ const searchFields = ref(["fullName", "email", "phone"]);
 const typeForm = ref("add");
 
 /**
- * Trạng thái mở/đóng form ứng viên
+ * Trạng thái mở/đóng form ca làm việc
  * createdBy: TMHieu (29/01/2026)
  */
 const isFormOpen = ref(false);
@@ -144,36 +142,15 @@ const selectedRow = ref(null);
 //#region Methods
 
 /**
- * Lấy dữ liệu ứng viên từ LocalStorage
- * createdBy: TMHieu (22/01/2026)
- * @returns {Array}
- */
-function getshiftData() {
-    const dataLocal = localStorage.getItem(shift_STORAGE_KEY);
-
-    if (dataLocal) {
-        try {
-            return JSON.parse(dataLocal);
-        } catch (error) {
-            console.error("LocalStorage data parse error", error);
-        }
-    }
-
-    // Nếu chưa có hoặc lỗi → dùng data mặc định
-    saveshiftToLocal(shiftData);
-    return shiftData;
-}
-
-/**
  * Xử lý dữ liệu khi form gửi lên sự kiện submit
  * createdBy: TMHieu (22/01/2026)
  */
 const handleSubmit = (shift) => {
     if (typeForm.value === "add") {
         try {
-            addshift(shift);
+            addShift(shift);
             shiftFormRef.value?.handleCloseForm();
-            toast.success("Thêm ứng viên thành công");
+            toast.success("Thêm ca làm việc thành công");
         } catch (error) {
             toast.error(error);
         }
@@ -182,7 +159,7 @@ const handleSubmit = (shift) => {
         try {
             updateshift(shift);
             shiftFormRef.value?.handleCloseForm();
-            toast.success("Chỉnh sửa ứng viên thành công");
+            toast.success("Chỉnh sửa ca làm việc thành công");
         } catch (error) {
             toast.error(error);
         }
@@ -190,30 +167,15 @@ const handleSubmit = (shift) => {
 };
 
 /**
- * Xử lý lưu thêm ứng viên mới
- * @param {Object} shift Đối tượng ứng viên
+ * Xử lý lưu thêm ca làm việc mới
+ * @param {Object} shift Đối tượng ca làm việc
  * createdBy: TMHieu (22/01/2026)
  */
-function addshift(shift) {
-    let datas = getshiftData();
-
-    //Tạo id tự động
-    let newId = 1;
-    if (datas.length > 0) {
-        newId = Math.max(...datas.map((item) => Number(item.id) || 0)) + 1;
-    }
-
-    shift.id = newId;
-
-    //Thêm dữ liệu vào mảng
-    datas.unshift(shift);
-    rows.value = datas;
-    saveshiftToLocal(datas);
-}
+function addShift(shift) {}
 
 /**
- * Xử lý cập nhật ứng viên
- * @param {Object} shift Đối tượng ứng viên
+ * Xử lý cập nhật ca làm việc
+ * @param {Object} shift Đối tượng ca làm việc
  * createdBy: TMHieu (22/01/2026)
  */
 function updateshift(shift) {
@@ -233,19 +195,6 @@ function updateshift(shift) {
     }
     rows.value = datas;
     saveshiftToLocal(datas);
-}
-
-/**
- * Lưu dữ liệu ứng viên vào LocalStorage
- * createdBy: TMHieu (22/01/2026)
- * @param {Array} datas Danh sách dữ liệu
- */
-function saveshiftToLocal(datas) {
-    if (!Array.isArray(datas)) return;
-
-    const safeData = datas.map((item) => normalizeshiftData(item));
-
-    localStorage.setItem(shift_STORAGE_KEY, JSON.stringify(safeData));
 }
 
 // #region delete
@@ -277,27 +226,13 @@ const showModal = () => {
  * Hàm xử lý sự kiện xác nhận xóa
  * createdBy: TMHieu (02/02/2026)
  */
-const handleOk = () => {
-    const shiftId = parseInt(selectedRow.value.id);
-    if (isNaN(shiftId)) return;
-    let datas = getshiftData();
-
-    //Xóa ứng viên khỏi mảng dữ liệu
-    datas = datas.filter((item) => item.id !== shiftId);
-
-    rows.value = datas;
-
-    //Lưu lại dữ liệu vào LocalStorage
-    saveshiftToLocal(datas);
-    toast.success("Xóa ứng viên thành công");
-    open.value = false;
-};
+const handleOk = () => {};
 //#endregion delete
 
 // #region edit
 
 /**
- * Hàm xử lý sự kiện mở form sửa ứng viên
+ * Hàm xử lý sự kiện mở form sửa ca làm việc
  * @param row dữ liệu 1 row trên bảng
  * createdBy: TMHieu (29/01/2026)
  */
@@ -308,12 +243,27 @@ function handleEdit(row) {
 }
 // #endregion edit
 /**
- * Hàm xử lý sự kiện mở form thêm ứng viên
+ * Hàm xử lý sự kiện mở form thêm ca làm việc
  * createdBy: TMHieu (29/01/2026)
  */
 function handleFormAddOpen() {
     typeForm.value = "add";
     isFormOpen.value = true;
+}
+
+/**
+ * Hàm gọi API lấy danh sách khách hàng theo payload hiện tại
+ * createdby: TMHieu - 09.12.2025
+ */
+async function loadDataForAPI() {
+    setTimeout(async () => {
+        try {
+            const result = await ShiftsAPI.getAll({});
+            rows.value.splice(0, rows.value.length, ...result.data.data);
+        } catch (err) {
+            console.error(err);
+        }
+    }, 100); // Dùng setTimeout 0ms để tách khỏi watch/ui thread
 }
 //#endregion Methods
 
@@ -340,15 +290,15 @@ watch(searchInput, (value) => {
 
 //#region Lifecycle Hooks
 onMounted(() => {
-    // Cập nhật lại dữ liệu ứng viên từ LocalStorage khi component được mount
-    rows.value = getshiftData();
+    // Cập nhật lại dữ liệu ca làm việc từ LocalStorage khi component được mount
+    loadDataForAPI();
 });
 //#endregion Lifecycle Hooks
 </script>
 
 <template>
-    <modal v-model:open="open" title="Xác nhận xóa ứng viên" @ok="handleOk">
-        <p>Bạn có chắc chắn muốn xóa ứng viên này</p>
+    <modal v-model:open="open" title="Xác nhận xóa ca làm việc" @ok="handleOk">
+        <p>Bạn có chắc chắn muốn xóa ca làm việc này</p>
     </modal>
     <div class="content d-flex flex-1 flex-column">
         <!-- content header  -->
@@ -367,16 +317,9 @@ onMounted(() => {
                 @delete-row="handleDelete"
                 @edit-row="handleEdit"
             >
-                <template #fullName="{ value }">
-                    <div class="d-flex align-items-center gap-8">
-                        <div
-                            class="shift-avatar"
-                            :style="{ backgroundColor: getAvatarColor(value) }"
-                        >
-                            {{ getAvatarLetter(value) }}
-                        </div>
-                        <span>{{ renderValue(value) }}</span>
-                    </div>
+                <template #productionShiftIsActive="{ value }">
+                    <div v-if="value" class="inactive inactive--true">Đang sử dụng</div>
+                    <div v-else class="inactive inactive--false">Ngừng sử dụng</div>
                 </template>
             </ms-table>
 

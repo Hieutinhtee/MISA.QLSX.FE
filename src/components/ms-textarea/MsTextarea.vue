@@ -1,17 +1,13 @@
 <template>
-    <textarea
-        type="textarea"
-        class="form-candidate__work-detail-input"
-        placeholder="Nhập mô tả công việc"
-    ></textarea>
+    <textarea type="textarea"></textarea>
 </template>
 
 <style scoped>
 textarea {
-    height: 34px;
-    width: 100%;
+    height: 68px;
+    width: 474px;
     min-width: 0;
-    padding: 8px 16px;
+    padding: 6px 10px;
     border-radius: var(--border-radius);
     outline: none;
     border: 1px solid #dcdce3;

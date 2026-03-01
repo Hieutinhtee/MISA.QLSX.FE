@@ -46,6 +46,9 @@ defineEmits(["click"]);
     margin-right: 4px;
 }
 
+.ms-button__text {
+    font-weight: 500;
+}
 /* ============================================ */
 /* PRIMARY BUTTON (Main button)                 */
 /* ============================================ */

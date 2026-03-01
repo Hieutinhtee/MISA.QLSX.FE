@@ -1,94 +1,18 @@
 <script setup>
 import { ref, defineModel, watch } from "vue";
-import MsTextarea from "@/components/ms-textarea/MsTextarea.vue";
+import MsButton from "@/components/ms-button/MsButton.vue";
 import MsInput from "@/components/ms-input/MsInput.vue";
-import MsDatePicker from "@/components/ms-date-picker/MsDatePicker.vue";
-import MsSelect from "@/components/ms-select/MsSelect.vue";
 import { createShift } from "@/common/model/shiftModel";
-import { formatDateDDMMYYYY } from "@/utils/common";
+import MsTextarea from "@/components/ms-textarea/MsTextarea.vue";
 
 //#region constants
 /**
- * Tiêu đề form ứng viên
+ * Tiêu đề form ca làm việc
  * createdBy: TMHieu (22/01/2026)
  */
-const TITLE_shift_FORM_ADD = "Thêm ứng viên";
-const TITLE_shift_FORM_EDIT = "Chỉnh sửa ứng viên";
+const TITLE_shift_FORM_ADD = "Thêm Ca làm việc";
+const TITLE_shift_FORM_EDIT = "Sửa Ca làm việc";
 
-/**
- * Tùy chọn giới tính
- * createdBy: TMHieu (30/01/2026)
- */
-const genderOptions = ref([
-    {
-        value: "nam",
-        label: "Nam",
-    },
-    {
-        value: "nu",
-        label: "Nữ",
-    },
-    {
-        value: "khac",
-        label: "Khác",
-    },
-]);
-
-/**
- * Tùy chọn nguồn ứng viên
- * createdBy: TMHieu (30/01/2026)
- */
-const sourceOptions = ref([
-    {
-        value: "facebook",
-        label: "Facebook",
-    },
-    {
-        value: "linkedin",
-        label: "LinkedIn",
-    },
-    {
-        value: "tuyendung",
-        label: "Tuyển dụng",
-    },
-    {
-        value: "khac",
-        label: "Khác",
-    },
-]);
-
-/**
- * Tùy chọn nhân sự khai thác
- * createdBy: TMHieu (30/01/2026)
- */
-const employeeOptions = ref([
-    {
-        value: "nguyen-van-a",
-        label: "Nguyễn Văn A",
-    },
-    {
-        value: "tran-thi-b",
-        label: "Trần Thị B",
-    },
-]);
-/**
- * Tùy cộng tác viên
- * createdBy: TMHieu (30/01/2026)
- */
-const collaboratorOptions = ref([
-    {
-        value: "id1",
-        label: "Dùng Thanh Nộ",
-    },
-    {
-        value: "id2",
-        label: "Trần Thị C",
-    },
-    {
-        value: "khac",
-        label: "Khác",
-    },
-]);
 //#endregion constants
 
 //#region Props
@@ -110,7 +34,7 @@ const props = defineProps({
 //#endregion
 
 //#region State Data
-/** * Trạng thái mở/đóng form ứng viên
+/** * Trạng thái mở/đóng form ca làm việc
  * createdBy: TMHieu (30/01/2026)
  */
 const isFormOpen = defineModel({
@@ -134,8 +58,10 @@ const isFormOpen = defineModel({
  * createdBy: TMHieu (30/01/2026)
  */
 const fieldValid = ref({
-    name: false,
-    phone: false,
+    productionShiftCode: false,
+    productionShiftName: false,
+    productionShiftBeginTime: false,
+    productionShiftEndTime: false,
 });
 
 /**
@@ -145,7 +71,7 @@ const fieldValid = ref({
 const isSubmit = ref(false);
 
 /**
- * Dữ liệu ứng viên trong form
+ * Dữ liệu ca làm việc trong form
  * createdBy: TMHieu (30/01/2026)
  */
 const shift = ref(createShift());
@@ -201,29 +127,18 @@ const handleSubmit = () => {
 const handleCloseForm = () => {
     isFormOpen.value = false;
     isSubmit.value = false;
-    shift.value.id = "";
-    shift.value.fullName = "";
-    shift.value.phone = "";
-    shift.value.source = "";
-    shift.value.email = "";
-    shift.value.country = "";
-    shift.value.address = "";
-    shift.value.educationLevel = "";
-    shift.value.educationPlace = "";
-    shift.value.major = "";
+    shift.value = createShift();
 };
 
 // Đẩy lên cho phép cha gọi đến để đóng và reset form
 defineExpose({
     handleCloseForm,
 });
-
-const valueDate = ref(null);
 //#endregion Methods
 </script>
 
 <template>
-    <!-- Form thêm ứng viên  -->
+    <!-- Form thêm ca làm việc  -->
     <div v-if="isFormOpen" class="form-shift-modal">
         <div class="form-shift__overlay"></div>
         <div class="form-shift__content d-flex flex-column">
@@ -234,275 +149,97 @@ const valueDate = ref(null);
                 <div class="form-shift__close-icon pointer" @click="handleCloseForm"></div>
             </div>
             <div class="form-shift__body d-flex flex-column">
-                <!-- Form body content -->
-                <div
-                    class="form-shift__file d-flex flex-column align-items-center justify-content-center"
-                >
-                    <!-- <input type="file" class="form-shift__input-file" /> -->
-                    <div class="form-shift__input-file-title">
-                        Kéo thả hoặc bấm vào đây để tải CV lên
+                <div class="form-shift__item d-flex justify-content-between">
+                    <div class="form-shift__label form-shift__label--required">Mã ca</div>
+                    <ms-input
+                        v-model="shift.productionShiftCode"
+                        :width="474"
+                        v-model:isValid="fieldValid.productionShiftCode"
+                        v-model:isSubmit="isSubmit"
+                        :maxLength="20"
+                        :firstFocus="true"
+                        required
+                    ></ms-input>
+                </div>
+                <div class="form-shift__item d-flex justify-content-between">
+                    <div class="form-shift__label form-shift__label--required">Tên ca</div>
+                    <ms-input
+                        v-model="shift.productionShiftName"
+                        :width="474"
+                        v-model:isValid="fieldValid.productionShiftName"
+                        v-model:isSubmit="isSubmit"
+                        :maxLength="50"
+                        required
+                    ></ms-input>
+                </div>
+                <div class="form-shift__wrapper-item d-flex justify-content-between">
+                    <div class="form-shift__item d-flex flex-1">
+                        <div class="form-shift__label form-shift__label--required">Giờ vào ca</div>
+                        <ms-input
+                            v-model="shift.productionShiftBeginTime"
+                            :width="122"
+                            v-model:isValid="fieldValid.productionShiftBeginTime"
+                            v-model:isSubmit="isSubmit"
+                            required
+                        ></ms-input>
                     </div>
-                    <div class="form-shift__input-file-note">
-                        Chấp nhận file .docx, .pdf, .doc, .jpg, .jpeg, .png (Dung lượng nhỏ &lt;
-                        15MB)
+                    <div class="form-shift__item d-flex flex-1 justify-content-between">
+                        <div class="form-shift__label form-shift__label--required">Giờ hết ca</div>
+                        <ms-input
+                            v-model="shift.productionShiftEndTime"
+                            :width="122"
+                            v-model:isValid="fieldValid.productionShiftEndTime"
+                            v-model:isSubmit="isSubmit"
+                            required
+                        ></ms-input>
+                    </div>
+                </div>
+                <div class="form-shift__wrapper-item d-flex justify-content-between">
+                    <div class="form-shift__item d-flex flex-1">
+                        <div class="form-shift__label">Bắt đầu nghỉ giữa ca</div>
+                        <ms-input
+                            v-model="shift.productionShiftBeginBreakTime"
+                            :width="122"
+                        ></ms-input>
+                    </div>
+
+                    <div class="form-shift__item d-flex justify-content-between flex-1">
+                        <div class="form-shift__label">Kết thúc nghỉ giữa ca</div>
+                        <ms-input
+                            v-model="shift.productionShiftEndBreakTime"
+                            :width="122"
+                        ></ms-input>
                     </div>
                 </div>
 
-                <!-- <div>{{ formatDateDDMMYYYY(valueDate) }}</div> -->
-
-                <div class="form-shift__infor d-flex">
-                    <div
-                        class="form-shift__image-upload d-flex justify-content-center align-items-center"
-                    >
-                        Ảnh
+                <div class="form-shift__wrapper-item d-flex justify-content-between">
+                    <div class="form-shift__item d-flex flex-1">
+                        <div class="form-shift__label">Thời gian làm việc (giờ)</div>
+                        <ms-input :width="122" disabled></ms-input>
                     </div>
-                    <form class="form-shift__details">
-                        <div class="form-shift__name">
-                            <div class="form-shift__label form-shift__label--required">
-                                Họ và tên
-                            </div>
-                            <ms-input
-                                v-model="shift.fullName"
-                                :placeholder="'Nhập họ và tên'"
-                                :type="'name'"
-                                v-model:isSubmit="isSubmit"
-                                v-model:isValid="fieldValid.name"
-                                required
-                            ></ms-input>
-                        </div>
-                        <div class="d-flex gap-12 m-y-8 w-100 flex-1">
-                            <div class="flex-1">
-                                <div class="form-shift__label">Ngày sinh</div>
-                                <ms-date-picker
-                                    format="DD/MM/YYYY"
-                                    :placeholder="'dd/MM/yyyy'"
-                                    v-model="valueDate"
-                                ></ms-date-picker>
-                            </div>
-                            <div class="flex-1">
-                                <div class="form-shift__label">Giới tính</div>
-                                <ms-select
-                                    :placeholder="'Chọn giới tính'"
-                                    :options="genderOptions"
-                                ></ms-select>
-                            </div>
-                        </div>
-                        <div class="form-shift__area">
-                            <div class="form-shift__label">Khu vực</div>
-                            <div class="d-flex">
-                                <ms-input :placeholder="'Nhập khu vực'"></ms-input>
-                                <div
-                                    class="form-shift__icon-wrapper d-flex justify-content-center align-items-center"
-                                >
-                                    <div class="form-shift__icon-more"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="d-flex gap-12 m-y-8 w-100 flex-1">
-                            <div class="flex-1">
-                                <div class="form-shift__label form-shift__label--required">
-                                    Số điện thoại
-                                </div>
-                                <ms-input
-                                    :placeholder="'Nhập số điện thoại'"
-                                    v-model="shift.phone"
-                                    :type="'phone'"
-                                    v-model:isSubmit="isSubmit"
-                                    v-model:isValid="fieldValid.phone"
-                                    required
-                                ></ms-input>
-                            </div>
-                            <div class="flex-1">
-                                <div class="form-shift__label">Email</div>
-                                <ms-input :placeholder="'Nhập email'" v-model="shift.email" />
-                            </div>
-                        </div>
-                        <div class="form-shift__country m-y-8">
-                            <div class="form-shift__label">Quốc gia</div>
-                            <ms-input :placeholder="'Nhập quốc gia'" v-model="shift.country" />
-                        </div>
-                        <div class="form-shift__city m-y-8">
-                            <div class="form-shift__label">Tỉnh/Thành phố</div>
-                            <ms-input :placeholder="'Nhập tỉnh/thành phố'" disabled />
-                        </div>
-                        <div class="form-shift__district m-y-8">
-                            <div class="form-shift__label">Phường/Xã</div>
-                            <ms-input :placeholder="'Nhập phường/xã'" disabled />
-                        </div>
-                        <div class="form-shift__address m-y-8">
-                            <div class="form-shift__label">Địa chỉ</div>
-                            <ms-input :placeholder="'Nhập địa chỉ'" v-model="shift.address" />
-                        </div>
-                        <div class="form-shift__education m-y-8">
-                            <div class="form-shift__label">HỌC VẤN</div>
-                            <div
-                                class="d-flex form-shift__education-level align-items-center m-y-16"
-                            >
-                                <div class="dot"></div>
-                                <div class="form-shift__label form-shift__label-edu">
-                                    Trình độ học vấn
-                                </div>
-                                <div class="form-shift__input-add d-flex flex-1">
-                                    <ms-input
-                                        :placeholder="'Nhập trình độ đào tạo'"
-                                        v-model="shift.educationLevel"
-                                    />
-                                    <div
-                                        class="form-shift__icon-add-wrapper d-flex justify-content-center align-items-center"
-                                    >
-                                        <div class="form-shift__icon-add"></div>
-                                    </div>
-                                    <div
-                                        class="form-shift__icon-dropdown-wrapper d-flex justify-content-center align-items-center"
-                                    >
-                                        <div class="form-shift__icon-dropdown"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div
-                                class="d-flex form-shift__education-level align-items-center m-y-16"
-                            >
-                                <div class="dot"></div>
-                                <div class="form-shift__label form-shift__label-edu">
-                                    Nơi dào tạo
-                                </div>
-                                <div class="form-shift__input-add d-flex flex-1">
-                                    <ms-input
-                                        :placeholder="'Nhập nơi đào tạo'"
-                                        v-model="shift.educationPlace"
-                                    />
-                                    <div
-                                        class="form-shift__icon-add-wrapper d-flex justify-content-center align-items-center"
-                                    >
-                                        <div class="form-shift__icon-add"></div>
-                                    </div>
-                                    <div
-                                        class="form-shift__icon-dropdown-wrapper d-flex justify-content-center align-items-center"
-                                    >
-                                        <div class="form-shift__icon-dropdown"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div
-                                class="d-flex form-shift__education-level align-items-center m-y-16"
-                            >
-                                <div class="dot"></div>
-                                <div class="form-shift__label form-shift__label-edu">
-                                    Chuyên ngành
-                                </div>
-                                <div class="form-shift__input-add d-flex flex-1">
-                                    <ms-input
-                                        :placeholder="'Nhập chuyên ngành'"
-                                        v-model="shift.major"
-                                    />
-                                    <div
-                                        class="form-shift__icon-add-wrapper d-flex justify-content-center align-items-center"
-                                    >
-                                        <div class="form-shift__icon-add"></div>
-                                    </div>
-                                    <div
-                                        class="form-shift__icon-dropdown-wrapper d-flex justify-content-center align-items-center"
-                                    >
-                                        <div class="form-shift__icon-dropdown"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-shift__add-education-btn d-flex align-items-center">
-                            <div class="form-shift__icon-add"></div>
-                            <div class="form-shift__add-education-btn-text">Thêm học vấn</div>
-                        </div>
-                        <div class="d-flex gap-12 m-y-8 w-100 flex-1">
-                            <div class="flex-1">
-                                <div class="form-shift__label form-shift__label--required">
-                                    Ngày ứng tuyển
-                                </div>
-                                <ms-date-picker :placeholder="'dd/MM/yyyy'" />
-                            </div>
-                            <div class="flex-1">
-                                <div class="form-shift__label">Nguồn ứng viên</div>
 
-                                <ms-select
-                                    :placeholder="'Chọn nguồn ứng viên'"
-                                    :options="sourceOptions"
-                                    v-model="shift.source"
-                                ></ms-select>
-                            </div>
-                        </div>
-                        <div class="d-flex gap-12 m-y-8 w-100 flex-1">
-                            <div class="flex-1">
-                                <div class="form-shift__label">Nhân sự khai thác</div>
-                                <ms-select
-                                    :placeholder="'Chọn nhân sự khai thác'"
-                                    :options="employeeOptions"
-                                ></ms-select>
-                            </div>
-                            <div class="flex-1">
-                                <div class="form-shift__label">Cộng tác viên</div>
+                    <div class="form-shift__item d-flex justify-content-between flex-1">
+                        <div class="form-shift__label">Thời gian nghỉ giữa ca (giờ)</div>
+                        <ms-input :width="122" disabled></ms-input>
+                    </div>
+                </div>
 
-                                <ms-select
-                                    :placeholder="'Chọn cộng tác viên'"
-                                    :options="collaboratorOptions"
-                                ></ms-select>
-                            </div>
-                        </div>
-                        <div class="form-shift__quick-reference m-y-16 d-flex align-items-center">
-                            <input type="checkbox" class="form-shift__quick-reference-input" />
-                            <div class="form-shift__label">
-                                Thêm nhanh người tham chiếu vào kho ứng viên
-                            </div>
-                        </div>
-                        <div class="form-shift__add-education-btn d-flex align-items-center">
-                            <div class="form-shift__icon-add"></div>
-                            <div class="form-shift__add-education-btn-text">
-                                Thêm người giới thiệu
-                            </div>
-                        </div>
-                        <div class="form-shift__address-work m-y-16">
-                            <div class="form-shift__label">Nơi làm việc gần đây</div>
-                            <ms-input :placeholder="'Nhập nơi làm việc'" />
-                        </div>
-                        <div class="form-shift__add-education-btn d-flex align-items-center">
-                            <div class="form-shift__icon-add"></div>
-                            <div class="form-shift__add-education-btn-text">
-                                Thêm kinh nghiệm làm việc
-                            </div>
-                        </div>
-                        <div class="form-shift__work m-y-16">
-                            <div class="form-shift__label">Nơi làm việc</div>
-                            <ms-input :placeholder="'Nhập nơi làm việc'" />
-                        </div>
-                        <div class="form-shift__work-time m-y-16">
-                            <div class="form-shift__label">Thời gian</div>
-                            <div class="form-shift__work-time-input d-flex align-items-center">
-                                <ms-date-picker
-                                    picker="month"
-                                    :placeholder="'MM/yyyy'"
-                                    format="MM/YYYY"
-                                />
-                                <div class="line-v m-x-8"></div>
-                                <ms-date-picker
-                                    picker="month"
-                                    :placeholder="'MM/yyyy'"
-                                    format="MM/YYYY"
-                                />
-                            </div>
-                        </div>
-                        <div class="form-shift__position m-y-16">
-                            <div class="form-shift__label">Vị trí công việc</div>
-                            <ms-input :placeholder="'Nhập vị trí công việc'" />
-                        </div>
-                        <div class="form-shift__work-detail m-y-16">
-                            <div class="form-shift__label">Mô tả công việc</div>
-                            <ms-textarea></ms-textarea>
-                        </div>
-                    </form>
+                <div class="form-shift__item d-flex justify-content-between">
+                    <div class="form-shift__label">Mô tả</div>
+                    <ms-textarea v-model="shift.productionShiftDescription"></ms-textarea>
+                </div>
+                <div v-if="props.typeForm === 'edit'" class="form-shift__item">
+                    <div class="form-shift__item d-flex justify-content-between">
+                        <div class="form-shift__label">Trạng thái</div>
+                    </div>
                 </div>
             </div>
+
             <div class="form-shift__footer d-flex align-items-center justify-content-end">
                 <div class="form-shift__footer-buttons d-flex align-items-center">
-                    <div class="form-shift__cancel-btn pointer" @click="handleCloseForm">Hủy</div>
-                    <div class="form-shift__save-btn pointer" @click="handleSubmit">Lưu</div>
+                    <ms-button :type="'outline'" @click="handleCloseForm">Hủy</ms-button>
+                    <ms-button :type="'outline'">Lưu và thêm</ms-button>
+                    <ms-button @click="handleSubmit">Lưu</ms-button>
                 </div>
             </div>
         </div>
@@ -510,7 +247,7 @@ const valueDate = ref(null);
 </template>
 
 <style scoped>
-/* Style phần form thêm ứng viên  */
+/* Style phần form thêm ca làm việc  */
 .form-shift__overlay {
     position: fixed;
     top: 0;
@@ -526,10 +263,8 @@ const valueDate = ref(null);
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 100%;
-    height: 100%;
-    max-width: 560px;
-    max-height: 815px;
+    height: max-content;
+    width: 680px;
     background-color: white;
     border-radius: var(--border-radius);
     z-index: 11;
@@ -537,7 +272,7 @@ const valueDate = ref(null);
 }
 
 .form-shift__header {
-    margin: 24px 16px 0 24px;
+    margin: 16px 20px;
 }
 
 .form-shift__title {
@@ -548,8 +283,9 @@ const valueDate = ref(null);
 .form-shift__body {
     flex: 1;
     overflow-y: auto;
-    padding: 24px 16px 24px 24px;
+    padding: 20px;
     min-height: 0;
+    row-gap: 16px;
 }
 
 .form-shift__input-file-note {
@@ -574,45 +310,18 @@ const valueDate = ref(null);
     margin-right: 8px;
 }
 
-.form-shift__image-upload {
-    border: 1px dashed #e0e0e0;
-    border-radius: 50%;
-    width: 63px;
-    height: 63px;
-    margin-top: 10px;
-    margin-right: 16px;
-    color: #b2b2b2;
-}
-
-.form-shift__details {
-    flex: 1;
-}
-
 .form-shift__footer {
     height: 56px;
     width: 100%;
-    background-color: #f1f2f5;
-}
-
-.form-shift__save-btn {
-    height: 36px;
-    background-color: var(--primary-color);
-    padding: 10px 24px;
-    color: white;
-    border-radius: var(--border-radius);
-    margin-right: 25px;
-}
-
-.form-shift__cancel-btn {
-    height: 36px;
-    padding: 10px 24px;
-    margin-right: 6px;
+    border-top: 1px solid #e0e0e0;
+    padding: 12px 20px;
 }
 
 .form-shift__label {
-    font-size: 14px;
+    width: 150px;
     font-weight: 500;
-    line-height: 25px;
+    line-height: 27px;
+    margin-right: 16px;
 }
 
 .form-shift__label--required::after {
@@ -695,5 +404,13 @@ const valueDate = ref(null);
     visibility: hidden;
     pointer-events: none;
 }
-/* Kết thúc Style phần form thêm ứng viên  */
+
+.form-shift__footer-buttons {
+    column-gap: 8px;
+}
+
+.form-shift__wrapper-item {
+    column-gap: 16px;
+}
+/* Kết thúc Style phần form thêm ca làm việc  */
 </style>

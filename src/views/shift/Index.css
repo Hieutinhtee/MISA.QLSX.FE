@@ -129,3 +129,19 @@
     flex-shrink: 0;
     margin-right: 8px;
 }
+
+.inactive {
+    padding: 5px 8px;
+    border-radius: 999px;
+    width: max-content;
+}
+
+.inactive--true {
+    background-color: #ebfef6;
+    color: #009b71;
+}
+
+.inactive--false {
+    background-color: #fee2e2;
+    color: #dc2626;
+}

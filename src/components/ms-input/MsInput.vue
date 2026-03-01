@@ -1,5 +1,6 @@
 <script setup>
 import { ref, defineModel, computed, watch, onMounted } from "vue";
+import { Tooltip } from "ant-design-vue";
 
 //#region Props
 /**
@@ -23,12 +24,15 @@ const isValid = defineModel("isValid");
 const isSubmit = defineModel("isSubmit");
 
 /**
- * Loại input
+ * Khai báo props truyền vào
  * @property {string} type - Loại input. Giá trị hợp lệ: 'text', 'name', 'phone'.
  * @property {boolean} required - Trường bắt buộc hay không. Giá trị hợp lệ: true, false.
  * @property {string} placeholder - Giá trị hợp lệ: 'text', 'name', 'phone'.
  * @property {boolean} disabled - Disable input hay không. Giá trị hợp lệ: true, false.
  * @property {string} error - Lỗi nghiệp vụ riêng gửi xuống từ form.
+ * @property {string} label - Tieu de cua input
+ * @property {number} maxLength - Giới hạn số ký tự trên input
+ * @property {boolean} firstFocus - Focus về input năm đầu tiên khi mở form
  * createdBy: TMHieu (29/01/2026)
  */
 const props = defineProps({
@@ -36,6 +40,10 @@ const props = defineProps({
         type: String,
         default: "text",
         validator: (value) => ["text", "name", "email", "phone"].includes(value),
+    },
+    width: {
+        type: [String, Number],
+        default: "100%",
     },
     required: {
         type: Boolean,
@@ -52,6 +60,18 @@ const props = defineProps({
     error: {
         type: String,
         default: "",
+    },
+    label: {
+        type: String,
+        default: "",
+    },
+    maxLength: {
+        type: Number,
+        default: null,
+    },
+    firstFocus: {
+        type: Boolean,
+        default: false,
     },
 });
 
@@ -78,12 +98,23 @@ const touched = ref(false);
 
 //#region Computed
 /**
+ * Style input, ở đây là width theo px
+ * createdBy: TMHieu (29/01/2026)
+ */
+const inputStyle = computed(() => {
+    if (typeof props.width === "number") {
+        return { width: `${props.width}px` };
+    }
+    return { width: props.width };
+});
+
+/**
  * Thông báo lỗi nội bộ chung
  * createdBy: TMHieu (29/01/2026)
  */
 const internalError = computed(() => {
     if (props.required && !modelValue.value) {
-        return "Không được để trống";
+        return ` không được để trống`;
     }
 
     if (props.type === "phone" && modelValue.value) {
@@ -156,6 +187,16 @@ watch(
     { immediate: true },
 );
 
+/**
+ * Chặn paste vượt quá maxLength
+ * createdBy: TMHieu (29/01/2026)
+ * @param e - Sự kiện thay đổi ô input
+ */
+const handleInput = (e) => {
+    if (props.maxLength && e.target.value.length > props.maxLength) {
+        modelValue.value = e.target.value.slice(0, props.maxLength);
+    }
+};
 //#endregion Watchers
 
 //#region Lifecycle Hooks
@@ -164,7 +205,7 @@ watch(
  * createdBy: TMHieu (29/01/2026)
  */
 onMounted(() => {
-    if (props.type === "name" && inputRef.value) {
+    if (props.firstFocus && inputRef.value) {
         inputRef.value.focus();
     }
 });
@@ -173,26 +214,33 @@ onMounted(() => {
 </script>
 
 <template>
-    <input
-        ref="inputRef"
-        :class="{ 'input--error': displayError }"
-        v-model="modelValue"
-        :disabled="disabled"
-        :placeholder="placeholder"
-        @blur="touched = true"
-    />
-    <div v-if="displayError" class="form-candidate__text-error">{{ displayError }}</div>
+    <tooltip placement="bottom" :align="{ offset: [0, -4] }">
+        <template v-if="displayError" #title>
+            <span>{{ displayError }}</span>
+        </template>
+        <input
+            ref="inputRef"
+            :class="{ 'input--error': displayError }"
+            :style="inputStyle"
+            v-model="modelValue"
+            :disabled="disabled"
+            :placeholder="placeholder"
+            :maxlength="maxLength || undefined"
+            @blur="touched = true"
+            @input="handleInput"
+        />
+    </tooltip>
 </template>
 
 <style scoped>
 input {
-    height: 34px;
+    height: 27px;
     width: 100%;
     min-width: 0;
-    padding: 2px 16px 0;
+    padding: 5px 12px;
     border-radius: var(--border-radius);
     outline: none;
-    border: 1px solid #dcdce3;
+    border: 0.5px solid #d1d5db;
 }
 
 input::placeholder {

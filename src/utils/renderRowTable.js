@@ -34,12 +34,12 @@ const AVATAR_COLORS = [
  * @returns Giá trị hiển thị
  */
 export const renderValue = (value) => {
-    return value && String(value).trim() !== "" ? value : "--";
+    return value && String(value).trim() !== "" ? value : "-";
 };
 
 /** Lấy màu nền avatar theo chữ cái đầu tên
  * createdBy: TMHieu (22/01/2026)
- * @param {string} name Tên ứng viên
+ * @param {string} name Tên ca làm việc
  * @returns Màu nền avatar
  */
 export const getAvatarColor = (name) => {
@@ -47,10 +47,10 @@ export const getAvatarColor = (name) => {
     return AVATAR_COLORS[charCode % AVATAR_COLORS.length];
 };
 
-/** Lấy chữ cái đầu tiên của tên ứng viên
+/** Lấy chữ cái đầu tiên của tên ca làm việc
  * createdBy: TMHieu (22/01/2026)
- * @param {string} fullName Tên ứng viên
- * @returns Chữ cái đầu tiên của tên ứng viên
+ * @param {string} fullName Tên ca làm việc
+ * @returns Chữ cái đầu tiên của tên ca làm việc
  */
 export const getAvatarLetter = (fullName) => {
     if (!fullName) return "?";

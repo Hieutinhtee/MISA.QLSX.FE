@@ -32,3 +32,33 @@ export function formatDateDDMMYYYY(date) {
 
     return `${day}/${month}/${year}`;
 }
+
+/**
+ * Format thời gian từ HH:mm:ss về HH:mm
+ * createdBy: TMHieu (28/02/2026)
+ * @param {string} time Chuỗi thời gian dạng HH:mm:ss
+ * @returns {string} HH:mm
+ */
+export function formatTimeHHMM(time) {
+    if (!time) return "";
+
+    // Nếu là chuỗi kiểu 08:00:00
+    if (typeof time === "string") {
+        const parts = time.split(":");
+        if (parts.length >= 2) {
+            const hour = parts[0].padStart(2, "0");
+            const minute = parts[1].padStart(2, "0");
+            return `${hour}:${minute}`;
+        }
+        return "";
+    }
+
+    // Nếu truyền vào Date object
+    if (time instanceof Date && !isNaN(time)) {
+        const hour = String(time.getHours()).padStart(2, "0");
+        const minute = String(time.getMinutes()).padStart(2, "0");
+        return `${hour}:${minute}`;
+    }
+
+    return "";
+}
