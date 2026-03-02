@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch, reactive } from "vue";
 import MsTable from "@/components/ms-table/MsTable.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import shiftForm from "./ShiftForm.vue";
@@ -100,17 +100,28 @@ const shiftFormRef = ref(null);
  */
 const rows = ref([]);
 
+// Payload phân trang và filter
 /**
- * Giá trị nhập trong ô tìm kiếm
- * createdBy: TMHieu (29/01/2026)
+ * Dữ liệu payload để gọi API phân trang và filter
+ * @type {Object}
  */
-const searchInput = ref("");
+const payload = reactive({
+    page: 1,
+    pageSize: 20,
+    search: "",
+    totalRows: 0,
+});
 
-/**
- * Các trường dùng để tìm kiếm ca làm việc
- * createdBy: TMHieu (29/01/2026)
- */
-const searchFields = ref(["fullName", "email", "phone"]);
+// /**
+//  * Các trường dùng để tìm kiếm ca làm việc
+//  * createdBy: TMHieu (29/01/2026)
+//  */
+// const searchFields = ref([
+//     "productionShiftCode",
+//     "productionShiftName",
+//     "productionShiftModifiedBy",
+//     "productionShiftCreatedBy",
+// ]);
 
 /**
  * Kiểu form hiện tại: thêm hoặc sửa
@@ -125,12 +136,6 @@ const typeForm = ref("add");
 const isFormOpen = ref(false);
 
 /**
- * Giá trị tìm kiếm đã được debounce
- * createdBy: TMHieu (29/01/2026)
- */
-const searchDebounced = ref("");
-
-/**
  * lưu lại row được gửi lên từ bảng
  * row xóa hoặc edit
  * createdBy: TMHieu (29/01/2026)
@@ -140,6 +145,17 @@ const selectedRow = ref(null);
 //#endregion State Data
 
 //#region Methods
+
+/**
+ * Hàm reload lại dữ liệu về trạng thái mặc định (trang 1, clear filter)
+ * createdby: TMHieu - 09.12.2025
+ */
+function reloadData() {
+    payload.page = 1;
+    payload.pageSize = 20;
+    payload.search = "";
+    loadDataForAPI();
+}
 
 /**
  * Xử lý dữ liệu khi form gửi lên sự kiện submit
@@ -171,7 +187,16 @@ const handleSubmit = (shift) => {
  * @param {Object} shift Đối tượng ca làm việc
  * createdBy: TMHieu (22/01/2026)
  */
-function addShift(shift) {}
+function addShift(shift) {
+    ShiftsAPI.create(shift)
+        .then((res) => {
+            if (res.status === 201 || res.status === 200) {
+                shiftFormRef.value?.handleCloseForm();
+            }
+        })
+        .catch(() => {})
+        .finally(() => {});
+}
 
 /**
  * Xử lý cập nhật ca làm việc
@@ -252,45 +277,49 @@ function handleFormAddOpen() {
 }
 
 /**
+ * Hàm xử lý khi thay đổi phân trang (nhận từ component con)
+ * @param {Object} newPayload - { page, pageSize }
+ * createdby: TMHieu - 09.12.2025
+ */
+function onPaginationUpdate(newPayload) {
+    Object.assign(payload, newPayload);
+    loadDataForAPI();
+}
+
+const onSearchChange = (newPayload) => {
+    Object.assign(payload, newPayload);
+    loadDataForAPI();
+};
+
+/**
  * Hàm gọi API lấy danh sách khách hàng theo payload hiện tại
  * createdby: TMHieu - 09.12.2025
  */
 async function loadDataForAPI() {
     setTimeout(async () => {
         try {
-            const result = await ShiftsAPI.getAll({});
+            const { page, pageSize, search } = payload;
+            const result = await ShiftsAPI.paging({
+                page,
+                pageSize,
+                search,
+            });
             rows.value.splice(0, rows.value.length, ...result.data.data);
+            payload.totalRows = result.data.meta.total;
         } catch (err) {
             console.error(err);
         }
-    }, 100); // Dùng setTimeout 0ms để tách khỏi watch/ui thread
+    }, 0); // Dùng setTimeout 0ms để tách khỏi watch/ui thread
 }
 //#endregion Methods
 
 //#region watchers
 
-/**
- * debounceTimer giá trị tìm kiếm
- * createdBy: TMHieu (29/01/2026)
- */
-let debounceTimer = null;
-
-/**
- * Thay đổi giá trị tìm kiếm
- * createdBy: TMHieu (29/01/2026)
- */
-watch(searchInput, (value) => {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-        searchDebounced.value = value;
-    }, 300);
-});
-
 //endregion watchers
 
 //#region Lifecycle Hooks
 onMounted(() => {
-    // Cập nhật lại dữ liệu ca làm việc từ LocalStorage khi component được mount
+    // Load dữ liệu ca làm việc khi component được mount
     loadDataForAPI();
 });
 //#endregion Lifecycle Hooks
@@ -312,8 +341,10 @@ onMounted(() => {
             <ms-table
                 :columns="columns"
                 :rows="rows"
-                :search="searchDebounced"
-                :searchFields="searchFields"
+                :pagination-data="payload"
+                @update:pagination="onPaginationUpdate"
+                @update:search="onSearchChange"
+                @reload="reloadData"
                 @delete-row="handleDelete"
                 @edit-row="handleEdit"
             >

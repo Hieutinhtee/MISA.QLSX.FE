@@ -62,3 +62,20 @@ export function formatTimeHHMM(time) {
 
     return "";
 }
+
+/**
+ * Format ngày tháng theo định dạng dd/mm/YYYY
+ * createdBy: TMHieu (22/01/2026)
+ * @param {string} time - thời gian cần format
+ */
+export function formatTime(time) {
+    if (!time) return null;
+
+    // Nếu đã là HH:mm:ss thì giữ nguyên
+    if (time.length === 8) return time;
+
+    // Nếu là HH:mm thì thêm :00
+    if (time.length === 5) return time + ":00";
+
+    return null;
+}

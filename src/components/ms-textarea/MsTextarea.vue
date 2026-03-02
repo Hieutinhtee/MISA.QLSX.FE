@@ -1,5 +1,14 @@
+<script setup>
+/**
+ * Giá trị của input
+ * @property {string} value - Giá trị của input.
+ * createdBy: TMHieu (29/01/2026)
+ */
+const modelValue = defineModel();
+</script>
+
 <template>
-    <textarea type="textarea"></textarea>
+    <textarea v-model="modelValue" type="textarea"></textarea>
 </template>
 
 <style scoped>

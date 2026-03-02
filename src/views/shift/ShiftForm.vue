@@ -4,14 +4,15 @@ import MsButton from "@/components/ms-button/MsButton.vue";
 import MsInput from "@/components/ms-input/MsInput.vue";
 import { createShift } from "@/common/model/shiftModel";
 import MsTextarea from "@/components/ms-textarea/MsTextarea.vue";
+import { formatTime } from "@/utils/common";
 
 //#region constants
 /**
  * Tiêu đề form ca làm việc
  * createdBy: TMHieu (22/01/2026)
  */
-const TITLE_shift_FORM_ADD = "Thêm Ca làm việc";
-const TITLE_shift_FORM_EDIT = "Sửa Ca làm việc";
+const TITLE_SHIFT_FORM_ADD = "Thêm Ca làm việc";
+const TITLE_SHIFT_FORM_EDIT = "Sửa Ca làm việc";
 
 //#endregion constants
 
@@ -25,7 +26,7 @@ const props = defineProps({
     typeForm: {
         type: String,
         default: "add",
-        validator: (value) => ["add", "edit"].includes(value),
+        validator: (value) => ["add", "edit", "duplicate"].includes(value),
     },
     data: {
         type: Object,
@@ -43,17 +44,6 @@ const isFormOpen = defineModel({
 });
 
 /**
- * Thông báo lỗi của các trường trong
- * form nếu có valaidate liên quan nghiệp vụ
- * ví dụ trùng tên hoặc số điện thoại
- * createdBy: TMHieu (30/01/2026)
- */
-// const errorMessage = ref({
-//     fullName: "",
-//     phone: "",
-// });
-
-/**
  * Trạng thái hợp lệ của các trường trong form
  * createdBy: TMHieu (30/01/2026)
  */
@@ -63,6 +53,13 @@ const fieldValid = ref({
     productionShiftBeginTime: false,
     productionShiftEndTime: false,
 });
+
+/**
+ * Thời gian tạm tính trong form
+ * createdBy: TMHieu (30/01/2026)
+ */
+const workTime = ref();
+const breakTime = ref();
 
 /**
  * Trạng thái đã submit form
@@ -104,12 +101,128 @@ watch(
         if (props.typeForm === "add") {
             shift.value = createShift();
         }
+
+        if (props.typeForm === "duplicate" && props.data) {
+            shift.value = {
+                ...props.data,
+                productionShiftId: "",
+                productionShiftCode: "",
+            };
+        }
+    },
+);
+
+watch(
+    () => [
+        shift.value.productionShiftBeginTime,
+        shift.value.productionShiftEndTime,
+        shift.value.productionShiftBeginBreakTime,
+        shift.value.productionShiftEndBreakTime,
+    ],
+    ([begin, end, breakBegin, breakEnd]) => {
+        if (!begin || !end) {
+            resetTime();
+            return;
+        }
+
+        const shiftRange = normalizeShift(begin, end);
+        if (!shiftRange) {
+            resetTime();
+            return;
+        }
+
+        const { shiftBegin, shiftEnd } = shiftRange;
+        const shiftDuration = shiftEnd - shiftBegin;
+
+        let breakDuration = 0;
+
+        if (breakBegin && breakEnd) {
+            const breakRange = normalizeBreak(breakBegin, breakEnd, shiftBegin);
+
+            if (!breakRange) {
+                resetTime();
+                return;
+            }
+
+            const { breakBeginMin, breakEndMin } = breakRange;
+
+            breakDuration = breakEndMin - breakBeginMin;
+
+            // break phải nằm trong ca
+            if (
+                breakBeginMin < shiftBegin ||
+                breakEndMin > shiftEnd ||
+                breakDuration <= 0 ||
+                breakDuration >= shiftDuration
+            ) {
+                resetTime();
+                return;
+            }
+        }
+
+        breakTime.value = round2(breakDuration / 60);
+
+        workTime.value = round2((shiftDuration - breakDuration) / 60);
     },
 );
 
 //#endregion watch
 
 //#region Methods
+
+/**
+ * Hàm tính thời gian tạm tính
+ * createdBy: TMHieu (30/01/2026)
+ */
+function resetTime() {
+    shift.value.productionShiftWorkingTime = 0;
+    shift.value.productionShiftBreakTime = 0;
+}
+
+function toMinutes(time) {
+    const [h, m] = time.split(":").map(Number);
+    if (Number.isNaN(h) || Number.isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) {
+        return null;
+    }
+    return h * 60 + m;
+}
+
+// Chuẩn hóa ca làm (xử lý qua ngày)
+function normalizeShift(begin, end) {
+    let shiftBegin = toMinutes(begin);
+    let shiftEnd = toMinutes(end);
+
+    if (shiftBegin == null || shiftEnd == null) return null;
+
+    if (shiftEnd <= shiftBegin) {
+        shiftEnd += 24 * 60;
+    }
+
+    return { shiftBegin, shiftEnd };
+}
+
+// Chuẩn hóa nghỉ (nâng lên cùng timeline ca)
+function normalizeBreak(breakBegin, breakEnd, shiftBegin) {
+    let breakBeginMin = toMinutes(breakBegin);
+    let breakEndMin = toMinutes(breakEnd);
+
+    if (breakBeginMin == null || breakEndMin == null) return null;
+
+    // nếu break nhỏ hơn shiftBegin → nghĩa là hôm sau
+    if (breakBeginMin < shiftBegin) {
+        breakBeginMin += 24 * 60;
+    }
+
+    if (breakEndMin <= breakBeginMin) {
+        breakEndMin += 24 * 60;
+    }
+
+    return { breakBeginMin, breakEndMin };
+}
+
+function round2(num) {
+    return Math.round(num * 100) / 100;
+}
 
 /**
  * Hàm xử lý sự kiện submit form
@@ -119,9 +232,10 @@ const handleSubmit = () => {
     isSubmit.value = true;
 
     const allValid = Object.values(fieldValid.value).every(Boolean);
-    if (allValid) {
-        emit("submit", { ...shift.value });
-    }
+    if (!allValid) return;
+
+    const payload = buildPayload(shift.value, false);
+    emit("submit", payload);
 };
 
 const handleCloseForm = () => {
@@ -129,6 +243,47 @@ const handleCloseForm = () => {
     isSubmit.value = false;
     shift.value = createShift();
 };
+
+const currentUser = "Thái Minh Hiếu";
+
+/**
+ * Hàm xử lý trước khi sự kiện submit form
+ * createdBy: TMHieu (29/01/2026)
+ * @param shiftData dữ liệu cơ bản trên form
+ * @param isUpdate có phải update hay không
+ * @returns dữ liệu cơ bản trên form
+ */
+function buildPayload(shiftData, isUpdate = false) {
+    const {
+        productionShiftId,
+        productionShiftBreakTime,
+        productionShiftWorkingTime,
+        productionCreatedBy,
+        productionModifiedBy,
+        ...rest
+    } = shiftData;
+
+    const basePayload = {
+        ...rest,
+        productionShiftBeginTime: formatTime(rest.productionShiftBeginTime),
+        productionShiftEndTime: formatTime(rest.productionShiftEndTime),
+        productionShiftBeginBreakTime: formatTime(rest.productionShiftBeginBreakTime),
+        productionShiftEndBreakTime: formatTime(rest.productionShiftEndBreakTime),
+    };
+
+    if (!isUpdate) {
+        return {
+            ...basePayload,
+            productionShiftCreatedBy: currentUser,
+            productionShiftModifiedBy: currentUser,
+        };
+    }
+
+    return {
+        ...basePayload,
+        productionShiftModifiedBy: currentUser,
+    };
+}
 
 // Đẩy lên cho phép cha gọi đến để đóng và reset form
 defineExpose({
@@ -139,19 +294,26 @@ defineExpose({
 
 <template>
     <!-- Form thêm ca làm việc  -->
-    <div v-if="isFormOpen" class="form-shift-modal">
+    <div
+        v-if="isFormOpen"
+        class="form-shift-modal"
+        @keydown.ctrl.s.prevent="handleSubmit"
+        @keydown.esc="handleCloseForm"
+    >
         <div class="form-shift__overlay"></div>
         <div class="form-shift__content d-flex flex-column">
             <div class="form-shift__header d-flex justify-content-between align-items-center">
                 <div class="form-shift__title">
-                    {{ props.typeForm === "add" ? TITLE_shift_FORM_ADD : TITLE_shift_FORM_EDIT }}
+                    {{ props.typeForm === "add" ? TITLE_SHIFT_FORM_ADD : TITLE_SHIFT_FORM_EDIT }}
                 </div>
                 <div class="form-shift__close-icon pointer" @click="handleCloseForm"></div>
             </div>
+
             <div class="form-shift__body d-flex flex-column">
                 <div class="form-shift__item d-flex justify-content-between">
                     <div class="form-shift__label form-shift__label--required">Mã ca</div>
                     <ms-input
+                        :label="'Mã ca'"
                         v-model="shift.productionShiftCode"
                         :width="474"
                         v-model:isValid="fieldValid.productionShiftCode"
@@ -165,6 +327,7 @@ defineExpose({
                     <div class="form-shift__label form-shift__label--required">Tên ca</div>
                     <ms-input
                         v-model="shift.productionShiftName"
+                        :label="'Tên ca'"
                         :width="474"
                         v-model:isValid="fieldValid.productionShiftName"
                         v-model:isSubmit="isSubmit"
@@ -176,20 +339,25 @@ defineExpose({
                     <div class="form-shift__item d-flex flex-1">
                         <div class="form-shift__label form-shift__label--required">Giờ vào ca</div>
                         <ms-input
+                            :label="'Giờ vào ca'"
                             v-model="shift.productionShiftBeginTime"
                             :width="122"
                             v-model:isValid="fieldValid.productionShiftBeginTime"
                             v-model:isSubmit="isSubmit"
+                            :type="'HH:MM'"
                             required
                         ></ms-input>
                     </div>
                     <div class="form-shift__item d-flex flex-1 justify-content-between">
                         <div class="form-shift__label form-shift__label--required">Giờ hết ca</div>
+
                         <ms-input
+                            :label="'Giờ hết ca'"
                             v-model="shift.productionShiftEndTime"
                             :width="122"
                             v-model:isValid="fieldValid.productionShiftEndTime"
                             v-model:isSubmit="isSubmit"
+                            :type="'HH:MM'"
                             required
                         ></ms-input>
                     </div>
@@ -198,7 +366,9 @@ defineExpose({
                     <div class="form-shift__item d-flex flex-1">
                         <div class="form-shift__label">Bắt đầu nghỉ giữa ca</div>
                         <ms-input
+                            :type="'HH:MM'"
                             v-model="shift.productionShiftBeginBreakTime"
+                            :placeholder="'HH:MM'"
                             :width="122"
                         ></ms-input>
                     </div>
@@ -206,7 +376,9 @@ defineExpose({
                     <div class="form-shift__item d-flex justify-content-between flex-1">
                         <div class="form-shift__label">Kết thúc nghỉ giữa ca</div>
                         <ms-input
+                            :type="'HH:MM'"
                             v-model="shift.productionShiftEndBreakTime"
+                            :placeholder="'HH:MM'"
                             :width="122"
                         ></ms-input>
                     </div>
@@ -215,12 +387,12 @@ defineExpose({
                 <div class="form-shift__wrapper-item d-flex justify-content-between">
                     <div class="form-shift__item d-flex flex-1">
                         <div class="form-shift__label">Thời gian làm việc (giờ)</div>
-                        <ms-input :width="122" disabled></ms-input>
+                        <ms-input v-model="workTime" :width="122" disabled></ms-input>
                     </div>
 
                     <div class="form-shift__item d-flex justify-content-between flex-1">
                         <div class="form-shift__label">Thời gian nghỉ giữa ca (giờ)</div>
-                        <ms-input :width="122" disabled></ms-input>
+                        <ms-input v-model="breakTime" :width="122" disabled></ms-input>
                     </div>
                 </div>
 
@@ -237,9 +409,11 @@ defineExpose({
 
             <div class="form-shift__footer d-flex align-items-center justify-content-end">
                 <div class="form-shift__footer-buttons d-flex align-items-center">
-                    <ms-button :type="'outline'" @click="handleCloseForm">Hủy</ms-button>
-                    <ms-button :type="'outline'">Lưu và thêm</ms-button>
-                    <ms-button @click="handleSubmit">Lưu</ms-button>
+                    <ms-button @click="handleSubmit" tabindex="0">Lưu</ms-button>
+                    <ms-button :type="'outline'" tabindex="0">Lưu và thêm</ms-button>
+                    <ms-button :type="'outline'" @click="handleCloseForm" tabindex="0"
+                        >Hủy</ms-button
+                    >
                 </div>
             </div>
         </div>
@@ -282,7 +456,6 @@ defineExpose({
 
 .form-shift__body {
     flex: 1;
-    overflow-y: auto;
     padding: 20px;
     min-height: 0;
     row-gap: 16px;
@@ -407,6 +580,7 @@ defineExpose({
 
 .form-shift__footer-buttons {
     column-gap: 8px;
+    flex-direction: row-reverse;
 }
 
 .form-shift__wrapper-item {

@@ -42,7 +42,22 @@ const filterOption = (input, option) => {
 </script>
 
 <template>
-    <Select v-model:value="value" show-search :options="options" class="w-100"></Select>
+    <Select
+        v-model:value="value"
+        show-search
+        :options="options"
+        class="w-100 ms-select"
+        height="12"
+    >
+        <template #suffixIcon> <slot></slot> </template>
+    </Select>
 </template>
 
-<style></style>
+<style>
+.ant-select .ant-select-selector {
+    height: 28px !important;
+    font-size: 13px !important;
+    line-height: 28px !important;
+    align-items: center !important;
+}
+</style>

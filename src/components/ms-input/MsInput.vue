@@ -1,8 +1,16 @@
 <script setup>
-import { ref, defineModel, computed, watch, onMounted } from "vue";
+import { ref, defineModel, computed, watch, onMounted, nextTick } from "vue";
 import { Tooltip } from "ant-design-vue";
 
 //#region Props
+
+/**
+ * Lỗi gửi lên cha khi submit
+ * @property {string} error - Lỗi gửi lên cha.
+ * createdBy: TMHieu (29/01/2026)
+ */
+const emit = defineEmits(["error"]);
+
 /**
  * Giá trị của input
  * @property {string} value - Giá trị của input.
@@ -39,7 +47,7 @@ const props = defineProps({
     type: {
         type: String,
         default: "text",
-        validator: (value) => ["text", "name", "email", "phone"].includes(value),
+        validator: (value) => ["text", "name", "email", "phone", "HH:MM"].includes(value),
     },
     width: {
         type: [String, Number],
@@ -114,7 +122,7 @@ const inputStyle = computed(() => {
  */
 const internalError = computed(() => {
     if (props.required && !modelValue.value) {
-        return ` không được để trống`;
+        return `${props.label} không được để trống`;
     }
 
     if (props.type === "phone" && modelValue.value) {
@@ -197,7 +205,82 @@ const handleInput = (e) => {
         modelValue.value = e.target.value.slice(0, props.maxLength);
     }
 };
+
+watch(
+    () => displayError.value,
+    (val) => {
+        if (isSubmit.value && val) {
+            nextTick(() => {
+                emit("error", val);
+            });
+        }
+    },
+);
+
+watch(
+    () => modelValue.value,
+    (val) => {
+        if (props.type === "HH:MM" && typeof val === "string") {
+            // Nếu là dạng HH:mm:ss thì cắt còn HH:mm
+            if (/^\d{2}:\d{2}:\d{2}$/.test(val)) {
+                modelValue.value = val.slice(0, 5);
+            }
+        }
+    },
+    { immediate: true },
+);
 //#endregion Watchers
+
+//#region Time Picker
+/**
+ * Trạng thái mở time picker
+ * createdBy: TMHieu (29/01/2026)
+ */
+const isOpenTimeOption = ref(false);
+
+// Tạo danh sách 00:00 → 23:30 mỗi 30 phút
+const timeOptions = computed(() => {
+    const result = [];
+    for (let h = 0; h < 24; h++) {
+        for (let m = 0; m < 60; m += 30) {
+            const hh = String(h).padStart(2, "0");
+            const mm = String(m).padStart(2, "0");
+            result.push(`${hh}:${mm}`);
+        }
+    }
+    return result;
+});
+
+// Format khi nhập tay
+const handleInputTime = (e) => {
+    let raw = e.target.value.replace(/\D/g, "").slice(0, 4); // chỉ 4 số
+
+    if (raw.length < 4) {
+        modelValue.value = raw;
+        return;
+    }
+
+    let hh = parseInt(raw.slice(0, 2));
+    let mm = parseInt(raw.slice(2, 4));
+
+    // Giới hạn giờ
+    if (hh > 23) hh = 23;
+
+    // Chỉ cho 00 hoặc 30
+    if (mm > 59) {
+        mm = 59;
+    }
+
+    const formatted = String(hh).padStart(2, "0") + ":" + String(mm).padStart(2, "0");
+
+    modelValue.value = formatted;
+};
+
+const selectTime = (time) => {
+    modelValue.value = time;
+    isOpenTimeOption.value = false;
+};
+//#endregion Time Picker
 
 //#region Lifecycle Hooks
 /**
@@ -209,7 +292,6 @@ onMounted(() => {
         inputRef.value.focus();
     }
 });
-
 //#endregion Lifecycle Hooks
 </script>
 
@@ -218,7 +300,36 @@ onMounted(() => {
         <template v-if="displayError" #title>
             <span>{{ displayError }}</span>
         </template>
+        <div v-if="type === 'HH:MM'" class="time-wrapper" :style="inputStyle">
+            <input
+                ref="inputRef"
+                class="time-input"
+                :class="{ 'input--error': displayError }"
+                :disabled="disabled"
+                :value="modelValue"
+                @input="handleInputTime"
+                placeholder="HH:MM"
+                @blur="touched = true"
+                maxlength="5"
+            />
+
+            <!-- Icon -->
+            <div class="time-icon" @click="isOpenTimeOption = !isOpenTimeOption"></div>
+
+            <!-- Dropdown -->
+            <div v-if="isOpenTimeOption" class="time-dropdown">
+                <div
+                    v-for="time in timeOptions"
+                    :key="time"
+                    class="time-option"
+                    @click="selectTime(time)"
+                >
+                    {{ time }}
+                </div>
+            </div>
+        </div>
         <input
+            v-else
             ref="inputRef"
             :class="{ 'input--error': displayError }"
             :style="inputStyle"
@@ -260,5 +371,61 @@ input:hover {
     color: red;
     font-size: 12px;
     margin-top: 5px;
+}
+</style>
+<style scoped>
+.time-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.time-input {
+    height: 27px;
+    width: 100%;
+    padding: 5px 28px 5px 12px;
+    border-radius: 4px;
+    border: 1px solid #d1d5db;
+    outline: none;
+}
+
+.time-input:focus {
+    border-color: #00a896;
+}
+
+.time-icon {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 14px;
+    height: 16px;
+    width: 16px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-image: url(/src/assets/icon/svg/time-icon.svg);
+}
+
+.time-dropdown {
+    position: absolute;
+    top: 110%;
+    left: 0;
+    width: 100%;
+    height: 180px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    z-index: 999999999;
+}
+
+.time-option {
+    padding: 6px 10px;
+    cursor: pointer;
+    text-align: center;
+}
+
+.time-option:hover {
+    background-color: #f3f4f6;
 }
 </style>

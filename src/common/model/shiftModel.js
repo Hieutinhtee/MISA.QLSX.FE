@@ -1,9 +1,10 @@
 // Tạo shift mới, dùng chung
 // createdBy: TMHieu (22/01/2026)
 export const createShift = () => ({
-    productionShiftId: "",
+    productionShiftId: null,
     productionShiftCode: "",
     productionShiftName: "",
+    productionShiftDescription: "",
     productionShiftBeginTime: null,
     productionShiftEndTime: null,
     productionShiftBeginBreakTime: null,

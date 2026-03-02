@@ -1,5 +1,5 @@
 <script setup>
-import { ref, defineProps, watch, computed } from "vue";
+import { ref, defineProps, watch, computed, reactive } from "vue";
 import { renderValue } from "@/utils/renderRowTable.js";
 import MsSelect from "@/components/ms-select/MsSelect.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
@@ -7,19 +7,23 @@ import { formatTimeHHMM } from "@/utils/common.js";
 
 const pageSizeOptions = ref([
     {
-        value: "15",
-        label: "15",
+        value: 10,
+        label: "10",
     },
     {
-        value: "25",
-        label: "25",
+        value: 20,
+        label: "20",
     },
     {
-        value: "50",
+        value: 30,
+        label: "30",
+    },
+    {
+        value: 50,
         label: "50",
     },
     {
-        value: "100",
+        value: 100,
         label: "100",
     },
 ]);
@@ -47,20 +51,42 @@ const props = defineProps({
         default: () => [],
         validator: (value) => Array.isArray(value),
     },
+    /** prop cho paging, sort */
+    paginationData: {
+        type: Object,
+        required: true,
+    },
 });
 //#endregion
 
 //#region State Data
 /**
- * Dữ liệu phân trang
+ * Copy local của dữ liệu phân trang để component con tự quản lý
  * @property {number} page - Trang hiện tại.
  * @property {number} pageSize - Số bản ghi trên mỗi trang.
- * createdBy: TMHieu (28/01/2026)
+ * @property {number} totalRows - Tổng số bản ghi.
+ * @property {number} recordStart - Số thứ tự bản ghi đầu trang.
+ * @property {number} recordEnd - Số thứ tự bản ghi cuối trang.
  */
-let pagingData = ref({
-    page: 1,
-    pageSize: 15,
+const localData = reactive({
+    ...props.paginationData,
+    recordStart: 1,
+    recordEnd: 1,
 });
+
+// Trạng thái các nút paging
+const pagingState = ref({
+    first: true,
+    prev: true,
+    next: false,
+    last: false,
+});
+
+/**
+ * Giá trị nhập trong ô tìm kiếm
+ * createdBy: TMHieu (29/01/2026)
+ */
+const searchInput = ref("");
 //#endregion State Data
 
 //#region Methods
@@ -76,24 +102,72 @@ const getFieldType = (field) => {
 };
 
 /**
- * Xử lý khi nhấn nút Prev
- * createdBy: TMHieu (29/01/2026)
+ * Hàm tính lại recordStart (bản ghi đầu) và recordEnd (bản ghi cuối)
+ * dựa trên pageSize và page (số trang).
+ * @param {number} pageNumber - Số trang hiện tại.
+ * createdby: TMHieu - 09.12.2025
  */
-const handlePrevPage = () => {
-    if (pagingData.value.page > 1) {
-        pagingData.value.page--;
+function computeRecordRange(pageNumber) {
+    if (localData.totalRows === 0) {
+        localData.recordStart = 0;
+        localData.recordEnd = 0;
+        return;
     }
-};
+    localData.recordStart = (pageNumber - 1) * localData.pageSize + 1;
+    localData.recordEnd = Math.min(
+        localData.recordStart + localData.pageSize - 1,
+        localData.totalRows,
+    );
+}
 
 /**
- * Xử lý khi nhấn nút Next
- * createdBy: TMHieu (29/01/2026)
+ * Xử lý khi đổi kích thước trang (pageSize) → reset về trang 1
+ * @param {number} value - PageSize mới.
+ * createdby: TMHieu - 09.12.2025
  */
-const handleNextPage = () => {
-    if (pagingData.value.page < totalPages.value) {
-        pagingData.value.page++;
+function onChangePageSize(value) {
+    localData.pageSize = value;
+    localData.page = 1; // reset về trang 1
+    computeRecordRange(localData.page);
+    // Emit sự kiện lên cha để cha gọi API lấy dữ liệu mới
+    emit("update:pagination", { ...localData });
+}
+
+/**
+ * Thay đổi trang hiện tại khi nhấn các nút điều hướng (first, prev, next, last).
+ * @param {('first'|'prev'|'next'|'last')} action - Hành động chuyển trang.
+ * createdby: TMHieu - 09.12.2025
+ */
+function changePage(action) {
+    const totalPages = Math.ceil(localData.totalRows / localData.pageSize);
+    let currentPage = localData.page || 1;
+
+    switch (action) {
+        case "first":
+            currentPage = 1;
+            break;
+        case "prev":
+            currentPage = Math.max(currentPage - 1, 1);
+            break;
+        case "next":
+            currentPage = Math.min(currentPage + 1, totalPages);
+            break;
+        case "last":
+            currentPage = totalPages;
+            break;
     }
-};
+
+    // Ngăn chặn gọi API nếu không có thay đổi trang (hoặc trang cuối/đầu)
+    if (localData.page === currentPage) return;
+
+    localData.page = currentPage;
+    computeRecordRange(currentPage);
+    // Emit sự kiện lên cha để cha gọi API lấy dữ liệu mới
+    emit("update:pagination", { ...localData });
+}
+
+// Khởi tạo range khi component mount lần đầu
+computeRecordRange(localData.page || 1);
 
 /**
  * Xử lý khi nhấn nút xóa trên row table
@@ -102,6 +176,15 @@ const handleNextPage = () => {
  */
 const handleDelete = (row) => {
     emit("deleteRow", row);
+};
+
+/**
+ * Xử lý khi nhấn nút reload table
+ * emit data row lên cho index xử lý
+ * createdBy: TMHieu (29/01/2026)
+ */
+const handleReload = () => {
+    emit("reload");
 };
 
 /**
@@ -116,111 +199,89 @@ const handleEdit = (row) => {
 
 //#Region emit
 
-const emit = defineEmits(["deleteRow", "editRow"]);
+const emit = defineEmits([
+    "deleteRow",
+    "editRow",
+    "reload",
+    "update:search",
+    "update:pagination",
+    "update:selected",
+    "update:excluded",
+    "update:isCheck",
+]);
 
 //#Endregion emit
 
 //#region Computed
-/**
- * Hàm lọc dữ liệu dựa trên từ khóa tìm kiếm
- * @param {string} keyword Từ khóa tìm kiếm
- * @returns Dữ liệu đã lọc
- * createdBy: TMHieu (24/01/2026)
- */
-const filteredRows = computed(() => {
-    if (!props.search) {
-        return props.rows;
-    }
-
-    const value = props.search.toLowerCase();
-
-    return props.rows.filter((item) =>
-        props.searchFields.some((field) =>
-            String(item[field] ?? "")
-                .toLowerCase()
-                .includes(value),
-        ),
-    );
-});
-
-/**
- * Tính tổng số trang dựa trên dữ liệu đã lọc
- * createdBy: TMHieu (29/01/2026)
- */
-const totalPages = computed(() => Math.ceil(filteredRows.value.length / pagingData.value.pageSize));
-
-/**
- * Tính tổng số bản ghi đã lọc
- * createdBy: TMHieu (29/01/2026)
- */
-const totalRows = computed(() => filteredRows.value.length);
-
-/**
- * Kiểm tra trạng thái nút Prev
- * createdBy: TMHieu (29/01/2026)
- */
-const isDisabledPrev = computed(() => pagingData.value.page <= 1);
-
-/**
- * Kiểm tra trạng thái nút Next
- * createdBy: TMHieu (29/01/2026)
- */
-const isDisabledNext = computed(() => pagingData.value.page >= totalPages.value);
-
-/**
- * Tính số thứ tự của bản ghi đầu trang
- * createdBy: TMHieu (29/01/2026)
- */
-const recordStart = computed(() => {
-    if (!pagedRows.value) return 0;
-    return (pagingData.value.page - 1) * pagingData.value.pageSize + 1;
-});
-
-/**
- * Tính số thứ tự của bản ghi cuối trang
- * createdBy: TMHieu (29/01/2026)
- */
-const recordEnd = computed(() => {
-    return Math.min(pagingData.value.page * pagingData.value.pageSize, filteredRows.value.length);
-});
-
-/**
- * Lấy dữ liệu bản ghi cho trang hiện tại
- * createdBy: TMHieu (29/01/2026)
- */
-const pagedRows = computed(() => {
-    const start = (pagingData.value.page - 1) * pagingData.value.pageSize;
-    const end = recordEnd.value;
-
-    return filteredRows.value.slice(start, end);
-});
 
 //#endregion Computed
 
 //#region Watchers
 
 /**
- * Theo dõi sự thay đổi của pageSize
- * createdBy: TMHieu (29/01/2026)
+ * Khởi tạo thời gian debounce
+ */
+let debounceTimer = null;
+
+/**
+ * Theo dõi sự thay đổi của text search (Debounce)
+ * createdby: TMHieu - 09.12.2025
  */
 watch(
-    () => pagingData.value.pageSize,
-    () => {
-        pagingData.value.page = 1;
+    () => searchInput,
+    (newVal) => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            localData.page = 1; // Reset về trang 1 khi search
+            localData.search = newVal;
+            emit("update:search", { ...localData });
+        }, 350);
     },
+    { deep: true },
 );
 
 /**
- * Khi search thay đổi thì reset trang va tinh lai ban ghi
- * createdBy TMHieu 29/01/2026
+ * Theo dõi sự thay đổi của props.paginationData từ component cha
+ * và cập nhật localData, đồng thời tính lại range hiển thị.
  */
 watch(
-    () => props.search,
-    () => {
-        pagingData.value.page = 1;
+    () => props.paginationData,
+    (newVal) => {
+        Object.assign(localData, newVal);
+        computeRecordRange(localData.page);
     },
+    { deep: true },
 );
 
+/**
+ * Theo dõi thứ tự bản ghi đầu cuối trên trang
+ * Cập nhật lại trạng thái các nút paging
+ */
+watch(
+    () => [localData.recordStart, localData.recordEnd],
+    ([newStart, newEnd]) => {
+        // Nếu không có dữ liệu
+        if (localData.totalRows === 0) {
+            pagingState.value.first = true;
+            pagingState.value.prev = true;
+            pagingState.value.next = true;
+            pagingState.value.last = true;
+            return;
+        }
+
+        // Disable first + prev nếu đang ở đầu
+        const isAtStart = newStart <= 1;
+
+        // Disable next + last nếu đang ở cuối
+        const isAtEnd = newEnd >= localData.totalRows;
+
+        pagingState.value.first = isAtStart;
+        pagingState.value.prev = isAtStart;
+        pagingState.value.next = isAtEnd;
+        pagingState.value.last = isAtEnd;
+    },
+    { immediate: true },
+);
 //#endregion Watchers
 </script>
 
@@ -231,7 +292,7 @@ watch(
             <input class="content__search-input" placeholder="Tìm kiếm" v-model="searchInput" />
         </div>
         <ms-button :type="'outline'">
-            <div class="content__reload-icon"></div>
+            <div class="content__reload-icon" @click="handleReload"></div>
         </ms-button>
     </div>
     <div class="content__datagrid">
@@ -256,7 +317,7 @@ watch(
             </thead>
             <tbody class="table-shift__tbody">
                 <!-- Dữ liệu bảng sẽ được hiển thị ở đây -->
-                <tr v-for="row in pagedRows" :key="row.id" tabindex="0">
+                <tr v-for="row in rows" :key="row.id" tabindex="0">
                     <td class="content__table-checkbox col-checkbox">
                         <input type="checkbox" :data-id="row.id" />
                     </td>
@@ -303,36 +364,57 @@ watch(
     <!-- Phân trang table -->
     <div class="content__paging d-flex justify-content-between align-items-center">
         <div class="content__paging-info m-r-12">
-            Tổng: <b class="total-row">{{ totalRows }}</b> bản ghi
+            Tổng: <b class="total-row">{{ localData.totalRows }}</b> bản ghi
         </div>
-        <div class="content__paging-controls d-flex align-items-center gap-12">
-            <div class="content__paging-controls-title">Số bản ghi/trang</div>
+        <div class="content__paging-controls d-flex align-items-center gap-16">
+            <div class="content__paging-controls-title">Số dòng/trang</div>
 
             <div class="content__paging-page-size pointer">
                 <ms-select
                     style="width: 75px"
                     :options="pageSizeOptions"
-                    v-model="pagingData.pageSize"
-                ></ms-select>
+                    v-model:value="localData.pageSize"
+                    @change="onChangePageSize"
+                >
+                    <div class="content__paging-icon-down"></div>
+                </ms-select>
             </div>
 
-            <div class="content__paging-start-page">{{ recordStart }}</div>
+            <div class="content__paging-start-page">
+                <strong>{{ localData.recordStart }}</strong>
+            </div>
             <div class="content__paging--">-</div>
-            <div class="content__paging-end-page">{{ recordEnd }}</div>
-            <div class="content__paging-title">bản ghi</div>
+            <div class="content__paging-end-page">
+                <strong>{{ localData.recordEnd }}</strong>
+            </div>
 
-            <button
-                class="content__paging-prev-btn"
-                :disabled="isDisabledPrev"
-                :class="isDisabledPrev ? 'content__paging-btn--disabled' : ''"
-                @click="handlePrevPage"
-            ></button>
-            <button
-                class="content__paging-next-btn"
-                :disabled="isDisabledNext"
-                :class="isDisabledNext ? 'content__paging-btn--disabled' : ''"
-                @click="handleNextPage"
-            ></button>
+            <div class="content__paging-btn-wrapper d-flex align-items-center">
+                <button
+                    class="content__paging-backward-btn"
+                    :disabled="pagingState.first"
+                    :class="pagingState.first ? 'content__paging-btn--disabled' : ''"
+                    @click="changePage('first')"
+                ></button>
+                <button
+                    class="content__paging-prev-btn"
+                    :disabled="pagingState.prev"
+                    :class="pagingState.prev ? 'content__paging-btn--disabled' : ''"
+                    @click="changePage('prev')"
+                ></button>
+                <button
+                    class="content__paging-next-btn"
+                    :disabled="pagingState.next"
+                    :class="pagingState.next ? 'content__paging-btn--disabled' : ''"
+                    @click="changePage('next')"
+                ></button>
+
+                <button
+                    class="content__paging-forward-btn"
+                    :disabled="pagingState.last"
+                    :class="pagingState.last ? 'content__paging-btn--disabled' : ''"
+                    @click="changePage('last')"
+                ></button>
+            </div>
         </div>
     </div>
 </template>
@@ -356,5 +438,14 @@ select:focus {
 
 select:hover {
     border-color: var(--primary-color);
+}
+
+.content__paging-btn--disabled {
+    background-color: #c9cdd4;
+}
+
+.content__paging-btn-wrapper {
+    margin-left: 16px;
+    column-gap: 24px;
 }
 </style>
