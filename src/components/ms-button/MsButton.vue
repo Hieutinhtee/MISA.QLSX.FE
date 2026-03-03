@@ -3,7 +3,6 @@
         class="ms-button d-flex align-items-center"
         :class="[`ms-button--${type}`, { 'ms-button--disabled': disabled }]"
         :disabled="disabled"
-        @click="$emit('click', $event)"
     >
         <div v-if="iconLeft" :class="[`icon-${iconLeft}`]" class="ms-button__icon"></div>
         <span v-if="$slots.default" class="ms-button__text">
@@ -28,8 +27,6 @@ defineProps({
         default: false,
     },
 });
-
-defineEmits(["click"]);
 </script>
 
 <style scoped>
@@ -76,5 +73,19 @@ defineEmits(["click"]);
 
 .ms-button--outline:hover:not(:disabled) {
     background-color: #f3f4f6;
+}
+
+/* ============================================ */
+/* DANGER BUTTON                               */
+/* ============================================ */
+
+.ms-button--danger {
+    background-color: #dc2626;
+    color: white;
+    border-radius: var(--border-radius);
+}
+
+.ms-button--danger:hover:not(:disabled) {
+    background-color: #b91c1c;
 }
 </style>

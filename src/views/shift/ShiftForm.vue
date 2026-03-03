@@ -234,7 +234,8 @@ const handleSubmit = () => {
     const allValid = Object.values(fieldValid.value).every(Boolean);
     if (!allValid) return;
 
-    const payload = buildPayload(shift.value, false);
+    let isUpdate = props.typeForm === "add" ? false : true;
+    const payload = buildPayload(shift.value, isUpdate);
     emit("submit", payload);
 };
 
@@ -255,11 +256,10 @@ const currentUser = "Thái Minh Hiếu";
  */
 function buildPayload(shiftData, isUpdate = false) {
     const {
-        productionShiftId,
         productionShiftBreakTime,
         productionShiftWorkingTime,
-        productionCreatedBy,
-        productionModifiedBy,
+        productionCreatedDate,
+        productionModifiedDate,
         ...rest
     } = shiftData;
 
@@ -272,6 +272,9 @@ function buildPayload(shiftData, isUpdate = false) {
     };
 
     if (!isUpdate) {
+        // Khi thêm mới → xóa id
+        delete basePayload.productionShiftId;
+
         return {
             ...basePayload,
             productionShiftCreatedBy: currentUser,
@@ -279,6 +282,7 @@ function buildPayload(shiftData, isUpdate = false) {
         };
     }
 
+    // Khi update → giữ id
     return {
         ...basePayload,
         productionShiftModifiedBy: currentUser,

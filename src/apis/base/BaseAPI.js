@@ -1,15 +1,15 @@
-import api from '@/apis/config/APIConfig.js'
+import api from "@/apis/config/APIConfig.js";
 
 export default class BaseAPI {
     constructor() {
-        this.controller = null
+        this.controller = null;
     }
     /**
      * Phương thức lấy tất cả dữ liệu
      * createdby: TMHieu - 6.12.2025
      */
     getAll() {
-        return api.get(`${this.controller}`)
+        return api.get(`${this.controller}`);
     }
 
     /**
@@ -17,7 +17,7 @@ export default class BaseAPI {
      * createdby: TMHieu - 6.12.2025
      */
     getById(id) {
-        return api.get(`${this.controller}/${id}`)
+        return api.get(`${this.controller}/${id}`);
     }
 
     /**
@@ -26,7 +26,7 @@ export default class BaseAPI {
      * createdby: TMHieu - 6.12.2025
      */
     paging(payload) {
-        return api.get(`${this.controller}/paging`, { params: payload })
+        return api.get(`${this.controller}/paging`, { params: payload });
     }
 
     /**
@@ -35,7 +35,7 @@ export default class BaseAPI {
      * createdby: TMHieu - 6.12.2025
      */
     getAllExclude(payload, body) {
-        return api.get(`${this.controller}/query-all`, { params: payload }, body)
+        return api.get(`${this.controller}/query-all`, { params: payload }, body);
     }
 
     /**
@@ -45,7 +45,7 @@ export default class BaseAPI {
      * createdby: TMHieu - 6.12.2025
      */
     update(id, body) {
-        return api.put(`${this.controller}/${id}`, body)
+        return api.put(`${this.controller}/${id}`, body);
     }
 
     /**
@@ -54,7 +54,7 @@ export default class BaseAPI {
      * createdby: TMHieu - 6.12.2025
      */
     create(body) {
-        return api.post(`${this.controller}/`, body)
+        return api.post(`${this.controller}/`, body);
     }
 
     /**
@@ -63,7 +63,7 @@ export default class BaseAPI {
      * createdby: TMHieu - 7.12.2025
      */
     delete(body) {
-        return api.post(`${this.controller}/bulk-update`, body)
+        return api.post(`${this.controller}/batch-delete`, body);
     }
 
     /**
@@ -72,6 +72,6 @@ export default class BaseAPI {
      * createdby: TMHieu - 7.12.2025
      */
     bulkType(body) {
-        return api.post(`${this.controller}/update-type`, body)
+        return api.post(`${this.controller}/update-type`, body);
     }
 }

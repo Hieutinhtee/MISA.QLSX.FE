@@ -2,6 +2,7 @@
 import { onMounted, ref, watch, reactive } from "vue";
 import MsTable from "@/components/ms-table/MsTable.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
+import MsAlert from "@/components/ms-alert/MsAlert.vue";
 import shiftForm from "./ShiftForm.vue";
 import { Modal } from "ant-design-vue";
 import { useToast } from "vue-toastification";
@@ -173,7 +174,7 @@ const handleSubmit = (shift) => {
     }
     if (typeForm.value === "edit") {
         try {
-            updateshift(shift);
+            updateShift(shift);
             shiftFormRef.value?.handleCloseForm();
             toast.success("Chỉnh sửa ca làm việc thành công");
         } catch (error) {
@@ -203,23 +204,35 @@ function addShift(shift) {
  * @param {Object} shift Đối tượng ca làm việc
  * createdBy: TMHieu (22/01/2026)
  */
-function updateshift(shift) {
-    const editshiftId = parseInt(selectedRow.value.id);
-    if (isNaN(editshiftId)) return;
+function updateShift(shift) {
+    ShiftsAPI.update(shift.productionShiftId, shift)
+        .then((res) => {
+            if (res.status === 201 || res.status === 200) {
+                shiftFormRef.value?.handleCloseForm();
+            }
+        })
+        .catch(() => {})
+        .finally(() => {});
+}
 
-    let datas = getshiftData();
-
-    const newshift = shift;
-    const index = datas.findIndex((e) => e.id === editshiftId);
-    if (index !== -1) {
-        datas[index] = {
-            ...datas[index],
-            ...newshift,
-            id: editshiftId,
-        };
+/**
+ * Xử lý xóa ca làm việc
+ * @param {Object} shift Đối tượng ca làm việc
+ * createdBy: TMHieu (22/01/2026)
+ */
+function deleteShift(shift) {
+    let ids = shift;
+    if (!Array.isArray(shift)) {
+        ids = [shift];
     }
-    rows.value = datas;
-    saveshiftToLocal(datas);
+    ShiftsAPI.delete(ids)
+        .then((res) => {
+            if (res.status === 201 || res.status === 200) {
+                isOpenModal.value = false;
+            }
+        })
+        .catch(() => {})
+        .finally(() => {});
 }
 
 // #region delete
@@ -229,29 +242,10 @@ function updateshift(shift) {
  * createdBy: TMHieu (02/02/2026)
  */
 function handleDelete(row) {
-    showModal();
     selectedRow.value = row;
+    isOpenModal.value = true;
 }
 
-/**
- * Trạng thái đóng mở modal xác nhận xóa
- * createdBy: TMHieu (02/02/2026)
- */
-const open = ref(false);
-
-/**
- * Hàm xử lý sư kiện mở modal
- * createdBy: TMHieu (02/02/2026)
- */
-const showModal = () => {
-    open.value = true;
-};
-
-/**
- * Hàm xử lý sự kiện xác nhận xóa
- * createdBy: TMHieu (02/02/2026)
- */
-const handleOk = () => {};
 //#endregion delete
 
 // #region edit
@@ -323,12 +317,23 @@ onMounted(() => {
     loadDataForAPI();
 });
 //#endregion Lifecycle Hooks
+
+const isOpenModal = ref(false);
+const showConfirm = ref(false);
 </script>
 
 <template>
-    <modal v-model:open="open" title="Xác nhận xóa ca làm việc" @ok="handleOk">
-        <p>Bạn có chắc chắn muốn xóa ca làm việc này</p>
-    </modal>
+    <ms-alert
+        v-model="isOpenModal"
+        title="Xác nhận xóa"
+        :showConfirm="true"
+        @close="showConfirm = false"
+        @confirm="deleteShift(selectedRow.productionShiftId)"
+    >
+        Ca làm việc <strong>{{ selectedRow?.productionShiftCode }}</strong> sau khi bị xóa sẽ không
+        thể khôi phục. Bạn có muốn tiếp tục xóa không?
+    </ms-alert>
+
     <div class="content d-flex flex-1 flex-column">
         <!-- content header  -->
         <div class="content__header d-flex">

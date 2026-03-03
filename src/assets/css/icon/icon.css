@@ -493,3 +493,35 @@
     width: 16px;
     height: 16px;
 }
+
+.content__table-bin-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    mask-position: -208px 0px;
+    background-color: #dc2626;
+    width: 16px;
+    height: 16px;
+}
+
+.content__table-empty-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    mask-position: -176px 0;
+    background-color: #4b5563;
+    width: 16px;
+    height: 16px;
+}
+
+.content__table-duplicate-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    mask-position: -224px 0;
+    background-color: #4b5563;
+    width: 16px;
+    height: 16px;
+}
+
+.content__table-active-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    mask-position: -192px 0;
+    background-color: #4b5563;
+    width: 16px;
+    height: 16px;
+}

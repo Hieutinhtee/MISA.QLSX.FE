@@ -1,5 +1,5 @@
 <script setup>
-import { ref, defineProps, watch, computed, reactive } from "vue";
+import { ref, defineProps, watch, computed, reactive, onMounted, onBeforeUnmount } from "vue";
 import { renderValue } from "@/utils/renderRowTable.js";
 import MsSelect from "@/components/ms-select/MsSelect.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
@@ -87,9 +87,26 @@ const pagingState = ref({
  * createdBy: TMHieu (29/01/2026)
  */
 const searchInput = ref("");
+
+/**
+ * Trạng thái mở popup xem thêm
+ * createdBy: TMHieu (29/01/2026)
+ */
+const showMoreRowId = ref(null);
+
 //#endregion State Data
 
 //#region Methods
+
+/**
+ * Xử lý id cơ bản
+ * @param {object} row - Các trường của table
+ * createdBy: TMHieu (28/01/2026)
+ */
+const getRowId = (row) => {
+    const idKey = Object.keys(row).find((k) => k.toLowerCase().endsWith("id"));
+    return idKey ? row[idKey] : null;
+};
 
 /**
  * Xử lý kiểu field
@@ -195,6 +212,38 @@ const handleReload = () => {
 const handleEdit = (row) => {
     emit("editRow", row);
 };
+
+/**
+ * Vị trí popup more (theo tọa độ chuột)
+ * createdBy: TMHieu
+ */
+const popupPosition = ref({ x: 0, y: 0 });
+
+const currentRow = ref(null);
+
+/**
+ * Xử lý khi nhấn nút ... trên row table
+ * Lưu vị trí chuột để render popup đúng chỗ
+ * createdBy: TMHieu (29/01/2026)
+ */
+
+const handleMore = (row, event) => {
+    if (showMoreRowId.value === getRowId(row)) {
+        showMoreRowId.value = null;
+        currentRow.value = null;
+        return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    popupPosition.value = {
+        x: rect.right,
+        y: rect.bottom + 4,
+    };
+
+    showMoreRowId.value = getRowId(row);
+    currentRow.value = row;
+};
+
 //#endregion Methods
 
 //#Region emit
@@ -283,6 +332,25 @@ watch(
     { immediate: true },
 );
 //#endregion Watchers
+
+const handleClickOutside = (event) => {
+    const popup = document.querySelector(".content__table-popup-more");
+
+    if (!popup) return;
+
+    if (!popup.contains(event.target)) {
+        showMoreRowId.value = null;
+        currentRow.value = null;
+    }
+};
+
+onMounted(() => {
+    document.addEventListener("click", handleClickOutside);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener("click", handleClickOutside);
+});
 </script>
 
 <template>
@@ -317,9 +385,9 @@ watch(
             </thead>
             <tbody class="table-shift__tbody">
                 <!-- Dữ liệu bảng sẽ được hiển thị ở đây -->
-                <tr v-for="row in rows" :key="row.id" tabindex="0">
+                <tr v-for="row in rows" :key="getRowId(row)" tabindex="0">
                     <td class="content__table-checkbox col-checkbox">
-                        <input type="checkbox" :data-id="row.id" />
+                        <input type="checkbox" :data-id="row" />
                     </td>
 
                     <td v-for="column in columns" :key="column.key">
@@ -353,9 +421,47 @@ watch(
                             <div
                                 class="content__table-btn-modify content__table-btn-delete"
                                 title="Xóa"
-                                @click="handleDelete(row)"
+                                @click.stop="handleMore(row, $event)"
                             ></div>
                         </div>
+                        <Teleport to="body">
+                            <div v-if="showMoreRowId !== null"></div>
+
+                            <div
+                                v-if="showMoreRowId !== null"
+                                class="content__table-popup-more"
+                                :style="{
+                                    position: 'fixed',
+                                    left: popupPosition.x + 'px',
+                                    top: popupPosition.y + 'px',
+                                    zIndex: 9999,
+                                }"
+                            >
+                                <div class="content__table-popup-item d-flex">
+                                    <div class="content__table-duplicate-icon"></div>
+                                    <div class="content__table-popup-text">Nhân bản</div>
+                                </div>
+                                <div
+                                    v-if="currentRow?.productionShiftIsActive"
+                                    class="content__table-popup-item d-flex"
+                                >
+                                    <div class="content__table-empty-icon"></div>
+                                    <div class="content__table-popup-text">Ngừng sử dụng</div>
+                                </div>
+                                <div v-else class="content__table-popup-item d-flex">
+                                    <div class="content__table-active-icon"></div>
+                                    <div class="content__table-popup-text">Sử dụng</div>
+                                </div>
+                                <!-- Cần biết row hiện tại để check isActive, xem bên dưới -->
+                                <div
+                                    class="content__table-popup-item d-flex"
+                                    @click="handleDelete(currentRow)"
+                                >
+                                    <div class="content__table-bin-icon"></div>
+                                    <div class="content__table-popup-text">Xóa</div>
+                                </div>
+                            </div>
+                        </Teleport>
                     </td>
                 </tr>
             </tbody>
