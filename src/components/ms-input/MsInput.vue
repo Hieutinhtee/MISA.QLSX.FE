@@ -207,11 +207,11 @@ const handleInput = (e) => {
 };
 
 watch(
-    () => displayError.value,
-    (val) => {
-        if (isSubmit.value && val) {
+    () => [displayError.value, isSubmit.value],
+    ([error, submit]) => {
+        if (submit && error) {
             nextTick(() => {
-                emit("error", val);
+                emit("error", error);
             });
         }
     },

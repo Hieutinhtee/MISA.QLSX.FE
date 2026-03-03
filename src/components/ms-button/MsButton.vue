@@ -4,7 +4,7 @@
         :class="[`ms-button--${type}`, { 'ms-button--disabled': disabled }]"
         :disabled="disabled"
     >
-        <div v-if="iconLeft" :class="[`icon-${iconLeft}`]" class="ms-button__icon"></div>
+        <div v-if="iconLeft" :class="[`${iconLeft}`]" class="ms-button__icon"></div>
         <span v-if="$slots.default" class="ms-button__text">
             <slot></slot>
         </span>
@@ -19,7 +19,7 @@ defineProps({
     },
     /** Class icon bên trái */
     iconLeft: {
-        type: String,
+        type: Array,
         default: null,
     },
     disabled: {
@@ -87,5 +87,59 @@ defineProps({
 
 .ms-button--danger:hover:not(:disabled) {
     background-color: #b91c1c;
+}
+
+/* ============================================ */
+/* DANGER OUTLINE BUTTON                               */
+/* ============================================ */
+
+.ms-button--danger-outline {
+    border: 1px solid #dc2626;
+    color: #dc2626;
+    border-radius: var(--border-radius);
+    background-color: white;
+}
+
+.ms-button--danger-outline .ms-button__icon {
+    background-color: #dc2626 !important;
+}
+
+.ms-button--danger-outline:hover:not(:disabled) {
+    background-color: #fee2e2;
+}
+
+/* ============================================ */
+/* PRIMARY OUTLINE BUTTON               */
+/* ============================================ */
+
+.ms-button--primary-outline {
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    border-radius: 4px;
+    background-color: white;
+}
+
+.ms-button--primary-outline .ms-button__icon {
+    background-color: var(--primary-color) !important;
+}
+
+.ms-button--primary-outline:hover:not(:disabled) {
+    background-color: #dcfce7;
+}
+
+/* ============================================ */
+/* PRIMARY TEXT ONLY BUTTON               */
+/* ============================================ */
+
+.ms-button--text {
+    border: none;
+    color: var(--primary-color);
+    border-radius: 4px;
+    background-color: white;
+    padding: 6px;
+}
+
+.ms-button--text:hover:not(:disabled) {
+    text-decoration: underline;
 }
 </style>

@@ -6,7 +6,8 @@ import { ConfigProvider } from "ant-design-vue";
 import viVN from "ant-design-vue/es/locale/vi_VN";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
-
+import MsAlert from "./components/ms-alert/MsAlert.vue";
+import { ref } from "vue";
 // Dayjs
 dayjs.locale("vi");
 
@@ -18,6 +19,12 @@ const themeConfig = {
         borderRadius: 4,
         colorTextPlaceholder: "#9e9e9e",
     },
+};
+
+const isDevOpen = ref(false);
+
+window.$dev = () => {
+    isDevOpen.value = true;
 };
 </script>
 
@@ -36,6 +43,10 @@ const themeConfig = {
                 <shift-view></shift-view>
             </div></div
     ></config-provider>
+
+    <ms-alert v-model="isDevOpen" title="Thông báo" @close="showConfirm = false">
+        Chức năng hiện chưa khả dụng. Chúng tôi sẽ cập nhật trong thời gian tới.
+    </ms-alert>
 </template>
 
 <style>

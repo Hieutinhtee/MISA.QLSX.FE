@@ -4,7 +4,6 @@ import MsTable from "@/components/ms-table/MsTable.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
 import shiftForm from "./ShiftForm.vue";
-import { Modal } from "ant-design-vue";
 import { useToast } from "vue-toastification";
 import ShiftsAPI from "@/apis/components/shifts/shiftsAPI";
 
@@ -91,9 +90,19 @@ const columns = ref([
  * reset hoặc focus input
  */
 const shiftFormRef = ref(null);
+
+/**
+ * Ref trỏ tới modal để dùng các hàm được đẩy lên như
+ * reset hoặc focus input
+ */
+const shiftTableRef = ref(null);
 //#endregion Constants
 
 //#region State Data
+
+const isOpenModal = ref(false);
+const formText = ref("");
+const showConfirm = ref(false);
 
 /**
  * Dữ liệu bảng ca làm việc
@@ -143,6 +152,12 @@ const isFormOpen = ref(false);
  */
 const selectedRow = ref(null);
 
+/**
+ * lưu lại row được gửi lên từ bảng
+ * row xóa hoặc edit
+ * createdBy: TMHieu (29/01/2026)
+ */
+const selectedRows = ref(null);
 //#endregion State Data
 
 //#region Methods
@@ -163,7 +178,7 @@ function reloadData() {
  * createdBy: TMHieu (22/01/2026)
  */
 const handleSubmit = (shift) => {
-    if (typeForm.value === "add") {
+    if (typeForm.value === "add" || typeForm.value === "duplicate") {
         try {
             addShift(shift);
             shiftFormRef.value?.handleCloseForm();
@@ -229,6 +244,8 @@ function deleteShift(shift) {
         .then((res) => {
             if (res.status === 201 || res.status === 200) {
                 isOpenModal.value = false;
+                selectedRow.value = null;
+                selectedRows.value = null;
             }
         })
         .catch(() => {})
@@ -242,10 +259,32 @@ function deleteShift(shift) {
  * createdBy: TMHieu (02/02/2026)
  */
 function handleDelete(row) {
+    formText.value = "Ca làm việc <strong>" + row.productionShiftCode + "</strong>";
     selectedRow.value = row;
     isOpenModal.value = true;
 }
 
+/**
+ * Xử lý sự kiện xóa dòng trên bảng
+ * @param row dữ liệu 1 row trên bảng
+ * createdBy: TMHieu (02/02/2026)
+ */
+function handleBatchDelete(rows) {
+    formText.value = "Các <strong>Ca làm việc</strong>";
+    isOpenModal.value = true;
+    selectedRows.value = rows;
+}
+
+const handleConfirmDelete = () => {
+    if (selectedRow.value) {
+        deleteShift(selectedRow.value.productionShiftId);
+        shiftTableRef.value?.clearChecked();
+    }
+    if (selectedRows.value) {
+        deleteShift(selectedRows.value);
+        shiftTableRef.value?.clearChecked();
+    }
+};
 //#endregion delete
 
 // #region edit
@@ -260,6 +299,22 @@ function handleEdit(row) {
     isFormOpen.value = true;
     selectedRow.value = row;
 }
+
+function handleChangeActive(row) {
+    selectedRow.value = row;
+    updateShift(row);
+}
+
+function handleBatchActive(rows, isActive) {
+    ShiftsAPI.batchActive(rows, isActive)
+        .then((res) => {
+            if (res.status === 201 || res.status === 200) {
+                shiftTableRef.value?.clearChecked();
+            }
+        })
+        .catch(() => {})
+        .finally(() => {});
+}
 // #endregion edit
 /**
  * Hàm xử lý sự kiện mở form thêm ca làm việc
@@ -267,6 +322,16 @@ function handleEdit(row) {
  */
 function handleFormAddOpen() {
     typeForm.value = "add";
+    isFormOpen.value = true;
+}
+
+/**
+ * Hàm xử lý sự kiện mở form nhân bản ca làm việc
+ * createdBy: TMHieu (29/01/2026)
+ */
+function handleDuplicate(row) {
+    typeForm.value = "duplicate";
+    selectedRow.value = row;
     isFormOpen.value = true;
 }
 
@@ -317,9 +382,6 @@ onMounted(() => {
     loadDataForAPI();
 });
 //#endregion Lifecycle Hooks
-
-const isOpenModal = ref(false);
-const showConfirm = ref(false);
 </script>
 
 <template>
@@ -328,10 +390,10 @@ const showConfirm = ref(false);
         title="Xác nhận xóa"
         :showConfirm="true"
         @close="showConfirm = false"
-        @confirm="deleteShift(selectedRow.productionShiftId)"
+        @confirm="handleConfirmDelete"
     >
-        Ca làm việc <strong>{{ selectedRow?.productionShiftCode }}</strong> sau khi bị xóa sẽ không
-        thể khôi phục. Bạn có muốn tiếp tục xóa không?
+        <span v-html="formText"></span>
+        sau khi bị xóa sẽ không thể khôi phục. Bạn có muốn tiếp tục xóa không?
     </ms-alert>
 
     <div class="content d-flex flex-1 flex-column">
@@ -339,7 +401,7 @@ const showConfirm = ref(false);
         <div class="content__header d-flex">
             <div class="content__title">Ca làm việc</div>
 
-            <ms-button :icon-left="'add'" @click="handleFormAddOpen">Thêm</ms-button>
+            <ms-button :icon-left="'icon-add'" @click="handleFormAddOpen">Thêm</ms-button>
         </div>
         <!-- content body -->
         <div class="content__body d-flex flex-1">
@@ -352,6 +414,11 @@ const showConfirm = ref(false);
                 @reload="reloadData"
                 @delete-row="handleDelete"
                 @edit-row="handleEdit"
+                @edit-active="handleChangeActive"
+                @batch-is-active="handleBatchActive"
+                @batch-delete="handleBatchDelete"
+                @duplicate="handleDuplicate"
+                ref="shiftTableRef"
             >
                 <template #productionShiftIsActive="{ value }">
                     <div v-if="value" class="inactive inactive--true">Đang sử dụng</div>

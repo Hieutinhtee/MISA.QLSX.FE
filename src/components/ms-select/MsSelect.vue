@@ -59,5 +59,6 @@ const filterOption = (input, option) => {
     font-size: 13px !important;
     line-height: 28px !important;
     align-items: center !important;
+    cursor: pointer;
 }
 </style>

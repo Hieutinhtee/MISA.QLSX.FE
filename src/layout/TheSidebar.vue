@@ -51,6 +51,11 @@ function toggleSidebar() {
         toggleState.value = "expanded";
     }
 }
+
+const openDev = (nameItem) => {
+    if (nameItem === "category") return;
+    window.$dev();
+};
 </script>
 
 <template>
@@ -67,6 +72,7 @@ function toggleSidebar() {
                         'align-items-center',
                         toggleState === 'collapsed' ? 'sidebar__menu-item--collapsed' : '',
                     ]"
+                    @click="openDev(item.name)"
                 >
                     <div :class="['sidebar__' + item.name + '-icon', 'sidebar__icon']"></div>
                     <div :class="['sidebar__title', toggleState === 'collapsed' ? 'hidden' : '']">

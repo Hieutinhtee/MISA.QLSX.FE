@@ -10,6 +10,10 @@ const icons = ref([
     { name: "book", badge: 0 },
     { name: "avatar", badge: 0 },
 ]);
+
+const openDev = () => {
+    window.$dev();
+};
 </script>
 
 <template>
@@ -18,7 +22,7 @@ const icons = ref([
             <div class="navbar__app-icon"></div>
             <div class="navbar__logo"></div>
             <div class="navbar__title">Sản xuất</div>
-            <div class="navbar__company-name d-flex align-items-center">
+            <div class="navbar__company-name d-flex align-items-center pointer" @click="openDev">
                 <div class="navbar__company-title">01. KSX_MISA</div>
                 <div class="icon__angle-down-small"></div>
             </div>
@@ -32,6 +36,7 @@ const icons = ref([
                 :key="item"
                 class="navbar__item"
                 :class="['navbar__' + item.name + '-icon']"
+                @click="openDev"
             >
                 <div
                     v-if="item.badge != 0"

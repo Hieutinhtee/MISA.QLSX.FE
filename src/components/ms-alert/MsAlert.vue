@@ -57,7 +57,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["confirm"]);
+const emit = defineEmits(["confirm", "close"]);
 
 /** * Trạng thái mở/đóng form ca làm việc
  * createdBy: TMHieu (30/01/2026)
@@ -68,6 +68,7 @@ const isOpen = defineModel({
 });
 
 const onClose = () => {
+    emit("close");
     isOpen.value = false;
 };
 

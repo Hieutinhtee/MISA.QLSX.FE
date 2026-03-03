@@ -38,14 +38,6 @@ const props = defineProps({
         type: Array,
         required: true,
     },
-    search: {
-        type: String,
-        default: "",
-    },
-    searchFields: {
-        type: Array,
-        default: () => [],
-    },
     type: {
         type: Array,
         default: () => [],
@@ -60,11 +52,15 @@ const props = defineProps({
 //#endregion
 
 //#region State Data
+
+/**
+ * Danh sách của bản ghi chọn
+ * createdBy: TMHieu (29/01/2026)
+ */
+const selected = ref([]); // chứa id được chọn (khi isCheck = false)
+
 /**
  * Copy local của dữ liệu phân trang để component con tự quản lý
- * @property {number} page - Trang hiện tại.
- * @property {number} pageSize - Số bản ghi trên mỗi trang.
- * @property {number} totalRows - Tổng số bản ghi.
  * @property {number} recordStart - Số thứ tự bản ghi đầu trang.
  * @property {number} recordEnd - Số thứ tự bản ghi cuối trang.
  */
@@ -94,6 +90,7 @@ const searchInput = ref("");
  */
 const showMoreRowId = ref(null);
 
+const popupTransform = ref("translate(-100%, 0)");
 //#endregion State Data
 
 //#region Methods
@@ -213,6 +210,24 @@ const handleEdit = (row) => {
     emit("editRow", row);
 };
 
+const handleDuplicate = (row) => {
+    emit("duplicate", row);
+};
+
+const handleActive = (rows, isActive) => {
+    emit("batchIsActive", rows, isActive);
+};
+
+const handleChangeActive = (row) => {
+    if (row.productionShiftIsActive) row.productionShiftIsActive = false;
+    else row.productionShiftIsActive = true;
+    emit("editActive", row);
+};
+
+const handleBatchDelete = (rows) => {
+    emit("batchDelete", rows);
+};
+
 /**
  * Vị trí popup more (theo tọa độ chuột)
  * createdBy: TMHieu
@@ -235,10 +250,18 @@ const handleMore = (row, event) => {
     }
 
     const rect = event.currentTarget.getBoundingClientRect();
+    const screenHeight = window.innerHeight;
+
+    // Kiểm tra nếu click ở 1/3 dưới màn hình
+    const isBottomThird = rect.top > (screenHeight * 2) / 3;
+
     popupPosition.value = {
         x: rect.right,
-        y: rect.bottom + 4,
+        y: isBottomThird ? rect.top - 4 : rect.bottom + 4,
     };
+
+    // Đổi transform
+    popupTransform.value = isBottomThird ? "translate(-100%, -100%)" : "translate(-100%, 0)";
 
     showMoreRowId.value = getRowId(row);
     currentRow.value = row;
@@ -246,22 +269,102 @@ const handleMore = (row, event) => {
 
 //#endregion Methods
 
+//#region Methods - Row & Selection, All checkbox
+
+const calculateChecked = () => {
+    return selected.value.length;
+};
+
+/**
+ * Xử lý sự kiện click vào một hàng (row) trên bảng, emit data của dòng đó lên cha xử lý
+ * @param {Object} event - Sự kiện click từ PrimeVue DataTable.
+ * createdby: TMHieu - 09.12.2025
+ */
+function handleRowClick(event) {
+    emit("row-click", event.data); // event.data là row được click
+}
+
+/**
+ * Xử lý sự kiện click vào allCheckbox trên bảng đổi state đánh dấu, trạng thái hiển thị,
+ * emit mảng đã tick và mảng đã bỏ tick lên cha mỗi khi thay đổi
+ * createdby: TMHieu - 12.12.2025
+ */
+const onHeaderCheck = () => {
+    const idsThisPage = props.rows.map((r) => getRowId(r));
+
+    const allSelected = idsThisPage.every((id) => selected.value.includes(id));
+
+    if (allSelected) {
+        // bỏ chọn hết
+        selected.value = selected.value.filter((id) => !idsThisPage.includes(id));
+    } else {
+        // chọn tất cả trên trang
+        selected.value = [...new Set([...selected.value, ...idsThisPage])];
+    }
+
+    emit("update:selected", [...selected.value]);
+};
+
+/**
+ * Dòng được chọn hay không
+ * @param {Object} row - data của dòng được chọn
+ * createdby: TMHieu - 12.12.2025
+ */
+const isRowChecked = (id) => {
+    return selected.value.includes(id);
+};
+
+/**
+ * Xử lý hiển thị và trạng thái khi user tick/untick trên dòng
+ * @param {Object} row - data của dòng được chọn
+ * createdby: TMHieu - 12.12.2025
+ */
+const toggleRow = (id) => {
+    const idx = selected.value.indexOf(id);
+
+    if (idx >= 0) {
+        selected.value.splice(idx, 1);
+    } else {
+        selected.value.push(id);
+    }
+
+    emit("update:selected", [...selected.value]);
+};
+
+const selectedRows = computed(() => props.rows.filter((r) => selected.value.includes(getRowId(r))));
+
+const hasActive = computed(() => selectedRows.value.some((r) => r.productionShiftIsActive));
+
+const hasInactive = computed(() => selectedRows.value.some((r) => !r.productionShiftIsActive));
+
+const clearChecked = () => {
+    selected.value = [];
+};
+//#endregion
+
 //#Region emit
 
 const emit = defineEmits([
     "deleteRow",
     "editRow",
+    "duplicate",
+    "editActive",
     "reload",
-    "update:search",
     "update:pagination",
-    "update:selected",
-    "update:excluded",
-    "update:isCheck",
+    "batchIsActive",
+    "batchDelete",
 ]);
 
 //#Endregion emit
 
 //#region Computed
+
+const isHeaderChecked = computed(() => {
+    if (!props.rows.length) return false;
+
+    const idsThisPage = props.rows.map((r) => getRowId(r));
+    return idsThisPage.every((id) => selected.value.includes(id));
+});
 
 //#endregion Computed
 
@@ -331,6 +434,14 @@ watch(
     },
     { immediate: true },
 );
+
+watch(
+    () => props.rows,
+    () => {
+        selected.value = [];
+        emit("update:selected", []);
+    },
+);
 //#endregion Watchers
 
 const handleClickOutside = (event) => {
@@ -351,13 +462,44 @@ onMounted(() => {
 onBeforeUnmount(() => {
     document.removeEventListener("click", handleClickOutside);
 });
+
+defineExpose({
+    clearChecked,
+});
 </script>
 
 <template>
     <div class="content__body-header d-flex justify-content-between">
-        <div class="content__search-left d-flex align-items-center">
+        <div class="content__search-left d-flex align-items-center gap-12">
             <div class="content__search-icon"></div>
             <input class="content__search-input" placeholder="Tìm kiếm" v-model="searchInput" />
+            <div v-if="calculateChecked()">
+                Đã chọn <strong>{{ calculateChecked() }}</strong>
+            </div>
+            <ms-button @click="clearChecked" v-if="calculateChecked()" type="text"
+                >Bỏ chọn</ms-button
+            >
+            <ms-button
+                icon-left="content__table-active-icon"
+                type="primary-outline"
+                v-if="hasInactive"
+                @click="handleActive(selected, true)"
+                >Sử dụng</ms-button
+            >
+            <ms-button
+                v-if="hasActive"
+                icon-left="content__table-empty-icon"
+                type="danger-outline"
+                @click="handleActive(selected, false)"
+                >Ngừng sử dụng</ms-button
+            >
+            <ms-button
+                v-if="calculateChecked()"
+                icon-left="content__table-bin-icon"
+                type="danger-outline"
+                @click="handleBatchDelete(selected)"
+                >Xóa</ms-button
+            >
         </div>
         <ms-button :type="'outline'">
             <div class="content__reload-icon" @click="handleReload"></div>
@@ -368,7 +510,7 @@ onBeforeUnmount(() => {
             <thead class="content__table-header">
                 <tr>
                     <th class="content__table-checkbox content__table-checkbox-header">
-                        <input type="checkbox" />
+                        <input type="checkbox" :checked="isHeaderChecked" @change="onHeaderCheck" />
                     </th>
                     <th
                         :style="['width: ' + item.width + 'px']"
@@ -387,7 +529,12 @@ onBeforeUnmount(() => {
                 <!-- Dữ liệu bảng sẽ được hiển thị ở đây -->
                 <tr v-for="row in rows" :key="getRowId(row)" tabindex="0">
                     <td class="content__table-checkbox col-checkbox">
-                        <input type="checkbox" :data-id="row" />
+                        <input
+                            type="checkbox"
+                            :data-id="row"
+                            :checked="isRowChecked(getRowId(row))"
+                            @change="toggleRow(getRowId(row))"
+                        />
                     </td>
 
                     <td v-for="column in columns" :key="column.key">
@@ -434,21 +581,30 @@ onBeforeUnmount(() => {
                                     position: 'fixed',
                                     left: popupPosition.x + 'px',
                                     top: popupPosition.y + 'px',
-                                    zIndex: 9999,
+                                    zIndex: 5,
+                                    transform: popupTransform,
                                 }"
                             >
-                                <div class="content__table-popup-item d-flex">
+                                <div
+                                    class="content__table-popup-item d-flex"
+                                    @click="handleDuplicate(currentRow)"
+                                >
                                     <div class="content__table-duplicate-icon"></div>
                                     <div class="content__table-popup-text">Nhân bản</div>
                                 </div>
                                 <div
                                     v-if="currentRow?.productionShiftIsActive"
                                     class="content__table-popup-item d-flex"
+                                    @click="handleChangeActive(currentRow)"
                                 >
                                     <div class="content__table-empty-icon"></div>
                                     <div class="content__table-popup-text">Ngừng sử dụng</div>
                                 </div>
-                                <div v-else class="content__table-popup-item d-flex">
+                                <div
+                                    v-else
+                                    class="content__table-popup-item d-flex"
+                                    @click="handleChangeActive(currentRow)"
+                                >
                                     <div class="content__table-active-icon"></div>
                                     <div class="content__table-popup-text">Sử dụng</div>
                                 </div>
