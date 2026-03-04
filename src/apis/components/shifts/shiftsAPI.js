@@ -8,6 +8,15 @@ class ShiftsAPI extends BaseAPI {
     }
 
     /**
+     * Export Excel ca làm việc
+     */
+    exportExcel() {
+        return api.get(`${this.controller}/export`, {
+            responseType: "blob",
+        });
+    }
+
+    /**
      * Hàm xóa hàng loạt khách hàng
      * @returns {int} số bản ghi khách hàng xóa thành công
      * createdby: TMHieu - 9.12.2025

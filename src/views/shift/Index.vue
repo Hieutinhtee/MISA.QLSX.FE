@@ -74,6 +74,12 @@ const columns = ref([
         width: 160,
     },
     {
+        key: "productionShiftCreatedDate",
+        name: "Ngày tạo",
+        width: 160,
+        type: "date",
+    },
+    {
         key: "productionShiftModifiedBy",
         name: "Người sửa",
         width: 160,
@@ -82,6 +88,7 @@ const columns = ref([
         key: "productionShiftModifiedDate",
         name: "Ngày sửa",
         width: 160,
+        type: "date",
     },
 ]);
 
@@ -103,6 +110,7 @@ const shiftTableRef = ref(null);
 const isOpenModal = ref(false);
 const formText = ref("");
 const showConfirm = ref(false);
+const loading = ref(false);
 
 /**
  * Dữ liệu bảng ca làm việc
@@ -196,7 +204,7 @@ const handleSubmit = (shift) => {
 
 const handleSubmitAndAdd = (shift) => {
     try {
-        addShift(shift);
+        addShift(shift, true);
     } catch (error) {}
 };
 
@@ -205,18 +213,30 @@ const handleSubmitAndAdd = (shift) => {
  * @param {Object} shift Đối tượng ca làm việc
  * createdBy: TMHieu (22/01/2026)
  */
-function addShift(shift) {
-    ShiftsAPI.create(shift)
-        .then((res) => {
-            if (res.status === 201 || res.status === 200) {
-                $toastSuccess("Thêm ca làm việc thành công");
-                shiftFormRef.value?.handleCloseForm();
+function addShift(shift, isSaveAndAdd = false) {
+    ShiftsAPI.create(shift).then((res) => {
+        if (res.status === 201 || res.status === 200) {
+            const newShift = res.data.data || shift;
+            console.log(res.data.id);
+            newShift.productionShiftId = res.data.id;
+            // thêm vào đầu bảng
+            rows.value.unshift(newShift);
+
+            // nếu vượt quá pageSize thì bỏ row cuối
+            if (rows.value.length > payload.pageSize) {
+                rows.value.pop();
+            }
+
+            payload.totalRows++;
+
+            $toastSuccess("Thêm ca làm việc thành công");
+            shiftFormRef.value?.handleCloseForm();
+            if (isSaveAndAdd) {
                 typeForm.value = "add";
                 isFormOpen.value = true;
             }
-        })
-        .catch(() => {})
-        .finally(() => {});
+        }
+    });
 }
 
 /**
@@ -225,15 +245,20 @@ function addShift(shift) {
  * createdBy: TMHieu (22/01/2026)
  */
 function updateShift(shift) {
-    ShiftsAPI.update(shift.productionShiftId, shift)
-        .then((res) => {
-            if (res.status === 201 || res.status === 200) {
-                $toastSuccess("Cập nhật ca làm việc thành công");
-                shiftFormRef.value?.handleCloseForm();
+    ShiftsAPI.update(shift.productionShiftId, shift).then((res) => {
+        if (res.status === 201 || res.status === 200) {
+            const index = rows.value.findIndex(
+                (x) => x.productionShiftId === shift.productionShiftId,
+            );
+
+            if (index !== -1) {
+                rows.value[index] = { ...shift };
             }
-        })
-        .catch(() => {})
-        .finally(() => {});
+
+            $toastSuccess("Cập nhật ca làm việc thành công");
+            shiftFormRef.value?.handleCloseForm();
+        }
+    });
 }
 
 /**
@@ -246,17 +271,20 @@ function deleteShift(shift) {
     if (!Array.isArray(shift)) {
         ids = [shift];
     }
-    ShiftsAPI.delete(ids)
-        .then((res) => {
-            if (res.status === 201 || res.status === 200) {
-                isOpenModal.value = false;
-                selectedRow.value = null;
-                selectedRows.value = null;
-                $toastSuccess("Xóa ca làm việc thành công");
-            }
-        })
-        .catch(() => {})
-        .finally(() => {});
+
+    ShiftsAPI.delete(ids).then((res) => {
+        if (res.status === 201 || res.status === 200) {
+            rows.value = rows.value.filter((row) => !ids.includes(row.productionShiftId));
+
+            payload.totalRows -= ids.length;
+
+            isOpenModal.value = false;
+            selectedRow.value = null;
+            selectedRows.value = null;
+
+            $toastSuccess("Xóa ca làm việc thành công");
+        }
+    });
 }
 
 // #region delete
@@ -308,19 +336,32 @@ function handleEdit(row) {
 }
 
 function handleChangeActive(row) {
-    selectedRow.value = row;
-    updateShift(row);
+    ShiftsAPI.update(row.productionShiftId, row).then(() => {
+        const index = rows.value.findIndex((x) => x.productionShiftId === row.productionShiftId);
+
+        if (index !== -1) {
+            rows.value[index] = { ...row };
+        }
+    });
 }
 
-function handleBatchActive(rows, isActive) {
-    ShiftsAPI.batchActive(rows, isActive)
-        .then((res) => {
-            if (res.status === 201 || res.status === 200) {
-                shiftTableRef.value?.clearChecked();
-            }
-        })
-        .catch(() => {})
-        .finally(() => {});
+function handleBatchActive(ids, isActive) {
+    ShiftsAPI.batchActive(ids, isActive).then((res) => {
+        if (res.status === 201 || res.status === 200) {
+            // cập nhật trạng thái trong table
+            rows.value = rows.value.map((row) => {
+                if (ids.includes(row.productionShiftId)) {
+                    return {
+                        ...row,
+                        productionShiftIsActive: isActive,
+                    };
+                }
+                return row;
+            });
+
+            shiftTableRef.value?.clearChecked();
+        }
+    });
 }
 // #endregion edit
 /**
@@ -362,6 +403,7 @@ const onSearchChange = (newPayload) => {
  * createdby: TMHieu - 09.12.2025
  */
 async function loadDataForAPI() {
+    loading.value = true;
     setTimeout(async () => {
         try {
             const { page, pageSize, search } = payload;
@@ -374,8 +416,10 @@ async function loadDataForAPI() {
             payload.totalRows = result.data.meta.total;
         } catch (err) {
             console.error(err);
+        } finally {
+            loading.value = false;
         }
-    }, 0); // Dùng setTimeout 0ms để tách khỏi watch/ui thread
+    }, 400); // Dùng setTimeout 400ms để thấy loading
 }
 //#endregion Methods
 
@@ -425,7 +469,7 @@ onMounted(() => {
                 @batch-is-active="handleBatchActive"
                 @batch-delete="handleBatchDelete"
                 @duplicate="handleDuplicate"
-                :loading="true"
+                :loading="loading"
                 ref="shiftTableRef"
             >
                 <template #productionShiftIsActive="{ value }">

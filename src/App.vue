@@ -46,7 +46,7 @@ window.$dev = () => {
     ></config-provider>
 
     <ms-alert v-model="isDevOpen" title="Thông báo" @close="showConfirm = false">
-        Chức năng hiện chưa khả dụng. Chúng tôi sẽ cập nhật trong thời gian tới.
+        Chức năng hiện chưa khả dụng. Chúng tôi sẽ cập nhật trong thời gian sớm nhất.
     </ms-alert>
 </template>
 

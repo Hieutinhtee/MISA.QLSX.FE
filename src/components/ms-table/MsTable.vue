@@ -3,7 +3,7 @@ import { ref, defineProps, watch, computed, reactive, onMounted, onBeforeUnmount
 import { renderValue } from "@/utils/renderRowTable.js";
 import MsSelect from "@/components/ms-select/MsSelect.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
-import { formatTimeHHMM } from "@/utils/common.js";
+import { formatTimeHHMM, formatDateDDMMYYYY } from "@/utils/common.js";
 
 const pageSizeOptions = ref([
     {
@@ -547,13 +547,19 @@ defineExpose({
 
                 <template v-else>
                     <!-- Dữ liệu bảng sẽ được hiển thị ở đây -->
-                    <tr v-for="row in rows" :key="getRowId(row)" tabindex="0">
+                    <tr
+                        v-for="row in rows"
+                        :key="getRowId(row)"
+                        tabindex="0"
+                        @dblclick="handleEdit(row)"
+                    >
                         <td class="content__table-checkbox col-checkbox">
                             <input
                                 type="checkbox"
                                 :data-id="row"
                                 :checked="isRowChecked(getRowId(row))"
                                 @change="toggleRow(getRowId(row))"
+                                @dblclick.stop
                             />
                         </td>
 
@@ -569,6 +575,9 @@ defineExpose({
                                 <span>{{ renderValue(formatTimeHHMM(row[column.key])) }}</span>
                             </template>
 
+                            <template v-else-if="getFieldType(column.type) === 'date'">
+                                <span>{{ renderValue(formatDateDDMMYYYY(row[column.key])) }}</span>
+                            </template>
                             <!-- Các cột khác nếu không phải kiểu custom -->
                             <template v-else>
                                 {{ renderValue(row[column.key]) }}

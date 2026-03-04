@@ -1,16 +1,40 @@
 <script setup>
 import { ref } from "vue";
+import ShiftsAPI from "@/apis/components/shifts/shiftsAPI";
+import { Tooltip } from "ant-design-vue";
 
 const icons = ref([
-    { name: "package", badge: 0 },
-    { name: "user", badge: 0 },
-    { name: "ring", badge: 9 },
-    { name: "help", badge: 0 },
-    { name: "more", badge: 0 },
-    { name: "book", badge: 0 },
+    { name: "package", badge: 0, tooltip: "Tra cứu tồn kho" },
+    { name: "user", badge: 0, tooltip: "Giới thiệu bạn mới" },
+    { name: "ring", badge: 9, tooltip: "Thông báo" },
+    { name: "help", badge: 0, tooltip: "Hướng dẫn" },
+    { name: "more", badge: 0, tooltip: "Tính năng khác" },
+    { name: "book", badge: 0, tooltip: "Kiến thức hữu ích" },
     { name: "avatar", badge: 0 },
 ]);
 
+function handleExportExcel() {
+    ShiftsAPI.exportExcel()
+        .then((res) => {
+            const blob = new Blob([res.data], {
+                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            });
+
+            const url = window.URL.createObjectURL(blob);
+
+            const link = document.createElement("a");
+            link.href = url;
+
+            const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+            link.download = `Shift-${timestamp}.xlsx`;
+            link.click();
+
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(() => {
+            $toastError("Xuất Excel thất bại");
+        });
+}
 const openDev = () => {
     window.$dev();
 };
@@ -29,21 +53,32 @@ const openDev = () => {
         </div>
 
         <div class="navbar__right d-flex align-items-center">
-            <div class="navbar__item navbar__export-icon"></div>
+            <tooltip placement="bottom" :align="{ offset: [0, -2] }">
+                <template #title>
+                    <span>Xuất khẩu Excel</span>
+                </template>
+                <div class="navbar__item navbar__export-icon" @click="handleExportExcel"></div>
+            </tooltip>
+
             <div class="navbar__line"></div>
-            <div
-                v-for="item in icons"
-                :key="item"
-                class="navbar__item"
-                :class="['navbar__' + item.name + '-icon']"
-                @click="openDev"
-            >
-                <div
-                    v-if="item.badge != 0"
-                    class="navbar__item-badge d-flex justify-content-center align-items-center"
+            <div v-for="item in icons" :key="item">
+                <tooltip placement="bottom" :align="{ offset: [0, -2] }">
+                    <template v-if="item.tooltip" #title>
+                        <span>{{ item.tooltip }}</span>
+                    </template>
+                    <div
+                        class="navbar__item"
+                        :class="['navbar__' + item.name + '-icon']"
+                        @click="openDev"
+                    >
+                        <div
+                            v-if="item.badge != 0"
+                            class="navbar__item-badge d-flex justify-content-center align-items-center"
+                        >
+                            {{ item.badge }}
+                        </div>
+                    </div></tooltip
                 >
-                    {{ item.badge }}
-                </div>
             </div>
         </div>
     </div>
