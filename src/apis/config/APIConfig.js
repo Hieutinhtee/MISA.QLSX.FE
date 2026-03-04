@@ -1,4 +1,5 @@
 import axios from "axios";
+import { $alert, $confirm } from "@/utils/alertService";
 
 /**
  * Lấy các hàm hiển thị thông báo toast.
@@ -42,7 +43,9 @@ api.interceptors.response.use(
         //  Xử lý Lỗi Kết nối (Không nhận được response)
         if (!res) {
             console.error("Lỗi kết nối đến máy chủ:", error.message);
-            alert("Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc server.");
+            $alert(
+                "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc server.",
+            );
             return Promise.reject(error);
         }
 
@@ -60,7 +63,7 @@ api.interceptors.response.use(
             }
 
             // Nếu có nhiều lỗi validation, hiển thị lỗi đầu tiên hoặc tất cả
-            alert(messages.join("\n"));
+            $alert(messages.join("\n"));
             return Promise.reject(error);
         }
 
@@ -72,24 +75,24 @@ api.interceptors.response.use(
             // Log lỗi devMsg/traceId cho quá trình debug
             console.error("Lỗi API Custom:", res.data.error);
 
-            alert(userMsg);
+            $alert(userMsg);
             return Promise.reject(error);
         }
 
         //  Xử lý Lỗi 404 - NotFound
         if (res.status === 404) {
-            alert("Không tìm thấy tài nguyên yêu cầu (404)");
+            $alert("Không tìm thấy tài nguyên yêu cầu (404)");
             return Promise.reject(error);
         }
 
         //  Xử lý Lỗi 5xx - Lỗi Hệ thống
         if (res.status >= 500) {
-            alert("Lỗi hệ thống (5xx), vui lòng thử lại sau.");
+            $alert("Lỗi hệ thống (5xx), vui lòng thử lại sau.");
             return Promise.reject(error);
         }
 
         //  Lỗi Không xác định
-        alert(`Đã xảy ra lỗi không xác định (Status: ${res.status || "Unknown"})`);
+        $alert(`Đã xảy ra lỗi không xác định (Status: ${res.status || "Unknown"})`);
         return Promise.reject(error);
     },
 );

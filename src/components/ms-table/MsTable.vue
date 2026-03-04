@@ -48,6 +48,10 @@ const props = defineProps({
         type: Object,
         required: true,
     },
+    loading: {
+        type: Boolean,
+        default: false,
+    },
 });
 //#endregion
 
@@ -526,100 +530,117 @@ defineExpose({
                 </tr>
             </thead>
             <tbody class="table-shift__tbody">
-                <!-- Dữ liệu bảng sẽ được hiển thị ở đây -->
-                <tr v-for="row in rows" :key="getRowId(row)" tabindex="0">
-                    <td class="content__table-checkbox col-checkbox">
-                        <input
-                            type="checkbox"
-                            :data-id="row"
-                            :checked="isRowChecked(getRowId(row))"
-                            @change="toggleRow(getRowId(row))"
-                        />
-                    </td>
+                <!-- Loading skeleton -->
+                <template v-if="loading">
+                    <tr v-for="n in localData.pageSize" :key="'skeleton-' + n">
+                        <td class="col-checkbox">
+                            <div class="skeleton skeleton-checkbox"></div>
+                        </td>
+                        <td v-for="col in columns" :key="col.key">
+                            <div class="skeleton"></div>
+                        </td>
+                        <td class="col-delete">
+                            <div class="skeleton skeleton-action"></div>
+                        </td>
+                    </tr>
+                </template>
 
-                    <td v-for="column in columns" :key="column.key">
-                        <!-- Tùy chỉnh hiển thị cột trong bảng -->
-                        <template v-if="getFieldType(column.type) === 'custom'">
-                            <slot :name="column.key" :row="row" :value="row[column.key]">
-                                <!-- {{ renderValue(row[column.key]) }} -->
-                            </slot>
-                        </template>
+                <template v-else>
+                    <!-- Dữ liệu bảng sẽ được hiển thị ở đây -->
+                    <tr v-for="row in rows" :key="getRowId(row)" tabindex="0">
+                        <td class="content__table-checkbox col-checkbox">
+                            <input
+                                type="checkbox"
+                                :data-id="row"
+                                :checked="isRowChecked(getRowId(row))"
+                                @change="toggleRow(getRowId(row))"
+                            />
+                        </td>
 
-                        <template v-else-if="getFieldType(column.type) === 'HH:mm'">
-                            <span>{{ renderValue(formatTimeHHMM(row[column.key])) }}</span>
-                        </template>
+                        <td v-for="column in columns" :key="column.key">
+                            <!-- Tùy chỉnh hiển thị cột trong bảng -->
+                            <template v-if="getFieldType(column.type) === 'custom'">
+                                <slot :name="column.key" :row="row" :value="row[column.key]">
+                                    <!-- {{ renderValue(row[column.key]) }} -->
+                                </slot>
+                            </template>
 
-                        <!-- Các cột khác nếu không phải kiểu custom -->
-                        <template v-else>
-                            {{ renderValue(row[column.key]) }}
-                        </template>
-                    </td>
+                            <template v-else-if="getFieldType(column.type) === 'HH:mm'">
+                                <span>{{ renderValue(formatTimeHHMM(row[column.key])) }}</span>
+                            </template>
 
-                    <!-- Hành động sửa xóa trên bảng -->
-                    <td class="col-delete d-flex justify-content-between align-items-center">
-                        <div class="btn-modify-wrapper">
-                            <div
-                                class="content__table-btn-modify content__table-btn-edit"
-                                title="Chỉnh sửa"
-                                @click="handleEdit(row)"
-                            ></div>
-                        </div>
-                        <div class="btn-modify-wrapper">
-                            <div
-                                class="content__table-btn-modify content__table-btn-delete"
-                                title="Xóa"
-                                @click.stop="handleMore(row, $event)"
-                            ></div>
-                        </div>
-                        <Teleport to="body">
-                            <div v-if="showMoreRowId !== null"></div>
+                            <!-- Các cột khác nếu không phải kiểu custom -->
+                            <template v-else>
+                                {{ renderValue(row[column.key]) }}
+                            </template>
+                        </td>
 
-                            <div
-                                v-if="showMoreRowId !== null"
-                                class="content__table-popup-more"
-                                :style="{
-                                    position: 'fixed',
-                                    left: popupPosition.x + 'px',
-                                    top: popupPosition.y + 'px',
-                                    zIndex: 5,
-                                    transform: popupTransform,
-                                }"
-                            >
+                        <!-- Hành động sửa xóa trên bảng -->
+                        <td class="col-delete d-flex justify-content-between align-items-center">
+                            <div class="btn-modify-wrapper">
                                 <div
-                                    class="content__table-popup-item d-flex"
-                                    @click="handleDuplicate(currentRow)"
-                                >
-                                    <div class="content__table-duplicate-icon"></div>
-                                    <div class="content__table-popup-text">Nhân bản</div>
-                                </div>
-                                <div
-                                    v-if="currentRow?.productionShiftIsActive"
-                                    class="content__table-popup-item d-flex"
-                                    @click="handleChangeActive(currentRow)"
-                                >
-                                    <div class="content__table-empty-icon"></div>
-                                    <div class="content__table-popup-text">Ngừng sử dụng</div>
-                                </div>
-                                <div
-                                    v-else
-                                    class="content__table-popup-item d-flex"
-                                    @click="handleChangeActive(currentRow)"
-                                >
-                                    <div class="content__table-active-icon"></div>
-                                    <div class="content__table-popup-text">Sử dụng</div>
-                                </div>
-                                <!-- Cần biết row hiện tại để check isActive, xem bên dưới -->
-                                <div
-                                    class="content__table-popup-item d-flex"
-                                    @click="handleDelete(currentRow)"
-                                >
-                                    <div class="content__table-bin-icon"></div>
-                                    <div class="content__table-popup-text">Xóa</div>
-                                </div>
+                                    class="content__table-btn-modify content__table-btn-edit"
+                                    title="Chỉnh sửa"
+                                    @click="handleEdit(row)"
+                                ></div>
                             </div>
-                        </Teleport>
-                    </td>
-                </tr>
+                            <div class="btn-modify-wrapper">
+                                <div
+                                    class="content__table-btn-modify content__table-btn-delete"
+                                    title="Xóa"
+                                    @click.stop="handleMore(row, $event)"
+                                ></div>
+                            </div>
+                            <Teleport to="body">
+                                <div v-if="showMoreRowId !== null"></div>
+
+                                <div
+                                    v-if="showMoreRowId !== null"
+                                    class="content__table-popup-more"
+                                    :style="{
+                                        position: 'fixed',
+                                        left: popupPosition.x + 'px',
+                                        top: popupPosition.y + 'px',
+                                        zIndex: 5,
+                                        transform: popupTransform,
+                                    }"
+                                >
+                                    <div
+                                        class="content__table-popup-item d-flex"
+                                        @click="handleDuplicate(currentRow)"
+                                    >
+                                        <div class="content__table-duplicate-icon"></div>
+                                        <div class="content__table-popup-text">Nhân bản</div>
+                                    </div>
+                                    <div
+                                        v-if="currentRow?.productionShiftIsActive"
+                                        class="content__table-popup-item d-flex"
+                                        @click="handleChangeActive(currentRow)"
+                                    >
+                                        <div class="content__table-empty-icon"></div>
+                                        <div class="content__table-popup-text">Ngừng sử dụng</div>
+                                    </div>
+                                    <div
+                                        v-else
+                                        class="content__table-popup-item d-flex"
+                                        @click="handleChangeActive(currentRow)"
+                                    >
+                                        <div class="content__table-active-icon"></div>
+                                        <div class="content__table-popup-text">Sử dụng</div>
+                                    </div>
+                                    <!-- Cần biết row hiện tại để check isActive, xem bên dưới -->
+                                    <div
+                                        class="content__table-popup-item d-flex"
+                                        @click="handleDelete(currentRow)"
+                                    >
+                                        <div class="content__table-bin-icon"></div>
+                                        <div class="content__table-popup-text">Xóa</div>
+                                    </div>
+                                </div>
+                            </Teleport>
+                        </td>
+                    </tr>
+                </template>
             </tbody>
         </table>
     </div>
@@ -709,5 +730,38 @@ select:hover {
 .content__paging-btn-wrapper {
     margin-left: 16px;
     column-gap: 24px;
+}
+
+.skeleton {
+    height: 12px;
+    width: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 37%, #f0f0f0 63%);
+    background-size: 400% 100%;
+    animation: skeleton-loading 1.4s ease infinite;
+}
+
+.col-checkbox {
+    width: 48px;
+}
+
+.skeleton-checkbox {
+    width: 16px;
+    height: 16px;
+}
+
+.skeleton-action {
+    width: 40px;
+    height: 16px;
+    margin: auto;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0 50%;
+    }
 }
 </style>

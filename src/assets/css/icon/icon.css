@@ -307,6 +307,14 @@
     height: 24px;
 }
 
+.form-shift__help-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    -webkit-mask-position: -279px -14px;
+    background-color: #666666;
+    width: 24px;
+    height: 24px;
+}
+
 .form-shift__icon-more {
     -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
     width: 16px;

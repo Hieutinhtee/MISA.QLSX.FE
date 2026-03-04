@@ -7,6 +7,7 @@ import { createShift } from "@/common/model/shiftModel";
 import MsTextarea from "@/components/ms-textarea/MsTextarea.vue";
 import { formatTime } from "@/utils/common";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
+import { Tooltip } from "ant-design-vue";
 
 //#region constants
 /**
@@ -86,13 +87,13 @@ const shift = ref(createShift());
  * Khai báo emit sự kiện submit
  * createdBy: TMHieu (30/01/2026)
  */
-const emit = defineEmits(["submit"]);
+const emit = defineEmits(["submit", "submit-and-add"]);
 // #endregion emit
 
 //#region Watch
 
 /**
- * lắng nghe mở form, xử lí mở form add hoặc edit
+ * lắng nghe mở form, xử lí mở form add hoặc edit, duplicate
  * đổ dữ liệu nếu là edit
  * createdBy: TMHieu (30/01/2026)
  */
@@ -114,6 +115,8 @@ watch(
                 ...props.data,
                 productionShiftId: "",
                 productionShiftCode: "",
+                productionShiftWorkingTime: null,
+                productionShiftBreakTime: null,
             };
         }
     },
@@ -211,41 +214,44 @@ function validateTime(begin, end, breakBegin, breakEnd) {
         return false;
     }
 
-    if (breakBegin == breakEnd) {
-        errorMessage.value = "Giờ kết thúc nghỉ giữa ca không được bằng giờ nghỉ giữa ca";
-        resetTime();
-        return false;
-    }
-
-    // break phải nằm trong ca
-    const shiftRange = normalizeShift(begin, end);
-    const { shiftBegin, shiftEnd } = shiftRange;
-    const shiftDuration = shiftEnd - shiftBegin;
-
-    let breakDuration = 0;
-
     if (breakBegin && breakEnd) {
-        const breakRange = normalizeBreak(breakBegin, breakEnd, shiftBegin);
-
-        if (!breakRange) {
+        if (breakBegin == breakEnd) {
+            errorMessage.value = "Giờ kết thúc nghỉ giữa ca không được bằng giờ nghỉ giữa ca";
             resetTime();
-            return;
+            return false;
         }
 
-        const { breakBeginMin, breakEndMin } = breakRange;
-
-        breakDuration = breakEndMin - breakBeginMin;
-
         // break phải nằm trong ca
-        if (
-            breakBeginMin < shiftBegin ||
-            breakEndMin > shiftEnd ||
-            breakDuration <= 0 ||
-            breakDuration >= shiftDuration
-        ) {
-            errorMessage.value = "Khoảng giờ nghỉ giữa ca phải nằm trong khoảng thời gian làm việc";
-            resetTime();
-            return;
+        const shiftRange = normalizeShift(begin, end);
+        const { shiftBegin, shiftEnd } = shiftRange;
+        const shiftDuration = shiftEnd - shiftBegin;
+
+        let breakDuration = 0;
+
+        if (breakBegin && breakEnd) {
+            const breakRange = normalizeBreak(breakBegin, breakEnd, shiftBegin);
+
+            if (!breakRange) {
+                resetTime();
+                return;
+            }
+
+            const { breakBeginMin, breakEndMin } = breakRange;
+
+            breakDuration = breakEndMin - breakBeginMin;
+
+            // break phải nằm trong ca
+            if (
+                breakBeginMin < shiftBegin ||
+                breakEndMin > shiftEnd ||
+                breakDuration <= 0 ||
+                breakDuration >= shiftDuration
+            ) {
+                errorMessage.value =
+                    "Khoảng giờ nghỉ giữa ca phải nằm trong khoảng thời gian làm việc";
+                resetTime();
+                return;
+            }
         }
     }
 
@@ -321,7 +327,7 @@ function round2(num) {
  * Hàm xử lý sự kiện submit form
  * createdBy: TMHieu (29/01/2026)
  */
-const handleSubmit = () => {
+const handleSubmit = (isSubmitAndAdd) => {
     isSubmit.value = true;
 
     const allValid = Object.values(fieldValid.value).every(Boolean);
@@ -339,9 +345,14 @@ const handleSubmit = () => {
     )
         return;
 
-    let isUpdate = props.typeForm === "add" ? false : true;
+    const isUpdate = props.typeForm === "edit";
     const payload = buildPayload(shift.value, isUpdate);
-    emit("submit", payload);
+
+    if (isSubmitAndAdd) {
+        emit("submit-and-add", payload);
+    } else {
+        emit("submit", payload);
+    }
 };
 
 const handleCloseForm = () => {
@@ -423,11 +434,24 @@ const modelClose = () => {
         <div class="form-shift__content d-flex flex-column">
             <div class="form-shift__header d-flex justify-content-between align-items-center">
                 <div class="form-shift__title">
-                    {{ props.typeForm === "add" ? TITLE_SHIFT_FORM_ADD : TITLE_SHIFT_FORM_EDIT }}
+                    {{ props.typeForm === "edit" ? TITLE_SHIFT_FORM_EDIT : TITLE_SHIFT_FORM_ADD }}
                 </div>
-                <div class="form-shift__close-icon pointer" @click="handleCloseForm"></div>
+                <div class="d-flex gap-12">
+                    <tooltip placement="top" :align="{ offset: [0, 4] }">
+                        <template #title>
+                            <span>Trợ giúp</span>
+                        </template>
+                        <div class="form-shift__help-icon pointer"></div>
+                    </tooltip>
+                    <tooltip placement="top" :align="{ offset: [0, 4] }">
+                        <template #title>
+                            <span>Đóng (Ecs)</span>
+                        </template>
+                        <div class="form-shift__close-icon pointer" @click="handleCloseForm"></div>
+                    </tooltip>
+                </div>
             </div>
-
+            <!-- {{ props.data }} -->
             <div class="form-shift__body d-flex flex-column">
                 <div class="form-shift__item d-flex justify-content-between">
                     <div class="form-shift__label form-shift__label--required">Mã ca</div>
@@ -552,8 +576,16 @@ const modelClose = () => {
 
             <div class="form-shift__footer d-flex align-items-center justify-content-end">
                 <div class="form-shift__footer-buttons d-flex align-items-center">
-                    <ms-button @click="handleSubmit" tabindex="0">Lưu</ms-button>
-                    <ms-button :type="'outline'" tabindex="0">Lưu và thêm</ms-button>
+                    <ms-button :tooltip="'Crtl + S'" @click="handleSubmit(false)" tabindex="0"
+                        >Lưu</ms-button
+                    >
+                    <ms-button
+                        :tooltip="'Crtl + Shift + S'"
+                        :type="'outline'"
+                        tabindex="0"
+                        @click="handleSubmit(true)"
+                        >Lưu và thêm</ms-button
+                    >
                     <ms-button :type="'outline'" @click="handleCloseForm" tabindex="0"
                         >Hủy</ms-button
                     >

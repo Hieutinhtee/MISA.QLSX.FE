@@ -1,17 +1,23 @@
 <template>
-    <button
-        class="ms-button d-flex align-items-center"
-        :class="[`ms-button--${type}`, { 'ms-button--disabled': disabled }]"
-        :disabled="disabled"
-    >
-        <div v-if="iconLeft" :class="[`${iconLeft}`]" class="ms-button__icon"></div>
-        <span v-if="$slots.default" class="ms-button__text">
-            <slot></slot>
-        </span>
-    </button>
+    <tooltip placement="top" :align="{ offset: [0, 4] }" :trigger="['hover', 'focus']">
+        <template v-if="tooltip" #title>
+            <span>{{ tooltip }}</span> </template
+        ><button
+            class="ms-button d-flex align-items-center"
+            :class="[`ms-button--${type}`, { 'ms-button--disabled': disabled }]"
+            :disabled="disabled"
+        >
+            <div v-if="iconLeft" :class="[`${iconLeft}`]" class="ms-button__icon"></div>
+            <span v-if="$slots.default" class="ms-button__text">
+                <slot></slot>
+            </span>
+        </button>
+    </tooltip>
 </template>
 
 <script setup>
+import { Tooltip } from "ant-design-vue";
+
 defineProps({
     type: {
         type: String,
@@ -25,6 +31,10 @@ defineProps({
     disabled: {
         type: Boolean,
         default: false,
+    },
+    tooltip: {
+        type: String,
+        default: null,
     },
 });
 </script>

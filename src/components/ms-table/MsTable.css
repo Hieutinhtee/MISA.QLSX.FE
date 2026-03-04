@@ -118,7 +118,7 @@ tbody .content__table-checkbox {
 /* top-left cell */
 .content__table-header .content__table-checkbox-header {
     left: 0;
-    padding: 3px 12px 0 12px;
+    padding-top: 3px;
     z-index: 3;
     background-color: #f9fafb;
 }
@@ -147,7 +147,7 @@ tbody .content__table-checkbox {
 }
 
 .content__table-checkbox {
-    padding: 3px 12px 0 12px;
+    padding-top: 3px;
 }
 
 /* Kết thúc Style phần content */

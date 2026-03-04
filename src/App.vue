@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import MsAlert from "./components/ms-alert/MsAlert.vue";
 import { ref } from "vue";
+import { createPinia } from "pinia";
 // Dayjs
 dayjs.locale("vi");
 

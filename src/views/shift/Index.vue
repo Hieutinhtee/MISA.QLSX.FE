@@ -4,10 +4,10 @@ import MsTable from "@/components/ms-table/MsTable.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
 import shiftForm from "./ShiftForm.vue";
-import { useToast } from "vue-toastification";
 import ShiftsAPI from "@/apis/components/shifts/shiftsAPI";
+import { createShift } from "@/common/model/shiftModel";
+import { $toastSuccess, $toastError } from "@/utils/toastService";
 
-const toast = useToast();
 // #region Constants
 
 /**
@@ -181,21 +181,23 @@ const handleSubmit = (shift) => {
     if (typeForm.value === "add" || typeForm.value === "duplicate") {
         try {
             addShift(shift);
-            shiftFormRef.value?.handleCloseForm();
-            toast.success("Thêm ca làm việc thành công");
         } catch (error) {
-            toast.error(error);
+            console.log(error);
         }
     }
     if (typeForm.value === "edit") {
         try {
             updateShift(shift);
-            shiftFormRef.value?.handleCloseForm();
-            toast.success("Chỉnh sửa ca làm việc thành công");
         } catch (error) {
-            toast.error(error);
+            console.log(error);
         }
     }
+};
+
+const handleSubmitAndAdd = (shift) => {
+    try {
+        addShift(shift);
+    } catch (error) {}
 };
 
 /**
@@ -207,7 +209,10 @@ function addShift(shift) {
     ShiftsAPI.create(shift)
         .then((res) => {
             if (res.status === 201 || res.status === 200) {
+                $toastSuccess("Thêm ca làm việc thành công");
                 shiftFormRef.value?.handleCloseForm();
+                typeForm.value = "add";
+                isFormOpen.value = true;
             }
         })
         .catch(() => {})
@@ -223,6 +228,7 @@ function updateShift(shift) {
     ShiftsAPI.update(shift.productionShiftId, shift)
         .then((res) => {
             if (res.status === 201 || res.status === 200) {
+                $toastSuccess("Cập nhật ca làm việc thành công");
                 shiftFormRef.value?.handleCloseForm();
             }
         })
@@ -246,6 +252,7 @@ function deleteShift(shift) {
                 isOpenModal.value = false;
                 selectedRow.value = null;
                 selectedRows.value = null;
+                $toastSuccess("Xóa ca làm việc thành công");
             }
         })
         .catch(() => {})
@@ -418,6 +425,7 @@ onMounted(() => {
                 @batch-is-active="handleBatchActive"
                 @batch-delete="handleBatchDelete"
                 @duplicate="handleDuplicate"
+                :loading="true"
                 ref="shiftTableRef"
             >
                 <template #productionShiftIsActive="{ value }">
@@ -430,6 +438,7 @@ onMounted(() => {
                 v-model="isFormOpen"
                 :typeForm="typeForm"
                 @submit="handleSubmit"
+                @submit-and-add="handleSubmitAndAdd"
                 ref="shiftFormRef"
                 :data="selectedRow"
             ></shift-form>
