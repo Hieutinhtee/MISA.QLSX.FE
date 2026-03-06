@@ -533,3 +533,53 @@
     width: 16px;
     height: 16px;
 }
+
+.content__table-filter-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    mask-position: -544px 0px;
+    background-color: #4b5563;
+    width: 16px;
+    height: 16px;
+    position: relative;
+    z-index: 10;
+}
+
+.arrow__up-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    mask-position: -512px 0px;
+    background-color: #4b5563;
+    width: 16px;
+    height: 16px;
+}
+
+.arrow__down-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    mask-position: -528px 0px;
+    background-color: #4b5563;
+    width: 16px;
+    height: 16px;
+}
+
+.pin-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    mask-position: -432px 0px;
+    background-color: #4b5563;
+    width: 16px;
+    height: 16px;
+}
+
+.unpin-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    mask-position: -592px 0px;
+    background-color: #4b5563;
+    width: 16px;
+    height: 16px;
+}
+
+.icon-close {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    mask-position: -96px 0px;
+    background-color: #4b5563;
+    width: 16px;
+    height: 16px;
+}

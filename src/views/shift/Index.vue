@@ -21,11 +21,15 @@ const columns = ref([
     {
         key: "productionShiftCode",
         name: "Mã ca",
+        sortable: true,
+        typeSort: "text",
         width: 120,
     },
     {
         key: "productionShiftName",
         name: "Tên ca",
+        sortable: true,
+        typeSort: "text",
         width: 250,
     },
     {
@@ -55,38 +59,52 @@ const columns = ref([
     {
         key: "productionShiftWorkingTime",
         name: "Thời gian làm việc (giờ)",
+        sortable: true,
+        typeSort: "number",
         width: 210,
     },
     {
         key: "productionShiftBreakTime",
         name: "Thời gian nghỉ giữa ca (giờ)",
+        sortable: true,
+        typeSort: "number",
         width: 230,
     },
     {
         key: "productionShiftIsActive",
         name: "Trạng thái",
+        sortable: true,
+        typeSort: "boolean",
         width: 200,
         type: "custom",
     },
     {
         key: "productionShiftCreatedBy",
         name: "Người tạo",
+        sortable: true,
+        typeSort: "text",
         width: 160,
     },
     {
         key: "productionShiftCreatedDate",
         name: "Ngày tạo",
+        sortable: true,
+        typeSort: "number",
         width: 160,
         type: "date",
     },
     {
         key: "productionShiftModifiedBy",
         name: "Người sửa",
+        sortable: true,
+        typeSort: "text",
         width: 160,
     },
     {
         key: "productionShiftModifiedDate",
         name: "Ngày sửa",
+        sortable: true,
+        typeSort: "number",
         width: 160,
         type: "date",
     },
@@ -118,16 +136,33 @@ const loading = ref(false);
  */
 const rows = ref([]);
 
-// Payload phân trang và filter
 /**
- * Dữ liệu payload để gọi API phân trang và filter
- * @type {Object}
+ * @typedef {Object} FilterItem
+ * @property {string} field - Tên field cần filter
+ * @property {"eq"|"contains"|"gt"|"lt"} operator - Toán tử filter
+ * @property {string|number|boolean|null} value - Giá trị filter
+ */
+
+/**
+ * @typedef {Object} SortItem
+ * @property {string} field - Field cần sắp xếp
+ * @property {"asc"|"desc"} direction - Hướng sắp xếp
+ */
+
+/**
+ * @typedef {Object} TableQuery
+ * @property {number} page - Trang hiện tại
+ * @property {number} pageSize - Số bản ghi mỗi trang
+ * @property {string} search - Từ khóa tìm kiếm
+ * @property {FilterItem[]} filters - Danh sách filter
+ * @property {SortItem[]} sorts - Danh sách sort
  */
 const payload = reactive({
     page: 1,
     pageSize: 20,
     search: "",
-    totalRows: 0,
+    filters: [],
+    sorts: [],
 });
 
 // /**
@@ -406,12 +441,8 @@ async function loadDataForAPI() {
     loading.value = true;
     setTimeout(async () => {
         try {
-            const { page, pageSize, search } = payload;
-            const result = await ShiftsAPI.paging({
-                page,
-                pageSize,
-                search,
-            });
+            // const { page, pageSize, search } = payload;
+            const result = await ShiftsAPI.paging(JSON.parse(JSON.stringify(payload)));
             rows.value.splice(0, rows.value.length, ...result.data.data);
             payload.totalRows = result.data.meta.total;
         } catch (err) {

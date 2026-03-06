@@ -21,21 +21,17 @@ input[type="checkbox"] {
 
 /* style lại thanh scroll mặc định */
 ::-webkit-scrollbar {
-    width: 9px;
-    height: 9px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
+    width: 7px;
+    height: 7px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: #d6d6d6;
+    background-color: #8b8b8b;
     border-radius: var(--border-radius);
 }
 
 ::-webkit-scrollbar-button {
-    display: none;
+    /* display: none; */
 }
 
 /* Ghi đè toast success */

@@ -17,3 +17,14 @@ export const createShift = () => ({
     productionShiftModifiedBy: "",
     productionShiftModifiedDate: null,
 });
+
+export const createFilter = (field, operator, value) => ({
+    field,
+    operator,
+    value,
+});
+
+export const createSort = (field, direction) => ({
+    field,
+    direction,
+});

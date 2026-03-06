@@ -495,7 +495,9 @@ const modelClose = () => {
                         ></ms-input>
                     </div>
                     <div class="form-shift__item d-flex flex-1 justify-content-between">
-                        <div class="form-shift__label form-shift__label--required">Giờ hết ca</div>
+                        <div class="form-shift__label flex-1 form-shift__label--required">
+                            Giờ hết ca
+                        </div>
 
                         <ms-input
                             :label="'Giờ hết ca'"
@@ -521,7 +523,7 @@ const modelClose = () => {
                     </div>
 
                     <div class="form-shift__item d-flex justify-content-between flex-1">
-                        <div class="form-shift__label">Kết thúc nghỉ giữa ca</div>
+                        <div class="form-shift__label flex-1">Kết thúc nghỉ giữa ca</div>
                         <ms-input
                             :type="'HH:MM'"
                             v-model="shift.productionShiftEndBreakTime"

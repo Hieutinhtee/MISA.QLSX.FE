@@ -3,32 +3,12 @@ import { ref, defineProps, watch, computed, reactive, onMounted, onBeforeUnmount
 import { renderValue } from "@/utils/renderRowTable.js";
 import MsSelect from "@/components/ms-select/MsSelect.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
+import MsInput from "@/components/ms-input/MsInput.vue";
 import { formatTimeHHMM, formatDateDDMMYYYY } from "@/utils/common.js";
+import { Tooltip } from "ant-design-vue";
+import { createFilter, createSort } from "@/common/model/shiftModel";
 
-const pageSizeOptions = ref([
-    {
-        value: 10,
-        label: "10",
-    },
-    {
-        value: 20,
-        label: "20",
-    },
-    {
-        value: 30,
-        label: "30",
-    },
-    {
-        value: 50,
-        label: "50",
-    },
-    {
-        value: 100,
-        label: "100",
-    },
-]);
-
-//#region Props
+//#region Props & Emits
 const props = defineProps({
     columns: {
         type: Array,
@@ -53,10 +33,80 @@ const props = defineProps({
         default: false,
     },
 });
+
+const emit = defineEmits([
+    "deleteRow",
+    "editRow",
+    "duplicate",
+    "editActive",
+    "reload",
+    "update:pagination",
+    "batchIsActive",
+    "batchDelete",
+    "update:selected",
+    "row-click",
+    "update:search",
+]);
 //#endregion
 
 //#region State Data
+const pageSizeOptions = ref([
+    {
+        value: 10,
+        label: "10",
+    },
+    {
+        value: 20,
+        label: "20",
+    },
+    {
+        value: 30,
+        label: "30",
+    },
+    {
+        value: 50,
+        label: "50",
+    },
+    {
+        value: 100,
+        label: "100",
+    },
+]);
 
+const filterTextOptions = ref([
+    {
+        value: 10,
+        label: "Bằng",
+    },
+    {
+        value: 10,
+        label: "Khác",
+    },
+    {
+        value: 10,
+        label: "Chứa",
+    },
+    {
+        value: 20,
+        label: "Không chứa",
+    },
+    {
+        value: 30,
+        label: "Bắt đầu với",
+    },
+    {
+        value: 50,
+        label: "Kết thúc với",
+    },
+    {
+        value: 100,
+        label: "(Trống)",
+    },
+    {
+        value: 10,
+        label: "(Không trống)",
+    },
+]);
 /**
  * Danh sách của bản ghi chọn
  * createdBy: TMHieu (29/01/2026)
@@ -94,8 +144,147 @@ const searchInput = ref("");
  */
 const showMoreRowId = ref(null);
 
+/**
+ * Trạng thái mở popup sắp xếp
+ * createdBy: TMHieu (29/01/2026)
+ */
+const isShowSortPopup = ref(null);
+
+/**
+ * Vị trí transform mặc định của popup more
+ * createdBy: TMHieu (29/01/2026)
+ */
 const popupTransform = ref("translate(-100%, 0)");
-//#endregion State Data
+
+/**
+ * Vị trí popup more (theo tọa độ chuột)
+ * createdBy: TMHieu
+ */
+const popupPosition = ref({ x: 0, y: 0 });
+
+/**
+ * Dòng hiện tại đang thao tác (xem thêm, sửa, xóa...)
+ * createdBy: TMHieu (29/01/2026)
+ */
+const currentRow = ref(null);
+//#endregion
+
+//#region Computed
+
+/**
+ * Kiểm tra trạng thái checkbox all trên header
+ * createdBy: TMHieu (29/01/2026)
+ */
+const isHeaderChecked = computed(() => {
+    if (!props.rows.length) return false;
+
+    const idsThisPage = props.rows.map((r) => getRowId(r));
+    return idsThisPage.every((id) => selected.value.includes(id));
+});
+
+/**
+ * Lọc ra các dòng đã chọn dựa trên mảng selected chứa id
+ * createdBy: TMHieu (29/01/2026)
+ */
+const selectedRows = computed(() => props.rows.filter((r) => selected.value.includes(getRowId(r))));
+
+// Kiểm tra trong các dòng đã chọn có dòng nào đang active hay không
+const hasActive = computed(() => selectedRows.value.some((r) => r.productionShiftIsActive));
+
+// Kiểm tra trong các dòng đã chọn có dòng nào đang inactive hay không
+const hasInactive = computed(() => selectedRows.value.some((r) => !r.productionShiftIsActive));
+//#endregion
+
+//#region Watchers
+/**
+ * Khởi tạo thời gian debounce
+ */
+let debounceTimer = null;
+
+/**
+ * Theo dõi sự thay đổi của text search (Debounce)
+ * createdby: TMHieu - 09.12.2025
+ */
+watch(
+    () => searchInput,
+    (newVal) => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            localData.page = 1; // Reset về trang 1 khi search
+            localData.search = newVal;
+            emit("update:search", { ...localData });
+        }, 350);
+    },
+    { deep: true },
+);
+
+/**
+ * Theo dõi sự thay đổi của props.paginationData từ component cha
+ * và cập nhật localData, đồng thời tính lại range hiển thị.
+ */
+watch(
+    () => props.paginationData,
+    (newVal) => {
+        Object.assign(localData, newVal);
+        computeRecordRange(localData.page);
+    },
+    { deep: true },
+);
+
+/**
+ * Theo dõi thứ tự bản ghi đầu cuối trên trang
+ * Cập nhật lại trạng thái các nút paging
+ */
+watch(
+    () => [localData.recordStart, localData.recordEnd],
+    ([newStart, newEnd]) => {
+        // Nếu không có dữ liệu
+        if (localData.totalRows === 0) {
+            pagingState.value.first = true;
+            pagingState.value.prev = true;
+            pagingState.value.next = true;
+            pagingState.value.last = true;
+            return;
+        }
+
+        // Disable first + prev nếu đang ở đầu
+        const isAtStart = newStart <= 1;
+
+        // Disable next + last nếu đang ở cuối
+        const isAtEnd = newEnd >= localData.totalRows;
+
+        pagingState.value.first = isAtStart;
+        pagingState.value.prev = isAtStart;
+        pagingState.value.next = isAtEnd;
+        pagingState.value.last = isAtEnd;
+    },
+    { immediate: true },
+);
+
+/**
+ * Theo dõi sự thay đổi của props.rows để reset selected khi dữ liệu thay đổi
+ * createdBy: TMHieu (29/01/2026)
+ */
+watch(
+    () => props.rows,
+    () => {
+        selected.value = [];
+        emit("update:selected", []);
+    },
+);
+//#endregion
+
+//#region Lifecycle Hooks
+onMounted(() => {
+    document.addEventListener("click", handleClickOutsideShowMorePopup);
+    // Khởi tạo range khi component mount lần đầu
+    computeRecordRange(localData.page || 1);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener("click", handleClickOutsideShowMorePopup);
+});
+//#endregion
 
 //#region Methods
 
@@ -184,9 +373,6 @@ function changePage(action) {
     emit("update:pagination", { ...localData });
 }
 
-// Khởi tạo range khi component mount lần đầu
-computeRecordRange(localData.page || 1);
-
 /**
  * Xử lý khi nhấn nút xóa trên row table
  * emit data row lên cho index xử lý
@@ -233,19 +419,10 @@ const handleBatchDelete = (rows) => {
 };
 
 /**
- * Vị trí popup more (theo tọa độ chuột)
- * createdBy: TMHieu
- */
-const popupPosition = ref({ x: 0, y: 0 });
-
-const currentRow = ref(null);
-
-/**
  * Xử lý khi nhấn nút ... trên row table
  * Lưu vị trí chuột để render popup đúng chỗ
  * createdBy: TMHieu (29/01/2026)
  */
-
 const handleMore = (row, event) => {
     if (showMoreRowId.value === getRowId(row)) {
         showMoreRowId.value = null;
@@ -271,22 +448,86 @@ const handleMore = (row, event) => {
     currentRow.value = row;
 };
 
-//#endregion Methods
+/**
+ * Xử lý sự kiện click ra ngoài để đóng popup xem thêm
+ * createdBy: TMHieu (29/01/2026)
+ */
+const handleClickOutsideShowMorePopup = (event) => {
+    const popup = document.querySelector(".content__table-popup-more");
 
-//#region Methods - Row & Selection, All checkbox
+    if (!popup) return;
 
-const calculateChecked = () => {
-    return selected.value.length;
+    if (!popup.contains(event.target)) {
+        showMoreRowId.value = null;
+        currentRow.value = null;
+    }
 };
 
 /**
- * Xử lý sự kiện click vào một hàng (row) trên bảng, emit data của dòng đó lên cha xử lý
- * @param {Object} event - Sự kiện click từ PrimeVue DataTable.
- * createdby: TMHieu - 09.12.2025
+ * Xử lý sự kiện click vào header để mở popup sắp xếp
+ * createdBy: TMHieu (29/01/2026)
  */
-function handleRowClick(event) {
-    emit("row-click", event.data); // event.data là row được click
-}
+const showSortPopup = (key) => {
+    if (isShowSortPopup.value === key) {
+        isShowSortPopup.value = null;
+    } else {
+        isShowSortPopup.value = key;
+    }
+};
+
+/**
+ * Xử lý sự kiện chọn sắp xếp trong popup
+ * @param {string} key - Khóa của cột cần sắp xếp.
+ * @param {('asc'|'desc'|null)} order - Thứ tự sắp xếp (tăng dần, giảm dần, hoặc không sắp xếp).
+ * createdBy: TMHieu (29/01/2026)
+ */
+const headerSort = (key, order) => {
+    const index = localData.sorts.findIndex((s) => s.field === key);
+    let changed = false;
+
+    if (order === null) {
+        // Xóa sort
+        if (index !== -1) {
+            localData.sorts.splice(index, 1);
+            changed = true;
+        }
+    } else {
+        if (index !== -1) {
+            // Nếu direction khác thì mới update
+            if (localData.sorts[index].direction !== order) {
+                localData.sorts[index].direction = order;
+                changed = true;
+            }
+        } else {
+            // Thêm sort mới
+            localData.sorts.push(createSort(key, order));
+            changed = true;
+        }
+    }
+
+    if (changed) {
+        emit("update:pagination", { ...localData });
+    }
+
+    isShowSortPopup.value = null;
+};
+
+const getIconSort = (key) => {
+    const sort = localData.sorts.find((s) => s.field === key);
+    if (!sort) return "";
+    return sort.direction === "asc" ? "arrow__up-icon" : "arrow__down-icon";
+};
+//#endregion
+
+//#region Methods - Row & Selection, All checkbox
+
+/**
+ * Tính số lượng dòng đã được chọn
+ * createdby: TMHieu - 12.12.2025
+ */
+const calculateChecked = () => {
+    return selected.value.length;
+};
 
 /**
  * Xử lý sự kiện click vào allCheckbox trên bảng đổi state đánh dấu, trạng thái hiển thị,
@@ -335,141 +576,24 @@ const toggleRow = (id) => {
     emit("update:selected", [...selected.value]);
 };
 
-const selectedRows = computed(() => props.rows.filter((r) => selected.value.includes(getRowId(r))));
-
-const hasActive = computed(() => selectedRows.value.some((r) => r.productionShiftIsActive));
-
-const hasInactive = computed(() => selectedRows.value.some((r) => !r.productionShiftIsActive));
-
+/**
+ * Bỏ chọn tất cả các dòng đã chọn
+ * createdby: TMHieu - 12.12.2025
+ */
 const clearChecked = () => {
     selected.value = [];
 };
 //#endregion
 
-//#Region emit
-
-const emit = defineEmits([
-    "deleteRow",
-    "editRow",
-    "duplicate",
-    "editActive",
-    "reload",
-    "update:pagination",
-    "batchIsActive",
-    "batchDelete",
-]);
-
-//#Endregion emit
-
-//#region Computed
-
-const isHeaderChecked = computed(() => {
-    if (!props.rows.length) return false;
-
-    const idsThisPage = props.rows.map((r) => getRowId(r));
-    return idsThisPage.every((id) => selected.value.includes(id));
-});
-
-//#endregion Computed
-
-//#region Watchers
-
+//#region Expose
 /**
- * Khởi tạo thời gian debounce
+ * Expose hàm clearChecked để cha có thể gọi khi cần thiết (ví dụ sau khi xóa hàng loạt thành công)
+ * createdby: TMHieu - 12.12.2025
  */
-let debounceTimer = null;
-
-/**
- * Theo dõi sự thay đổi của text search (Debounce)
- * createdby: TMHieu - 09.12.2025
- */
-watch(
-    () => searchInput,
-    (newVal) => {
-        if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            localData.page = 1; // Reset về trang 1 khi search
-            localData.search = newVal;
-            emit("update:search", { ...localData });
-        }, 350);
-    },
-    { deep: true },
-);
-
-/**
- * Theo dõi sự thay đổi của props.paginationData từ component cha
- * và cập nhật localData, đồng thời tính lại range hiển thị.
- */
-watch(
-    () => props.paginationData,
-    (newVal) => {
-        Object.assign(localData, newVal);
-        computeRecordRange(localData.page);
-    },
-    { deep: true },
-);
-
-/**
- * Theo dõi thứ tự bản ghi đầu cuối trên trang
- * Cập nhật lại trạng thái các nút paging
- */
-watch(
-    () => [localData.recordStart, localData.recordEnd],
-    ([newStart, newEnd]) => {
-        // Nếu không có dữ liệu
-        if (localData.totalRows === 0) {
-            pagingState.value.first = true;
-            pagingState.value.prev = true;
-            pagingState.value.next = true;
-            pagingState.value.last = true;
-            return;
-        }
-
-        // Disable first + prev nếu đang ở đầu
-        const isAtStart = newStart <= 1;
-
-        // Disable next + last nếu đang ở cuối
-        const isAtEnd = newEnd >= localData.totalRows;
-
-        pagingState.value.first = isAtStart;
-        pagingState.value.prev = isAtStart;
-        pagingState.value.next = isAtEnd;
-        pagingState.value.last = isAtEnd;
-    },
-    { immediate: true },
-);
-
-watch(
-    () => props.rows,
-    () => {
-        selected.value = [];
-        emit("update:selected", []);
-    },
-);
-//#endregion Watchers
-
-const handleClickOutside = (event) => {
-    const popup = document.querySelector(".content__table-popup-more");
-
-    if (!popup) return;
-
-    if (!popup.contains(event.target)) {
-        showMoreRowId.value = null;
-        currentRow.value = null;
-    }
-};
-
-onMounted(() => {
-    document.addEventListener("click", handleClickOutside);
-});
-
-onBeforeUnmount(() => {
-    document.removeEventListener("click", handleClickOutside);
-});
-
 defineExpose({
     clearChecked,
 });
+//#endregion
 </script>
 
 <template>
@@ -477,6 +601,7 @@ defineExpose({
         <div class="content__search-left d-flex align-items-center gap-12">
             <div class="content__search-icon"></div>
             <input class="content__search-input" placeholder="Tìm kiếm" v-model="searchInput" />
+
             <div v-if="calculateChecked()">
                 Đã chọn <strong>{{ calculateChecked() }}</strong>
             </div>
@@ -505,10 +630,13 @@ defineExpose({
                 >Xóa</ms-button
             >
         </div>
-        <ms-button :type="'outline'">
-            <div class="content__reload-icon" @click="handleReload"></div>
-        </ms-button>
+        <tooltip placement="top" :align="{ offset: [0, 4] }" :trigger="['hover', 'focus']">
+            <template #title> <span>Lấy lại dữ liệu</span> </template
+            ><ms-button :type="'outline'">
+                <div class="content__reload-icon" @click="handleReload"></div> </ms-button
+        ></tooltip>
     </div>
+
     <div class="content__datagrid">
         <table class="content__table">
             <thead class="content__table-header">
@@ -523,7 +651,87 @@ defineExpose({
                     >
                         <div class="content__table-header-wrapper d-flex align-items-center">
                             <div class="content__table-header-line"></div>
-                            <div class="content__table-header-title">{{ item.name }}</div>
+                            <div
+                                class="content__table-header-title flex-1 d-flex gap-12"
+                                @click.stop="showSortPopup(item.key)"
+                            >
+                                {{ item.name }}
+                                <div :class="getIconSort(item.key)"></div>
+                            </div>
+                            <!-- Popup sort -->
+                            <div
+                                v-if="isShowSortPopup === item.key"
+                                class="table__header-sort-popup"
+                            >
+                                <div class="sort__popup-item" @click="headerSort(item.key, null)">
+                                    <div
+                                        class="sort__popup-item-icon content__table-empty-icon"
+                                    ></div>
+                                    <div class="sort__popup-item-text">Không sắp xếp</div>
+                                </div>
+                                <div class="sort__popup-item" @click="headerSort(item.key, 'asc')">
+                                    <div class="sort__popup-item-icon arrow__up-icon"></div>
+                                    <div class="sort__popup-item-text">Tăng dần</div>
+                                </div>
+                                <div class="sort__popup-item" @click="headerSort(item.key, 'desc')">
+                                    <div class="sort__popup-item-icon arrow__down-icon"></div>
+                                    <div class="sort__popup-item-text">Giảm dần</div>
+                                </div>
+                                <div class="sort__popup-line"></div>
+                                <div class="sort__popup-item">
+                                    <div class="sort__popup-item-icon pin-icon"></div>
+                                    <div class="sort__popup-item-text" @click="pinColumn(item.key)">
+                                        Ghim cột
+                                    </div>
+                                </div>
+                                <div class="sort__popup-item">
+                                    <div class="sort__popup-item-icon unpin-icon"></div>
+                                    <div
+                                        class="sort__popup-item-text"
+                                        @click="unpinColumn(item.key)"
+                                    >
+                                        Bỏ ghim cột
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="item.sortable" class="content__table-filter-icon"></div>
+                            <div
+                                v-if="item.sortable"
+                                class="filter__popup-item d-flex flex-column gap-16"
+                            >
+                                <div
+                                    class="filter__popup-header d-flex justify-content-between align-items-center gap-12"
+                                >
+                                    <div class="popup__header-title">Lọc {{ item.name }}</div>
+                                    <div class="popup__header-close-btn">
+                                        <div class="icon-close"></div>
+                                    </div>
+                                </div>
+                                <div class="popup__body d-flex flex-column gap-8">
+                                    <ms-select
+                                        v-if="item.typeSort === 'text'"
+                                        style="width: 318px"
+                                        @update:model-value="onChangePageSize"
+                                        :options="filterTextOptions"
+                                    ></ms-select>
+                                    <ms-input
+                                        label="Giờ vào ca"
+                                        placeholder="Nhập giá trị lọc"
+                                    ></ms-input>
+                                </div>
+                                <div
+                                    class="popup-footer d-flex justify-content-between align-items-center"
+                                >
+                                    <div class="popup__footer-left">
+                                        <ms-button type="ghost">Bỏ lọc</ms-button>
+                                    </div>
+                                    <div class="popup__footer-right d-flex gap-8">
+                                        <ms-button type="outline">Hủy</ms-button>
+                                        <ms-button type="primary">Áp dụng</ms-button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </th>
                     <th class="col-delete" style="width: 80px"></th>
@@ -661,15 +869,14 @@ defineExpose({
         <div class="content__paging-controls d-flex align-items-center gap-16">
             <div class="content__paging-controls-title">Số dòng/trang</div>
 
-            <div class="content__paging-page-size pointer">
+            <div class="content__paging-page-size pointer d-flex">
                 <ms-select
-                    style="width: 75px"
+                    :model-value="localData.pageSize"
+                    style="width: 80px"
+                    dropdown-position="top"
+                    @update:model-value="onChangePageSize"
                     :options="pageSizeOptions"
-                    v-model:value="localData.pageSize"
-                    @change="onChangePageSize"
-                >
-                    <div class="content__paging-icon-down"></div>
-                </ms-select>
+                ></ms-select>
             </div>
 
             <div class="content__paging-start-page">
@@ -713,64 +920,4 @@ defineExpose({
 
 <style scoped>
 @import "MsTable.css";
-
-select {
-    height: 34px;
-    width: 100%;
-    min-width: 0;
-    padding: 2px 16px 0;
-    border-radius: var(--border-radius);
-    outline: none;
-    border: 1px solid #dcdce3;
-}
-
-select:focus {
-    border-color: var(--primary-color);
-}
-
-select:hover {
-    border-color: var(--primary-color);
-}
-
-.content__paging-btn--disabled {
-    background-color: #c9cdd4;
-}
-
-.content__paging-btn-wrapper {
-    margin-left: 16px;
-    column-gap: 24px;
-}
-
-.skeleton {
-    height: 12px;
-    width: 100%;
-    border-radius: 4px;
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 37%, #f0f0f0 63%);
-    background-size: 400% 100%;
-    animation: skeleton-loading 1.4s ease infinite;
-}
-
-.col-checkbox {
-    width: 48px;
-}
-
-.skeleton-checkbox {
-    width: 16px;
-    height: 16px;
-}
-
-.skeleton-action {
-    width: 40px;
-    height: 16px;
-    margin: auto;
-}
-
-@keyframes skeleton-loading {
-    0% {
-        background-position: 100% 50%;
-    }
-    100% {
-        background-position: 0 50%;
-    }
-}
 </style>

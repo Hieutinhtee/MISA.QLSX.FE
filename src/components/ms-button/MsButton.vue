@@ -152,4 +152,17 @@ defineProps({
 .ms-button--text:hover:not(:disabled) {
     text-decoration: underline;
 }
+
+/* ============================================ */
+/* GHOST BUTTON               */
+/* ============================================ */
+
+.ms-button--ghost {
+    border-radius: 4px;
+    background-color: #f3f4f6;
+}
+
+.ms-button--ghost:hover:not(:disabled) {
+    background-color: #e5e7eb;
+}
 </style>

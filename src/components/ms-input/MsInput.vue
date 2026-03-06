@@ -296,11 +296,11 @@ onMounted(() => {
 </script>
 
 <template>
-    <tooltip placement="bottom" :align="{ offset: [0, -4] }">
-        <template v-if="displayError" #title>
-            <span>{{ displayError }}</span>
-        </template>
-        <div v-if="type === 'HH:MM'" class="time-wrapper" :style="inputStyle">
+    <div v-if="type === 'HH:MM'" class="time-wrapper" :style="inputStyle">
+        <tooltip placement="bottom" :align="{ offset: [0, -4] }">
+            <template v-if="displayError" #title>
+                <span>{{ displayError }}</span>
+            </template>
             <input
                 ref="inputRef"
                 class="time-input"
@@ -312,24 +312,28 @@ onMounted(() => {
                 @blur="touched = true"
                 maxlength="5"
             />
+        </tooltip>
+        <!-- Icon -->
+        <div class="time-icon" @click="isOpenTimeOption = !isOpenTimeOption"></div>
 
-            <!-- Icon -->
-            <div class="time-icon" @click="isOpenTimeOption = !isOpenTimeOption"></div>
-
-            <!-- Dropdown -->
-            <div v-if="isOpenTimeOption" class="time-dropdown">
-                <div
-                    v-for="time in timeOptions"
-                    :key="time"
-                    class="time-option"
-                    @click="selectTime(time)"
-                >
-                    {{ time }}
-                </div>
+        <!-- Dropdown -->
+        <div v-if="isOpenTimeOption" class="time-dropdown">
+            <div
+                v-for="time in timeOptions"
+                :key="time"
+                class="time-option"
+                @click="selectTime(time)"
+            >
+                {{ time }}
             </div>
         </div>
+    </div>
+    <tooltip placement="bottom" :align="{ offset: [0, -4] }">
+        <template v-if="displayError" #title>
+            <span>{{ displayError }}</span>
+        </template>
         <input
-            v-else
+            v-if="type != 'HH:MM'"
             ref="inputRef"
             :class="{ 'input--error': displayError }"
             :style="inputStyle"

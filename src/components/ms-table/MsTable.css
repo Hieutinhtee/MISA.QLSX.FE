@@ -184,3 +184,125 @@ tbody .content__table-checkbox {
     width: max-content;
     transform: translate(-100%, 0);
 }
+
+select {
+    height: 34px;
+    width: 100%;
+    min-width: 0;
+    padding: 2px 16px 0;
+    border-radius: var(--border-radius);
+    outline: none;
+    border: 1px solid #dcdce3;
+}
+
+select:focus {
+    border-color: var(--primary-color);
+}
+
+select:hover {
+    border-color: var(--primary-color);
+}
+
+.content__paging-btn--disabled {
+    background-color: #c9cdd4;
+}
+
+.content__paging-btn-wrapper {
+    margin-left: 16px;
+    column-gap: 24px;
+}
+
+.skeleton {
+    height: 12px;
+    width: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 37%, #f0f0f0 63%);
+    background-size: 400% 100%;
+    animation: skeleton-loading 1.4s ease infinite;
+}
+
+.col-checkbox {
+    width: 48px;
+}
+
+.skeleton-checkbox {
+    width: 16px;
+    height: 16px;
+}
+
+.skeleton-action {
+    width: 40px;
+    height: 16px;
+    margin: auto;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0 50%;
+    }
+}
+
+.sort__popup-item {
+    display: flex;
+    align-items: center;
+    column-gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-weight: 400;
+}
+
+.sort__popup-item:hover {
+    background-color: #f3f4f6;
+}
+
+.table__header-sort-popup {
+    position: absolute;
+    top: 32px;
+    left: 0;
+    background-color: #fff;
+    box-shadow:
+        0 0 8px #0000001a,
+        0 8px 16px #0000001a;
+    border-radius: var(--border-radius);
+    padding: 8px 0;
+    width: max-content;
+    z-index: 2;
+}
+
+.sort__popup-line {
+    width: calc(100% - 24px);
+    height: 1px;
+    background-color: #e0e6ec;
+    margin: 8px 12px;
+}
+
+.filter__popup-item {
+    padding: 16px;
+    background-color: white;
+    position: absolute;
+    top: 16px;
+    z-index: 99999;
+    width: 350px;
+    border-radius: var(--border-radius);
+    box-shadow:
+        0 0 8px #0000001a,
+        0 8px 16px #0000001a;
+}
+
+.popup__header-close-btn {
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: var(--border-radius);
+}
+
+.popup__header-close-btn:hover {
+    background-color: #f3f4f6;
+}
+
+.filter__popup-header .popup__header-title {
+    font-weight: 600;
+    font-size: 16px;
+}
