@@ -63,10 +63,10 @@ const showConfirm = ref(false);
  * createdBy: TMHieu (30/01/2026)
  */
 const fieldValid = ref({
-    productionShiftCode: false,
-    productionShiftName: false,
-    productionShiftBeginTime: false,
-    productionShiftEndTime: false,
+    shiftCode: false,
+    shiftName: false,
+    shiftBeginTime: false,
+    shiftEndTime: false,
 });
 
 /**
@@ -113,10 +113,10 @@ watch(
         if (props.typeForm === "duplicate" && props.data) {
             shift.value = {
                 ...props.data,
-                productionShiftId: "",
-                productionShiftCode: "",
-                productionShiftWorkingTime: null,
-                productionShiftBreakTime: null,
+                shiftId: "",
+                shiftCode: "",
+                workingTime: null,
+                breakTime: null,
             };
         }
     },
@@ -137,10 +137,10 @@ watch(
  */
 watch(
     () => [
-        shift.value.productionShiftBeginTime,
-        shift.value.productionShiftEndTime,
-        shift.value.productionShiftBeginBreakTime,
-        shift.value.productionShiftEndBreakTime,
+        shift.value.shiftBeginTime,
+        shift.value.shiftEndTime,
+        shift.value.beginBreakTime,
+        shift.value.endBreakTime,
     ],
     ([begin, end, breakBegin, breakEnd]) => {
         if (!begin || !end) {
@@ -183,9 +183,9 @@ watch(
             }
         }
 
-        shift.value.productionShiftBreakTime = round2(breakDuration / 60);
+        shift.value.breakTime = round2(breakDuration / 60);
 
-        shift.value.productionShiftWorkingTime = round2((shiftDuration - breakDuration) / 60);
+        shift.value.workingTime = round2((shiftDuration - breakDuration) / 60);
     },
 );
 
@@ -263,8 +263,8 @@ function validateTime(begin, end, breakBegin, breakEnd) {
  * createdBy: TMHieu (30/01/2026)
  */
 function resetTime() {
-    shift.value.productionShiftWorkingTime = null;
-    shift.value.productionShiftBreakTime = null;
+    shift.value.workingTime = null;
+    shift.value.breakTime = null;
 }
 
 /**
@@ -337,10 +337,10 @@ const handleSubmit = (isSubmitAndAdd) => {
 
     if (
         !validateTime(
-            shift.value.productionShiftBeginTime,
-            shift.value.productionShiftEndTime,
-            shift.value.productionShiftBeginBreakTime,
-            shift.value.productionShiftEndBreakTime,
+            shift.value.shiftBeginTime,
+            shift.value.shiftEndTime,
+            shift.value.beginBreakTime,
+            shift.value.endBreakTime,
         )
     )
         return;
@@ -372,31 +372,34 @@ const currentUser = "Thái Minh Hiếu";
  * @returns dữ liệu cơ bản trên form
  */
 function buildPayload(shiftData, isUpdate = false) {
-    const { productionCreatedDate, productionModifiedDate, ...rest } = shiftData;
+    const { ...rest } = shiftData;
 
     const basePayload = {
         ...rest,
-        productionShiftBeginTime: formatTime(rest.productionShiftBeginTime),
-        productionShiftEndTime: formatTime(rest.productionShiftEndTime),
-        productionShiftBeginBreakTime: formatTime(rest.productionShiftBeginBreakTime),
-        productionShiftEndBreakTime: formatTime(rest.productionShiftEndBreakTime),
+        shiftBeginTime: formatTime(rest.shiftBeginTime),
+        shiftEndTime: formatTime(rest.shiftEndTime),
+        beginBreakTime: formatTime(rest.beginBreakTime),
+        endBreakTime: formatTime(rest.endBreakTime),
     };
 
     if (!isUpdate) {
         // Khi thêm mới → xóa id
-        delete basePayload.productionShiftId;
+        delete basePayload.shiftId;
 
         return {
             ...basePayload,
-            productionShiftCreatedBy: currentUser,
-            productionShiftModifiedBy: currentUser,
+            createdBy: currentUser,
+            createdDate: new Date().toISOString(),
+            modifiedDate: new Date().toISOString(),
+            modifiedBy: currentUser,
         };
     }
 
     // Khi update → giữ id
     return {
         ...basePayload,
-        productionShiftModifiedBy: currentUser,
+        modifiedBy: currentUser,
+        modifiedDate: new Date().toISOString(),
     };
 }
 
@@ -457,9 +460,9 @@ const modelClose = () => {
                     <div class="form-shift__label form-shift__label--required">Mã ca</div>
                     <ms-input
                         :label="'Mã ca'"
-                        v-model="shift.productionShiftCode"
+                        v-model="shift.shiftCode"
                         :width="474"
-                        v-model:isValid="fieldValid.productionShiftCode"
+                        v-model:isValid="fieldValid.shiftCode"
                         v-model:isSubmit="isSubmit"
                         :maxLength="20"
                         :firstFocus="true"
@@ -470,10 +473,10 @@ const modelClose = () => {
                 <div class="form-shift__item d-flex justify-content-between">
                     <div class="form-shift__label form-shift__label--required">Tên ca</div>
                     <ms-input
-                        v-model="shift.productionShiftName"
+                        v-model="shift.shiftName"
                         :label="'Tên ca'"
                         :width="474"
-                        v-model:isValid="fieldValid.productionShiftName"
+                        v-model:isValid="fieldValid.shiftName"
                         v-model:isSubmit="isSubmit"
                         :maxLength="50"
                         @error="handleShowError"
@@ -485,9 +488,9 @@ const modelClose = () => {
                         <div class="form-shift__label form-shift__label--required">Giờ vào ca</div>
                         <ms-input
                             :label="'Giờ vào ca'"
-                            v-model="shift.productionShiftBeginTime"
+                            v-model="shift.shiftBeginTime"
                             :width="122"
-                            v-model:isValid="fieldValid.productionShiftBeginTime"
+                            v-model:isValid="fieldValid.shiftBeginTime"
                             v-model:isSubmit="isSubmit"
                             :type="'HH:MM'"
                             @error="handleShowError"
@@ -501,9 +504,9 @@ const modelClose = () => {
 
                         <ms-input
                             :label="'Giờ hết ca'"
-                            v-model="shift.productionShiftEndTime"
+                            v-model="shift.shiftEndTime"
                             :width="122"
-                            v-model:isValid="fieldValid.productionShiftEndTime"
+                            v-model:isValid="fieldValid.shiftEndTime"
                             v-model:isSubmit="isSubmit"
                             :type="'HH:MM'"
                             @error="handleShowError"
@@ -516,7 +519,7 @@ const modelClose = () => {
                         <div class="form-shift__label">Bắt đầu nghỉ giữa ca</div>
                         <ms-input
                             :type="'HH:MM'"
-                            v-model="shift.productionShiftBeginBreakTime"
+                            v-model="shift.beginBreakTime"
                             :placeholder="'HH:MM'"
                             :width="122"
                         ></ms-input>
@@ -526,7 +529,7 @@ const modelClose = () => {
                         <div class="form-shift__label flex-1">Kết thúc nghỉ giữa ca</div>
                         <ms-input
                             :type="'HH:MM'"
-                            v-model="shift.productionShiftEndBreakTime"
+                            v-model="shift.endBreakTime"
                             :placeholder="'HH:MM'"
                             :width="122"
                         ></ms-input>
@@ -536,40 +539,26 @@ const modelClose = () => {
                 <div class="form-shift__wrapper-item d-flex justify-content-between">
                     <div class="form-shift__item d-flex flex-1">
                         <div class="form-shift__label">Thời gian làm việc (giờ)</div>
-                        <ms-input
-                            v-model="shift.productionShiftWorkingTime"
-                            :width="122"
-                            disabled
-                        ></ms-input>
+                        <ms-input v-model="shift.workingTime" :width="122" disabled></ms-input>
                     </div>
 
                     <div class="form-shift__item d-flex justify-content-between flex-1">
                         <div class="form-shift__label">Thời gian nghỉ giữa ca (giờ)</div>
-                        <ms-input
-                            v-model="shift.productionShiftBreakTime"
-                            :width="122"
-                            disabled
-                        ></ms-input>
+                        <ms-input v-model="shift.breakTime" :width="122" disabled></ms-input>
                     </div>
                 </div>
 
                 <div class="form-shift__item d-flex justify-content-between">
                     <div class="form-shift__label">Mô tả</div>
-                    <ms-textarea v-model="shift.productionShiftDescription"></ms-textarea>
+                    <ms-textarea v-model="shift.shiftDescription"></ms-textarea>
                 </div>
                 <div v-if="props.typeForm === 'edit'" class="form-shift__item">
                     <div class="form-shift__item d-flex">
                         <div class="form-shift__label">Trạng thái</div>
-                        <ms-radio-button
-                            v-model="shift.productionShiftIsActive"
-                            :value="true"
-                            name="status"
+                        <ms-radio-button v-model="shift.isActive" :value="true" name="status"
                             >Đang sử dụng</ms-radio-button
                         >
-                        <ms-radio-button
-                            v-model="shift.productionShiftIsActive"
-                            :value="false"
-                            name="status"
+                        <ms-radio-button v-model="shift.isActive" :value="false" name="status"
                             >Ngưng sử dụng</ms-radio-button
                         >
                     </div>

@@ -1,21 +1,21 @@
 // Tạo shift mới, dùng chung
 // createdBy: TMHieu (22/01/2026)
 export const createShift = () => ({
-    productionShiftId: null,
-    productionShiftCode: "",
-    productionShiftName: "",
-    productionShiftDescription: "",
-    productionShiftBeginTime: null,
-    productionShiftEndTime: null,
-    productionShiftBeginBreakTime: null,
-    productionShiftEndBreakTime: null,
-    productionShiftWorkingTime: 0,
-    productionShiftBreakTime: 0,
-    productionShiftIsActive: true,
-    productionShiftCreatedBy: "",
-    productionShiftCreatedDate: null,
-    productionShiftModifiedBy: "",
-    productionShiftModifiedDate: null,
+    shiftId: null,
+    shiftCode: "",
+    shiftName: "",
+    shiftDescription: "",
+    shiftBeginTime: null,
+    shiftEndTime: null,
+    beginBreakTime: null,
+    endBreakTime: null,
+    workingTime: 0,
+    breakTime: 0,
+    isActive: true,
+    createdBy: "",
+    createdDate: null,
+    modifiedBy: "",
+    modifiedDate: null,
 });
 
 export const createFilter = (field, operator, value) => ({

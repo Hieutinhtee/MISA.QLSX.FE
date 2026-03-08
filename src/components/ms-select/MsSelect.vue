@@ -177,7 +177,6 @@ function toggleDropdown() {
 <style scoped>
 .ms-select {
     position: relative;
-    z-index: 999;
 }
 
 .ms-select__input {

@@ -25,8 +25,8 @@ defineProps({
     },
     /** Class icon bên trái */
     iconLeft: {
-        type: Array,
-        default: null,
+        type: String,
+        default: "",
     },
     disabled: {
         type: Boolean,

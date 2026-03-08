@@ -75,38 +75,42 @@ const pageSizeOptions = ref([
 
 const filterTextOptions = ref([
     {
-        value: 10,
+        value: "eq",
         label: "Bằng",
     },
     {
-        value: 10,
+        value: "neq",
         label: "Khác",
     },
     {
-        value: 10,
+        value: "contains",
         label: "Chứa",
     },
     {
-        value: 20,
+        value: "notcontains",
         label: "Không chứa",
     },
     {
-        value: 30,
+        value: "starts",
         label: "Bắt đầu với",
     },
     {
-        value: 50,
+        value: "ends",
         label: "Kết thúc với",
     },
     {
-        value: 100,
+        value: "isnull",
         label: "(Trống)",
     },
     {
-        value: 10,
+        value: "notnull",
         label: "(Không trống)",
     },
 ]);
+
+const filterOperator = ref(null);
+const filterValue = ref("");
+
 /**
  * Danh sách của bản ghi chọn
  * createdBy: TMHieu (29/01/2026)
@@ -150,6 +154,8 @@ const showMoreRowId = ref(null);
  */
 const isShowSortPopup = ref(null);
 
+const isShowFilterPopup = ref(null);
+
 /**
  * Vị trí transform mặc định của popup more
  * createdBy: TMHieu (29/01/2026)
@@ -189,10 +195,10 @@ const isHeaderChecked = computed(() => {
 const selectedRows = computed(() => props.rows.filter((r) => selected.value.includes(getRowId(r))));
 
 // Kiểm tra trong các dòng đã chọn có dòng nào đang active hay không
-const hasActive = computed(() => selectedRows.value.some((r) => r.productionShiftIsActive));
+const hasActive = computed(() => selectedRows.value.some((r) => r.isActive));
 
 // Kiểm tra trong các dòng đã chọn có dòng nào đang inactive hay không
-const hasInactive = computed(() => selectedRows.value.some((r) => !r.productionShiftIsActive));
+const hasInactive = computed(() => selectedRows.value.some((r) => !r.isActive));
 //#endregion
 
 //#region Watchers
@@ -287,6 +293,33 @@ onBeforeUnmount(() => {
 //#endregion
 
 //#region Methods
+
+const showFilterPopup = (key) => {
+    if (isShowFilterPopup.value === key) {
+        isShowFilterPopup.value = null;
+        return;
+    }
+
+    isShowFilterPopup.value = key;
+
+    // preload từ filter hiện có
+    const current = localData.filters.find((f) => f.field === key);
+    filterOperator.value = current?.operator ?? null;
+    filterValue.value = current?.value ?? "";
+};
+
+const applyFilter = (key) => {
+    if (!filterOperator.value) return;
+
+    const noValueOps = ["isnull", "notnull"];
+    const value = noValueOps.includes(filterOperator.value) ? null : filterValue.value;
+
+    headerFilter(key, filterOperator.value, value);
+};
+
+const clearFilter = (key) => {
+    headerFilter(key, null);
+};
 
 /**
  * Xử lý id cơ bản
@@ -409,8 +442,8 @@ const handleActive = (rows, isActive) => {
 };
 
 const handleChangeActive = (row) => {
-    if (row.productionShiftIsActive) row.productionShiftIsActive = false;
-    else row.productionShiftIsActive = true;
+    if (row.isActive) row.isActive = false;
+    else row.isActive = true;
     emit("editActive", row);
 };
 
@@ -516,6 +549,42 @@ const getIconSort = (key) => {
     const sort = localData.sorts.find((s) => s.field === key);
     if (!sort) return "";
     return sort.direction === "asc" ? "arrow__up-icon" : "arrow__down-icon";
+};
+
+const headerFilter = (field, operator, value = null) => {
+    const index = localData.filters.findIndex((f) => f.field === field);
+    let changed = false;
+
+    if (operator === null) {
+        // Xóa filter
+        if (index !== -1) {
+            localData.filters.splice(index, 1);
+            changed = true;
+        }
+    } else {
+        if (index !== -1) {
+            // Nếu operator hoặc value khác thì update
+            if (
+                localData.filters[index].operator !== operator ||
+                localData.filters[index].value !== value
+            ) {
+                localData.filters[index].operator = operator;
+                localData.filters[index].value = value;
+                changed = true;
+            }
+        } else {
+            // Thêm filter mới
+            localData.filters.push(createFilter(field, operator, value));
+            changed = true;
+        }
+    }
+
+    if (changed) {
+        localData.page = 1; // reset về trang đầu
+        emit("update:pagination", { ...localData });
+    }
+
+    isShowFilterPopup.value = null;
 };
 //#endregion
 
@@ -632,8 +701,8 @@ defineExpose({
         </div>
         <tooltip placement="top" :align="{ offset: [0, 4] }" :trigger="['hover', 'focus']">
             <template #title> <span>Lấy lại dữ liệu</span> </template
-            ><ms-button :type="'outline'">
-                <div class="content__reload-icon" @click="handleReload"></div> </ms-button
+            ><ms-button :type="'outline'" @click="handleReload">
+                <div class="content__reload-icon"></div> </ms-button
         ></tooltip>
     </div>
 
@@ -695,10 +764,15 @@ defineExpose({
                                 </div>
                             </div>
 
-                            <div v-if="item.sortable" class="content__table-filter-icon"></div>
                             <div
-                                v-if="item.sortable"
+                                v-if="item.typeFilter"
+                                class="content__table-filter-icon"
+                                @click.stop="showFilterPopup(item.key)"
+                            ></div>
+
+                            <div
                                 class="filter__popup-item d-flex flex-column gap-16"
+                                v-if="isShowFilterPopup === item.key"
                             >
                                 <div
                                     class="filter__popup-header d-flex justify-content-between align-items-center gap-12"
@@ -710,25 +784,34 @@ defineExpose({
                                 </div>
                                 <div class="popup__body d-flex flex-column gap-8">
                                     <ms-select
-                                        v-if="item.typeSort === 'text'"
+                                        v-if="item.typeFilter === 'text'"
                                         style="width: 318px"
-                                        @update:model-value="onChangePageSize"
                                         :options="filterTextOptions"
+                                        placeholder="Chọn điều kiện lọc"
+                                        v-model="filterOperator"
                                     ></ms-select>
+
                                     <ms-input
-                                        label="Giờ vào ca"
+                                        label="Giá trị lọc"
                                         placeholder="Nhập giá trị lọc"
+                                        v-model="filterValue"
                                     ></ms-input>
                                 </div>
                                 <div
                                     class="popup-footer d-flex justify-content-between align-items-center"
                                 >
                                     <div class="popup__footer-left">
-                                        <ms-button type="ghost">Bỏ lọc</ms-button>
+                                        <ms-button type="ghost" @click="clearFilter(item.key)"
+                                            >Bỏ lọc</ms-button
+                                        >
                                     </div>
                                     <div class="popup__footer-right d-flex gap-8">
-                                        <ms-button type="outline">Hủy</ms-button>
-                                        <ms-button type="primary">Áp dụng</ms-button>
+                                        <ms-button type="outline" @click="isShowFilterPopup = null"
+                                            >Hủy</ms-button
+                                        >
+                                        <ms-button type="primary" @click="applyFilter(item.key)"
+                                            >Áp dụng</ms-button
+                                        >
                                     </div>
                                 </div>
                             </div>
@@ -830,7 +913,7 @@ defineExpose({
                                         <div class="content__table-popup-text">Nhân bản</div>
                                     </div>
                                     <div
-                                        v-if="currentRow?.productionShiftIsActive"
+                                        v-if="currentRow?.isActive"
                                         class="content__table-popup-item d-flex"
                                         @click="handleChangeActive(currentRow)"
                                     >

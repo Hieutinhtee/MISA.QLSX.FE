@@ -19,92 +19,84 @@ import { $toastSuccess, $toastError } from "@/utils/toastService";
  */
 const columns = ref([
     {
-        key: "productionShiftCode",
+        key: "shiftCode",
         name: "Mã ca",
-        sortable: true,
-        typeSort: "text",
+        typeFilter: "text",
+
         width: 120,
     },
     {
-        key: "productionShiftName",
+        key: "shiftName",
         name: "Tên ca",
-        sortable: true,
-        typeSort: "text",
+        typeFilter: "text",
         width: 250,
     },
     {
-        key: "productionShiftBeginTime",
+        key: "shiftBeginTime",
         name: "Giờ vào ca",
         width: 130,
         type: "HH:mm",
     },
     {
-        key: "productionShiftEndTime",
+        key: "shiftEndTime",
         name: "Giờ hết ca",
         width: 130,
         type: "HH:mm",
     },
     {
-        key: "productionShiftBeginBreakTime",
+        key: "beginBreakTime",
         name: "Bắt đầu nghỉ giữa ca",
         width: 200,
         type: "HH:mm",
     },
     {
-        key: "productionShiftEndBreakTime",
+        key: "endBreakTime",
         name: "Kết thúc nghỉ giữa ca",
         width: 210,
         type: "HH:mm",
     },
     {
-        key: "productionShiftWorkingTime",
+        key: "workingTime",
         name: "Thời gian làm việc (giờ)",
-        sortable: true,
-        typeSort: "number",
+        typeFilter: "number",
         width: 210,
     },
     {
-        key: "productionShiftBreakTime",
+        key: "breakTime",
         name: "Thời gian nghỉ giữa ca (giờ)",
-        sortable: true,
-        typeSort: "number",
+        typeFilter: "number",
         width: 230,
     },
     {
-        key: "productionShiftIsActive",
+        key: "isActive",
         name: "Trạng thái",
-        sortable: true,
-        typeSort: "boolean",
+        typeFilter: "boolean",
         width: 200,
         type: "custom",
     },
     {
-        key: "productionShiftCreatedBy",
+        key: "createdBy",
         name: "Người tạo",
-        sortable: true,
-        typeSort: "text",
+        typeFilter: "text",
         width: 160,
     },
     {
-        key: "productionShiftCreatedDate",
+        key: "createdDate",
         name: "Ngày tạo",
-        sortable: true,
-        typeSort: "number",
+        typeFilter: "date",
         width: 160,
         type: "date",
     },
     {
-        key: "productionShiftModifiedBy",
+        key: "modifiedBy",
         name: "Người sửa",
-        sortable: true,
-        typeSort: "text",
+        typeFilter: "text",
         width: 160,
     },
     {
-        key: "productionShiftModifiedDate",
+        key: "modifiedDate",
         name: "Ngày sửa",
-        sortable: true,
-        typeSort: "number",
+        typeFilter: "date",
         width: 160,
         type: "date",
     },
@@ -170,10 +162,10 @@ const payload = reactive({
 //  * createdBy: TMHieu (29/01/2026)
 //  */
 // const searchFields = ref([
-//     "productionShiftCode",
-//     "productionShiftName",
-//     "productionShiftModifiedBy",
-//     "productionShiftCreatedBy",
+//     "shiftCode",
+//     "shiftName",
+//     "modifiedBy",
+//     "createdBy",
 // ]);
 
 /**
@@ -213,6 +205,8 @@ function reloadData() {
     payload.page = 1;
     payload.pageSize = 20;
     payload.search = "";
+    payload.filters = [];
+    payload.sorts = [];
     loadDataForAPI();
 }
 
@@ -225,6 +219,7 @@ const handleSubmit = (shift) => {
         try {
             addShift(shift);
         } catch (error) {
+            $toastError("Có lỗi xảy ra khi thêm ca làm việc");
             console.log(error);
         }
     }
@@ -232,6 +227,7 @@ const handleSubmit = (shift) => {
         try {
             updateShift(shift);
         } catch (error) {
+            $toastError("Có lỗi xảy ra khi cập nhật ca làm việc");
             console.log(error);
         }
     }
@@ -240,7 +236,10 @@ const handleSubmit = (shift) => {
 const handleSubmitAndAdd = (shift) => {
     try {
         addShift(shift, true);
-    } catch (error) {}
+    } catch (error) {
+        $toastError("Có lỗi xảy ra khi thêm ca làm việc");
+        console.log(error);
+    }
 };
 
 /**
@@ -253,7 +252,11 @@ function addShift(shift, isSaveAndAdd = false) {
         if (res.status === 201 || res.status === 200) {
             const newShift = res.data.data || shift;
             console.log(res.data.id);
-            newShift.productionShiftId = res.data.id;
+            newShift.shiftId = res.data.id;
+            newShift.createdBy = shift.createdBy;
+            newShift.createdDate = new Date().toISOString();
+            newShift.modifiedBy = shift.createdBy;
+            newShift.modifiedDate = new Date().toISOString();
             // thêm vào đầu bảng
             rows.value.unshift(newShift);
 
@@ -280,11 +283,9 @@ function addShift(shift, isSaveAndAdd = false) {
  * createdBy: TMHieu (22/01/2026)
  */
 function updateShift(shift) {
-    ShiftsAPI.update(shift.productionShiftId, shift).then((res) => {
+    ShiftsAPI.update(shift.shiftId, shift).then((res) => {
         if (res.status === 201 || res.status === 200) {
-            const index = rows.value.findIndex(
-                (x) => x.productionShiftId === shift.productionShiftId,
-            );
+            const index = rows.value.findIndex((x) => x.shiftId === shift.shiftId);
 
             if (index !== -1) {
                 rows.value[index] = { ...shift };
@@ -309,7 +310,7 @@ function deleteShift(shift) {
 
     ShiftsAPI.delete(ids).then((res) => {
         if (res.status === 201 || res.status === 200) {
-            rows.value = rows.value.filter((row) => !ids.includes(row.productionShiftId));
+            rows.value = rows.value.filter((row) => !ids.includes(row.shiftId));
 
             payload.totalRows -= ids.length;
 
@@ -329,7 +330,7 @@ function deleteShift(shift) {
  * createdBy: TMHieu (02/02/2026)
  */
 function handleDelete(row) {
-    formText.value = "Ca làm việc <strong>" + row.productionShiftCode + "</strong>";
+    formText.value = "Ca làm việc <strong>" + row.shiftCode + "</strong>";
     selectedRow.value = row;
     isOpenModal.value = true;
 }
@@ -347,7 +348,7 @@ function handleBatchDelete(rows) {
 
 const handleConfirmDelete = () => {
     if (selectedRow.value) {
-        deleteShift(selectedRow.value.productionShiftId);
+        deleteShift(selectedRow.value.shiftId);
         shiftTableRef.value?.clearChecked();
     }
     if (selectedRows.value) {
@@ -371,8 +372,8 @@ function handleEdit(row) {
 }
 
 function handleChangeActive(row) {
-    ShiftsAPI.update(row.productionShiftId, row).then(() => {
-        const index = rows.value.findIndex((x) => x.productionShiftId === row.productionShiftId);
+    ShiftsAPI.update(row.shiftId, row).then(() => {
+        const index = rows.value.findIndex((x) => x.shiftId === row.shiftId);
 
         if (index !== -1) {
             rows.value[index] = { ...row };
@@ -385,10 +386,10 @@ function handleBatchActive(ids, isActive) {
         if (res.status === 201 || res.status === 200) {
             // cập nhật trạng thái trong table
             rows.value = rows.value.map((row) => {
-                if (ids.includes(row.productionShiftId)) {
+                if (ids.includes(row.shiftId)) {
                     return {
                         ...row,
-                        productionShiftIsActive: isActive,
+                        isActive: isActive,
                     };
                 }
                 return row;
@@ -483,7 +484,7 @@ onMounted(() => {
         <div class="content__header d-flex">
             <div class="content__title">Ca làm việc</div>
 
-            <ms-button :icon-left="'icon-add'" @click="handleFormAddOpen">Thêm</ms-button>
+            <ms-button icon-left="icon-add" @click="handleFormAddOpen">Thêm</ms-button>
         </div>
         <!-- content body -->
         <div class="content__body d-flex flex-1">
@@ -503,7 +504,7 @@ onMounted(() => {
                 :loading="loading"
                 ref="shiftTableRef"
             >
-                <template #productionShiftIsActive="{ value }">
+                <template #isActive="{ value }">
                     <div v-if="value" class="inactive inactive--true">Đang sử dụng</div>
                     <div v-else class="inactive inactive--false">Ngừng sử dụng</div>
                 </template>
