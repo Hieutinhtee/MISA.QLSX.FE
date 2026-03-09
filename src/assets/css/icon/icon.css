@@ -343,7 +343,7 @@
     /* position: absolute; */
 }
 
-.content__table-btn-delete {
+.content__table-btn-showmore {
     -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
     -webkit-mask-position: -288px 0px;
     background-color: #4b5563;
@@ -582,4 +582,14 @@
     background-color: #4b5563;
     width: 16px;
     height: 16px;
+}
+
+.table__header-pin-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    mask-position: -416px 0px;
+    background-color: #4b5563;
+    width: 16px;
+    height: 16px;
+    /* position: absolute;
+    left: -14px; */
 }

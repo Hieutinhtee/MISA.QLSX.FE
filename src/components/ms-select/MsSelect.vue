@@ -8,6 +8,7 @@
                 ref="inputRef"
                 v-model="searchValue"
                 class="ms-select__input"
+                :placeholder="placeholder"
                 @focus="handleFocus"
                 @blur="handleBlur"
                 @input="handleInput"
@@ -48,112 +49,152 @@
 import { Tooltip } from "ant-design-vue";
 import { ref, computed, watch } from "vue";
 
+//#region Props & Emits
+/**
+ * Khai báo props nhận từ component cha
+ * createdBy: TMHieu
+ */
 const props = defineProps({
     modelValue: [String, Number],
     options: {
         type: Array,
         default: () => [],
     },
+    /**
+     * Kiểu dữ liệu filter
+     * dùng để lọc option theo type
+     * ví dụ: text | number | boolean | date
+     */
+    type: {
+        type: String,
+        default: "text",
+    },
+    /**
+     * Vị trí hiển thị dropdown
+     * bottom | top
+     */
     dropdownPosition: {
         type: String,
-        default: "bottom", // bottom | top | auto
+        default: "bottom",
+    },
+    /**
+     * Placeholder hiển thị trong input
+     */
+    placeholder: {
+        type: String,
+        default: "Chọn giá trị",
     },
 });
 
+/**
+ * Emit cập nhật giá trị cho v-model
+ * createdBy: TMHieu
+ */
 const emit = defineEmits(["update:modelValue"]);
+//#endregion
 
+//#region State
+/**
+ * Cờ xác định người dùng đang gõ để search
+ */
 const isTyping = ref(false);
+
+/**
+ * ref tới input để thao tác DOM (select text)
+ */
 const inputRef = ref(null);
+
+/**
+ * Giá trị hiển thị trong input
+ */
 const searchValue = ref("");
+
+/**
+ * Trạng thái mở dropdown
+ */
 const isOpen = ref(false);
+
+/**
+ * Trạng thái focus của input
+ */
 const isFocus = ref(false);
+
+/**
+ * Trạng thái dữ liệu nhập không hợp lệ
+ */
 const isInvalid = ref(false);
+
+/**
+ * Trạng thái hiển thị tooltip lỗi
+ */
 const showTooltip = ref(false);
+//#endregion
 
-const filteredOptions = computed(() => {
-    if (!isTyping.value) return props.options;
+//#region Computed
 
-    if (!searchValue.value) return props.options;
+/**
+ * Lọc option theo type được truyền từ props
+ * Ví dụ:
+ * type = text → chỉ hiển thị option text
+ * type = number → chỉ hiển thị option number
+ *
+ * createdBy: TMHieu
+ */
+const optionsByType = computed(() => {
+    if (!props.type) return props.options;
 
-    return props.options.filter((o) =>
-        o.label.toLowerCase().includes(searchValue.value.toLowerCase()),
-    );
+    return props.options.filter((o) => {
+        if (!o.type) return true;
+        return o.type.includes(props.type);
+    });
 });
 
-const selectedValue = ref();
+/**
+ * Danh sách option hiển thị trong dropdown
+ * - Nếu không search → hiển thị toàn bộ options theo type
+ * - Nếu đang search → lọc theo label
+ *
+ * createdBy: TMHieu
+ */
+const filteredOptions = computed(() => {
+    const options = optionsByType.value;
 
+    if (!isTyping.value) return options;
+
+    if (!searchValue.value) return options;
+
+    return options.filter((o) => o.label.toLowerCase().includes(searchValue.value.toLowerCase()));
+});
+
+/**
+ * Giá trị option đang được chọn
+ */
+const selectedValue = ref();
+//#endregion
+
+//#region Watchers
+
+/**
+ * Theo dõi modelValue từ component cha
+ * để đồng bộ label hiển thị trong input
+ *
+ * createdBy: TMHieu
+ */
 watch(
     () => props.modelValue,
     (val) => {
-        const found = props.options.find((o) => o.value === val);
+        const found = optionsByType.value.find((o) => o.value === val);
         if (found) searchValue.value = found.label;
     },
     { immediate: true },
 );
 
-function handleHover() {
-    if (isInvalid.value) {
-        showTooltip.value = true;
-    }
-}
-
-function handleFocus() {
-    isFocus.value = true;
-    isOpen.value = true;
-    isTyping.value = false;
-}
-
-function handleBlur() {
-    isFocus.value = false;
-    isOpen.value = false;
-
-    const found = props.options.find(
-        (o) => o.label.toLowerCase() === searchValue.value.toLowerCase(),
-    );
-
-    if (!found) {
-        isInvalid.value = true;
-
-        // reset lại option đã chọn
-        const selected = props.options.find((o) => o.value === props.modelValue);
-        if (selected) {
-            searchValue.value = selected.label;
-        } else {
-            searchValue.value = "";
-        }
-    } else {
-        isInvalid.value = false;
-    }
-}
-
-function handleInput() {
-    isTyping.value = true;
-    isOpen.value = true;
-
-    const found = filteredOptions.value.length > 0;
-
-    isInvalid.value = !found;
-}
-
-function selectOption(item) {
-    emit("update:modelValue", item.value);
-    selectedValue.value = item.value;
-    searchValue.value = item.label;
-
-    isInvalid.value = false;
-    isOpen.value = false;
-    isTyping.value = false;
-}
-
-function selectAll() {
-    if (inputRef.value) {
-        inputRef.value.select();
-    }
-
-    isOpen.value = true;
-    isTyping.value = false;
-}
-
+/**
+ * Theo dõi trạng thái mở dropdown
+ * khi mở dropdown thì reset trạng thái search
+ *
+ * createdBy: TMHieu
+ */
 watch(isOpen, (val) => {
     if (val) {
         isTyping.value = false;
@@ -165,6 +206,113 @@ watch(isOpen, (val) => {
         }
     }
 });
+//#endregion
+
+//#region Methods
+
+/**
+ * Hiển thị tooltip khi hover nếu dữ liệu không hợp lệ
+ *
+ * createdBy: TMHieu
+ */
+function handleHover() {
+    if (isInvalid.value) {
+        showTooltip.value = true;
+    }
+}
+
+/**
+ * Xử lý khi focus vào input
+ * mở dropdown và reset trạng thái search
+ *
+ * createdBy: TMHieu
+ */
+function handleFocus() {
+    isFocus.value = true;
+    isOpen.value = true;
+    isTyping.value = false;
+}
+
+/**
+ * Xử lý khi blur input
+ * kiểm tra dữ liệu nhập có tồn tại trong options hay không
+ *
+ * createdBy: TMHieu
+ */
+function handleBlur() {
+    isFocus.value = false;
+    isOpen.value = false;
+
+    const found = optionsByType.value.find(
+        (o) => o.label.toLowerCase() === searchValue.value.toLowerCase(),
+    );
+
+    if (!found) {
+        isInvalid.value = true;
+
+        // reset lại option đã chọn trước đó
+        const selected = optionsByType.value.find((o) => o.value === props.modelValue);
+
+        if (selected) {
+            searchValue.value = selected.label;
+        } else {
+            searchValue.value = "";
+        }
+    } else {
+        isInvalid.value = false;
+    }
+}
+
+/**
+ * Xử lý khi người dùng nhập để search option
+ *
+ * createdBy: TMHieu
+ */
+function handleInput() {
+    isTyping.value = true;
+    isOpen.value = true;
+
+    const found = filteredOptions.value.length > 0;
+
+    isInvalid.value = !found;
+}
+
+/**
+ * Chọn option từ dropdown
+ * emit giá trị lên component cha
+ *
+ * @param {object} item - option được chọn
+ * createdBy: TMHieu
+ */
+function selectOption(item) {
+    emit("update:modelValue", item.value);
+    selectedValue.value = item.value;
+    searchValue.value = item.label;
+
+    isInvalid.value = false;
+    isOpen.value = false;
+    isTyping.value = false;
+}
+
+/**
+ * Select toàn bộ text khi click input
+ *
+ * createdBy: TMHieu
+ */
+function selectAll() {
+    if (inputRef.value) {
+        inputRef.value.select();
+    }
+
+    isOpen.value = true;
+    isTyping.value = false;
+}
+
+/**
+ * Toggle mở / đóng dropdown
+ *
+ * createdBy: TMHieu
+ */
 function toggleDropdown() {
     isOpen.value = !isOpen.value;
 
@@ -172,6 +320,7 @@ function toggleDropdown() {
         inputRef.value?.focus();
     }
 }
+//#endregion
 </script>
 
 <style scoped>

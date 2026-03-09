@@ -283,7 +283,7 @@ select:hover {
     padding: 16px;
     background-color: white;
     position: absolute;
-    top: 16px;
+    top: 32px;
     z-index: 99999;
     width: 350px;
     border-radius: var(--border-radius);
@@ -313,4 +313,36 @@ select:hover {
 .filter__popup-header .popup__header-title {
     font-weight: 600;
     font-size: 16px;
+}
+
+/* Ghim cột */
+.pinned-column {
+    position: sticky !important;
+    background-color: #fff;
+    z-index: 2;
+}
+
+.content__table-header .pinned-column {
+    background-color: #f9fafb;
+    z-index: 3;
+}
+
+tbody tr:hover .pinned-column {
+    background-color: var(--bg-hover);
+}
+
+tbody tr:focus .pinned-column {
+    background-color: #a4f6d3;
+}
+
+/* Thêm shadow cho cột ghim */
+.pinned-column::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: -1px;
+    width: 1px;
+    background-color: #d1d5db;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
 }

@@ -5,31 +5,11 @@ import { Tooltip } from "ant-design-vue";
 //#region Props
 
 /**
- * Lỗi gửi lên cha khi submit
- * @property {string} error - Lỗi gửi lên cha.
- * createdBy: TMHieu (29/01/2026)
- */
-const emit = defineEmits(["error"]);
-
-/**
  * Giá trị của input
  * @property {string} value - Giá trị của input.
  * createdBy: TMHieu (29/01/2026)
  */
 const modelValue = defineModel();
-
-/**
- * Trạng thái hợp lệ
- * createdBy: TMHieu (29/01/2026)
- */
-const isValid = defineModel("isValid");
-
-/**
- * Trạng thái submit của form gửi xuống
- * nếu submit thì validate giá trị trên tất cả input
- * createdBy: TMHieu (29/01/2026)
- */
-const isSubmit = defineModel("isSubmit");
 
 /**
  * Khai báo props truyền vào
@@ -85,9 +65,13 @@ const props = defineProps({
 
 //#endregion Props
 
-//#region Emits
-
-//#endregion Emits
+/**
+ * Định nghĩa sự kiện emit ra ngoài
+ * @event blur - Sự kiện blur của input
+ * @event focus - Sự kiện focus của input
+ * createdBy: TMHieu (29/01/2026)
+ */
+const emit = defineEmits(["blurInput", "focus"]);
 
 //#region State Data
 
@@ -97,11 +81,6 @@ const props = defineProps({
  */
 const inputRef = ref(null);
 
-/**
- * Trạng thái đã chạm vào ô input
- * createdBy: TMHieu (29/01/2026)
- */
-const touched = ref(false);
 //#endregion State Data
 
 //#region Computed
@@ -116,84 +95,11 @@ const inputStyle = computed(() => {
     return { width: props.width };
 });
 
-/**
- * Thông báo lỗi nội bộ chung
- * createdBy: TMHieu (29/01/2026)
- */
-const internalError = computed(() => {
-    if (props.required && !modelValue.value) {
-        return `${props.label} không được để trống`;
-    }
-
-    if (props.type === "phone" && modelValue.value) {
-        if (!/^\d{10}$/.test(modelValue.value)) {
-            return "Số điện thoại không hợp lệ";
-        }
-    }
-
-    if (props.type === "email" && modelValue.value) {
-        if (!/^\S+@\S+\.\S+$/.test(modelValue.value)) {
-            return "Email không hợp lệ";
-        }
-    }
-
-    return "";
-});
-
-/**
- * Thông báo lỗi hiển thị nếu có lỗi nghiệp vụ riêng gửi xuống từ form
- * hoặc lỗi nội bộ
- * createdBy: TMHieu (29/01/2026)
- */
-const displayError = computed(() => {
-    if (isSubmit.value) {
-        if (props.error) return props.error;
-        return internalError.value;
-    }
-    if (!touched.value) return "";
-    if (props.error) return props.error;
-    return internalError.value;
-});
-
 //#endregion Computed
 
 //#region Watchers
-/**
- * Reset trạng thái đã chạm khi giá trị thay đổi
- * createdBy: TMHieu (29/01/2026)
- */
-watch(modelValue, () => {
-    if (touched.value) {
-        touched.value = false;
-        isSubmit.value = false;
-    }
-});
 
-/**
- * Reset trạng thái chạm với input trong form khi submit
- * createdBy: TMHieu (29/01/2026)
- */
-watch(isSubmit, () => {
-    if (isSubmit.value) {
-        touched.value = true;
-    }
-    if (!isValid.value) {
-        inputRef.value.focus();
-    }
-});
-
-/**
- * Cập nhật trạng thái hợp lệ của input
- * thông báo cho form
- * createdBy: TMHieu (29/01/2026)
- */
-watch(
-    [() => props.error, internalError],
-    ([externalError, internalErr]) => {
-        isValid.value = !externalError && !internalErr;
-    },
-    { immediate: true },
-);
+const displayError = computed(() => props.error);
 
 /**
  * Chặn paste vượt quá maxLength
@@ -206,17 +112,12 @@ const handleInput = (e) => {
     }
 };
 
-watch(
-    () => [displayError.value, isSubmit.value],
-    ([error, submit]) => {
-        if (submit && error) {
-            nextTick(() => {
-                emit("error", error);
-            });
-        }
-    },
-);
-
+/**
+ * Watcher để tự động cắt chuỗi về đúng định dạng HH:MM nếu type là HH:MM
+ * ví dụ khi người dùng nhập 123456 thì sẽ tự động cắt thành 12:34
+ * hoăc khi modelValue được set từ bên ngoài là 12:34:56 thì cũng sẽ tự động cắt thành 12:34
+ * createdBy: TMHieu (29/01/2026)
+ */
 watch(
     () => modelValue.value,
     (val) => {
@@ -251,7 +152,14 @@ const timeOptions = computed(() => {
     return result;
 });
 
-// Format khi nhập tay
+/**
+ * Xử lý sự kiện nhập liệu cho time picker
+ * - Tự động thêm dấu ":" sau khi nhập 2 số đầu tiên
+ * - Giới hạn giờ từ 00 đến 23 và phút chỉ cho phép max 59
+ *
+ * createdBy: TMHieu (29/01/2026)
+ * @param e - Sự kiện thay đổi ô input
+ */
 const handleInputTime = (e) => {
     let raw = e.target.value.replace(/\D/g, "").slice(0, 4); // chỉ 4 số
 
@@ -266,7 +174,7 @@ const handleInputTime = (e) => {
     // Giới hạn giờ
     if (hh > 23) hh = 23;
 
-    // Chỉ cho 00 hoặc 30
+    // Chỉ cho tối đa 59
     if (mm > 59) {
         mm = 59;
     }
@@ -276,6 +184,10 @@ const handleInputTime = (e) => {
     modelValue.value = formatted;
 };
 
+/**
+ * Xử lý khi click vào icon đồng hồ để mở dropdown và focus vào input
+ * createdBy: TMHieu (29/01/2026)
+ */
 const selectTime = (time) => {
     modelValue.value = time;
     isOpenTimeOption.value = false;
@@ -293,13 +205,23 @@ onMounted(() => {
     }
 });
 //#endregion Lifecycle Hooks
+
+/**
+ * Expose hàm focus để component cha gọi
+ * createdBy: TMHieu
+ */
+defineExpose({
+    focusInput: () => {
+        inputRef.value?.focus();
+    },
+});
 </script>
 
 <template>
     <div v-if="type === 'HH:MM'" class="time-wrapper" :style="inputStyle">
         <tooltip placement="bottom" :align="{ offset: [0, -4] }">
             <template v-if="displayError" #title>
-                <span>{{ displayError }}</span>
+                <span class="tooltip-error">{{ displayError }}</span>
             </template>
             <input
                 ref="inputRef"
@@ -308,8 +230,9 @@ onMounted(() => {
                 :disabled="disabled"
                 :value="modelValue"
                 @input="handleInputTime"
+                @blur="$emit('blurInput')"
+                @focus="$emit('focus')"
                 placeholder="HH:MM"
-                @blur="touched = true"
                 maxlength="5"
             />
         </tooltip>
@@ -330,7 +253,7 @@ onMounted(() => {
     </div>
     <tooltip placement="bottom" :align="{ offset: [0, -4] }">
         <template v-if="displayError" #title>
-            <span>{{ displayError }}</span>
+            <span class="tooltip-error">{{ displayError }}</span>
         </template>
         <input
             v-if="type != 'HH:MM'"
@@ -341,8 +264,9 @@ onMounted(() => {
             :disabled="disabled"
             :placeholder="placeholder"
             :maxlength="maxLength || undefined"
-            @blur="touched = true"
             @input="handleInput"
+            @blur="$emit('blurInput')"
+            @focus="$emit('focus')"
         />
     </tooltip>
 </template>
@@ -431,5 +355,12 @@ input:hover {
 
 .time-option:hover {
     background-color: #f3f4f6;
+}
+
+.tooltip-error {
+    display: inline-block;
+    max-width: 240px;
+    white-space: normal;
+    word-break: break-word;
 }
 </style>

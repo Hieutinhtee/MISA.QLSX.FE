@@ -251,7 +251,7 @@ function addShift(shift, isSaveAndAdd = false) {
     ShiftsAPI.create(shift).then((res) => {
         if (res.status === 201 || res.status === 200) {
             const newShift = res.data.data || shift;
-            console.log(res.data.id);
+
             newShift.shiftId = res.data.id;
             newShift.createdBy = shift.createdBy;
             newShift.createdDate = new Date().toISOString();

@@ -73,38 +73,80 @@ const pageSizeOptions = ref([
     },
 ]);
 
-const filterTextOptions = ref([
+const filterOptions = ref([
     {
         value: "eq",
         label: "Bằng",
+        type: ["text", "number", "date"],
     },
     {
         value: "neq",
         label: "Khác",
+        type: ["text", "number", "date"],
     },
+
     {
         value: "contains",
         label: "Chứa",
+        type: ["text"],
     },
     {
         value: "notcontains",
         label: "Không chứa",
+        type: ["text"],
     },
     {
         value: "starts",
         label: "Bắt đầu với",
+        type: ["text"],
     },
     {
         value: "ends",
         label: "Kết thúc với",
+        type: ["text"],
     },
+
+    {
+        value: "lt",
+        label: "Nhỏ hơn",
+        type: ["number", "date"],
+    },
+    {
+        value: "lte",
+        label: "Nhỏ hơn hoặc bằng",
+        type: ["number", "date"],
+    },
+    {
+        value: "gt",
+        label: "Lớn hơn",
+        type: ["number", "date"],
+    },
+    {
+        value: "gte",
+        label: "Lớn hơn hoặc bằng",
+        type: ["number", "date"],
+    },
+
     {
         value: "isnull",
         label: "(Trống)",
+        type: ["text", "number", "date"],
     },
     {
         value: "notnull",
         label: "(Không trống)",
+        type: ["text", "number", "date"],
+    },
+
+    {
+        value: "active",
+        label: "Đang sử dụng",
+        type: ["boolean"],
+    },
+    {
+        value: "inactive",
+        label: "Ngừng sử dụng",
+        type: ["boolean"],
     },
 ]);
 
@@ -157,6 +199,12 @@ const isShowSortPopup = ref(null);
 const isShowFilterPopup = ref(null);
 
 /**
+ * Danh sách key của các cột đã ghim (theo thứ tự ghim)
+ * createdBy: TMHieu
+ */
+const pinnedColumns = ref([]);
+
+/**
  * Vị trí transform mặc định của popup more
  * createdBy: TMHieu (29/01/2026)
  */
@@ -176,6 +224,54 @@ const currentRow = ref(null);
 //#endregion
 
 //#region Computed
+
+/**
+ * Sắp xếp columns: cột đã ghim lên đầu, giữ nguyên thứ tự còn lại
+ * createdBy: TMHieu
+ */
+const sortedColumns = computed(() => {
+    const pinned = [];
+    const unpinned = [];
+
+    props.columns.forEach((col) => {
+        if (pinnedColumns.value.includes(col.key)) {
+            pinned.push(col);
+        } else {
+            unpinned.push(col);
+        }
+    });
+
+    // Sắp xếp pinned theo thứ tự trong pinnedColumns
+    pinned.sort((a, b) => {
+        return pinnedColumns.value.indexOf(a.key) - pinnedColumns.value.indexOf(b.key);
+    });
+
+    return [...pinned, ...unpinned];
+});
+
+/**
+ * Tính toán vị trí left cho mỗi cột đã ghim
+ * createdBy: TMHieu
+ */
+const getPinnedColumnLeft = (key) => {
+    const index = pinnedColumns.value.indexOf(key);
+    if (index === -1) return 0;
+
+    let left = 48; // width của cột checkbox
+
+    for (let i = 0; i < index; i++) {
+        const col = props.columns.find((c) => c.key === pinnedColumns.value[i]);
+        left += col?.width || 100;
+    }
+
+    return left;
+};
+
+/**
+ * Kiểm tra cột có đang được ghim không
+ * createdBy: TMHieu
+ */
+const isPinned = (key) => pinnedColumns.value.includes(key);
 
 /**
  * Kiểm tra trạng thái checkbox all trên header
@@ -293,6 +389,31 @@ onBeforeUnmount(() => {
 //#endregion
 
 //#region Methods
+
+/**
+ * Ghim cột
+ * @param {string} key - Key của cột cần ghim
+ * createdBy: TMHieu
+ */
+const pinColumn = (key) => {
+    if (!pinnedColumns.value.includes(key)) {
+        pinnedColumns.value.push(key);
+    }
+    isShowSortPopup.value = null;
+};
+
+/**
+ * Bỏ ghim cột
+ * @param {string} key - Key của cột cần bỏ ghim
+ * createdBy: TMHieu
+ */
+const unpinColumn = (key) => {
+    const index = pinnedColumns.value.indexOf(key);
+    if (index !== -1) {
+        pinnedColumns.value.splice(index, 1);
+    }
+    isShowSortPopup.value = null;
+};
 
 const showFilterPopup = (key) => {
     if (isShowFilterPopup.value === key) {
@@ -714,19 +835,25 @@ defineExpose({
                         <input type="checkbox" :checked="isHeaderChecked" @change="onHeaderCheck" />
                     </th>
                     <th
-                        :style="['width: ' + item.width + 'px']"
-                        v-for="item in columns"
+                        :style="[
+                            'width: ' + item.width + 'px',
+                            isPinned(item.key) ? `left: ${getPinnedColumnLeft(item.key)}px` : '',
+                        ]"
+                        :class="{ 'pinned-column': isPinned(item.key) }"
+                        v-for="item in sortedColumns"
                         :key="item"
                     >
                         <div class="content__table-header-wrapper d-flex align-items-center">
                             <div class="content__table-header-line"></div>
                             <div
-                                class="content__table-header-title flex-1 d-flex gap-12"
+                                class="content__table-header-title flex-1 d-flex gap-8"
                                 @click.stop="showSortPopup(item.key)"
                             >
+                                <div v-if="isPinned(item.key)" class="table__header-pin-icon"></div>
                                 {{ item.name }}
                                 <div :class="getIconSort(item.key)"></div>
                             </div>
+
                             <!-- Popup sort -->
                             <div
                                 v-if="isShowSortPopup === item.key"
@@ -747,20 +874,19 @@ defineExpose({
                                     <div class="sort__popup-item-text">Giảm dần</div>
                                 </div>
                                 <div class="sort__popup-line"></div>
-                                <div class="sort__popup-item">
+
+                                <div
+                                    class="sort__popup-item"
+                                    @click="pinColumn(item.key)"
+                                    v-if="!isPinned(item.key)"
+                                >
                                     <div class="sort__popup-item-icon pin-icon"></div>
-                                    <div class="sort__popup-item-text" @click="pinColumn(item.key)">
-                                        Ghim cột
-                                    </div>
+                                    <div class="sort__popup-item-text">Ghim cột</div>
                                 </div>
-                                <div class="sort__popup-item">
+
+                                <div class="sort__popup-item" @click="unpinColumn(item.key)" v-else>
                                     <div class="sort__popup-item-icon unpin-icon"></div>
-                                    <div
-                                        class="sort__popup-item-text"
-                                        @click="unpinColumn(item.key)"
-                                    >
-                                        Bỏ ghim cột
-                                    </div>
+                                    <div class="sort__popup-item-text">Bỏ ghim cột</div>
                                 </div>
                             </div>
 
@@ -778,20 +904,24 @@ defineExpose({
                                     class="filter__popup-header d-flex justify-content-between align-items-center gap-12"
                                 >
                                     <div class="popup__header-title">Lọc {{ item.name }}</div>
-                                    <div class="popup__header-close-btn">
+                                    <div
+                                        class="popup__header-close-btn"
+                                        @click="clearFilter(item.key)"
+                                    >
                                         <div class="icon-close"></div>
                                     </div>
                                 </div>
                                 <div class="popup__body d-flex flex-column gap-8">
                                     <ms-select
-                                        v-if="item.typeFilter === 'text'"
+                                        :type="item.typeFilter"
                                         style="width: 318px"
-                                        :options="filterTextOptions"
+                                        :options="filterOptions"
                                         placeholder="Chọn điều kiện lọc"
                                         v-model="filterOperator"
                                     ></ms-select>
 
                                     <ms-input
+                                        v-if="item.typeFilter != 'boolean'"
                                         label="Giá trị lọc"
                                         placeholder="Nhập giá trị lọc"
                                         v-model="filterValue"
@@ -820,6 +950,7 @@ defineExpose({
                     <th class="col-delete" style="width: 80px"></th>
                 </tr>
             </thead>
+
             <tbody class="table-shift__tbody">
                 <!-- Loading skeleton -->
                 <template v-if="loading">
@@ -827,7 +958,7 @@ defineExpose({
                         <td class="col-checkbox">
                             <div class="skeleton skeleton-checkbox"></div>
                         </td>
-                        <td v-for="col in columns" :key="col.key">
+                        <td v-for="col in sortedColumns" :key="col.key">
                             <div class="skeleton"></div>
                         </td>
                         <td class="col-delete">
@@ -854,7 +985,16 @@ defineExpose({
                             />
                         </td>
 
-                        <td v-for="column in columns" :key="column.key">
+                        <td
+                            v-for="column in sortedColumns"
+                            :key="column.key"
+                            :class="{ 'pinned-column': isPinned(column.key) }"
+                            :style="
+                                isPinned(column.key)
+                                    ? `left: ${getPinnedColumnLeft(column.key)}px`
+                                    : ''
+                            "
+                        >
                             <!-- Tùy chỉnh hiển thị cột trong bảng -->
                             <template v-if="getFieldType(column.type) === 'custom'">
                                 <slot :name="column.key" :row="row" :value="row[column.key]">
@@ -877,20 +1017,20 @@ defineExpose({
 
                         <!-- Hành động sửa xóa trên bảng -->
                         <td class="col-delete d-flex justify-content-between align-items-center">
-                            <div class="btn-modify-wrapper">
+                            <div class="btn-modify-wrapper" @click="handleEdit(row)">
                                 <div
                                     class="content__table-btn-modify content__table-btn-edit"
                                     title="Chỉnh sửa"
-                                    @click="handleEdit(row)"
                                 ></div>
                             </div>
-                            <div class="btn-modify-wrapper">
+                            <div class="btn-modify-wrapper" @click.stop="handleMore(row, $event)">
                                 <div
-                                    class="content__table-btn-modify content__table-btn-delete"
-                                    title="Xóa"
-                                    @click.stop="handleMore(row, $event)"
+                                    class="content__table-btn-modify content__table-btn-showmore"
+                                    title="Xem thêm"
                                 ></div>
                             </div>
+
+                            <!--  Popup xem thêm (sửa, xóa, nhân bản, thay đổi trạng thái) -->
                             <Teleport to="body">
                                 <div v-if="showMoreRowId !== null"></div>
 
@@ -944,6 +1084,7 @@ defineExpose({
             </tbody>
         </table>
     </div>
+
     <!-- Phân trang table -->
     <div class="content__paging d-flex justify-content-between align-items-center">
         <div class="content__paging-info m-r-12">

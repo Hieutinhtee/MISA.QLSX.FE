@@ -1,5 +1,5 @@
 <script setup>
-import { ref, defineModel, watch } from "vue";
+import { ref, defineModel, watch, nextTick, reactive } from "vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import MsInput from "@/components/ms-input/MsInput.vue";
 import MsRadioButton from "@/components/ms-radio-button/MsRadioButton.vue";
@@ -53,6 +53,19 @@ const isFormOpen = defineModel({
 const errorMessage = ref("");
 
 /**
+ * Ref tới các input component
+ * createdBy: TMHieu
+ */
+const inputRefs = reactive({
+    shiftCode: null,
+    shiftName: null,
+    shiftBeginTime: null,
+    shiftEndTime: null,
+    beginBreakTime: null,
+    endBreakTime: null,
+});
+
+/**
  * Trạng thái xóa ca làm việc
  * createdBy: TMHieu (30/01/2026)
  */
@@ -62,12 +75,20 @@ const showConfirm = ref(false);
  * Trạng thái hợp lệ của các trường trong form
  * createdBy: TMHieu (30/01/2026)
  */
-const fieldValid = ref({
-    shiftCode: false,
-    shiftName: false,
-    shiftBeginTime: false,
-    shiftEndTime: false,
+const fieldValid = reactive({
+    shiftCode: "",
+    shiftName: "",
+    shiftBeginTime: "",
+    shiftEndTime: "",
+    beginBreakTime: "",
+    endBreakTime: "",
 });
+
+/**
+ * ref đến focus cuối cùng để khi mở form có thể focus vào đó
+ * created by: TMHieu (28/01/2026)
+ */
+const lastFocusField = ref(null);
 
 /**
  * Trạng thái đã submit form
@@ -122,14 +143,10 @@ watch(
     },
 );
 
-watch(
-    () => errorMessage.value,
-    (message) => {
-        if (message) {
-            showConfirm.value = true;
-        }
-    },
-);
+function showAlert(message) {
+    errorMessage.value = message;
+    showConfirm.value = true;
+}
 
 /**
  * lắng nghe thời gian tạm tính
@@ -195,63 +212,57 @@ watch(
 
 function validateTime(begin, end, breakBegin, breakEnd) {
     if (begin === end) {
-        errorMessage.value = "Giờ hết ca không được bằng giờ vào ca.";
+        fieldValid.shiftEndTime = "Giờ hết ca không được bằng giờ vào ca.";
         resetTime();
         return false;
     }
 
     if (breakBegin && !breakEnd) {
-        errorMessage.value =
+        fieldValid.endBreakTime =
             "Bạn đã nhập thời gian bắt đầu nghỉ giữa ca nhưng chưa nhập thời gian kết thúc nghỉ giữa ca. Vui lòng kiểm tra lại";
         resetTime();
         return false;
     }
 
     if (!breakBegin && breakEnd) {
-        errorMessage.value =
+        fieldValid.beginBreakTime =
             "Bạn đã nhập thời gian kết thúc nghỉ giữa ca nhưng chưa nhập thời gian bắt đầu nghỉ giữa ca. Vui lòng kiểm tra lại";
         resetTime();
         return false;
     }
 
     if (breakBegin && breakEnd) {
-        if (breakBegin == breakEnd) {
-            errorMessage.value = "Giờ kết thúc nghỉ giữa ca không được bằng giờ nghỉ giữa ca";
+        if (breakBegin === breakEnd) {
+            fieldValid.endBreakTime = "Giờ kết thúc nghỉ giữa ca không được bằng giờ nghỉ giữa ca";
             resetTime();
             return false;
         }
 
-        // break phải nằm trong ca
         const shiftRange = normalizeShift(begin, end);
+        if (!shiftRange) return false;
+
         const { shiftBegin, shiftEnd } = shiftRange;
         const shiftDuration = shiftEnd - shiftBegin;
 
-        let breakDuration = 0;
+        const breakRange = normalizeBreak(breakBegin, breakEnd, shiftBegin);
+        if (!breakRange) {
+            resetTime();
+            return false;
+        }
 
-        if (breakBegin && breakEnd) {
-            const breakRange = normalizeBreak(breakBegin, breakEnd, shiftBegin);
+        const { breakBeginMin, breakEndMin } = breakRange;
+        const breakDuration = breakEndMin - breakBeginMin;
 
-            if (!breakRange) {
-                resetTime();
-                return;
-            }
-
-            const { breakBeginMin, breakEndMin } = breakRange;
-
-            breakDuration = breakEndMin - breakBeginMin;
-
-            // break phải nằm trong ca
-            if (
-                breakBeginMin < shiftBegin ||
-                breakEndMin > shiftEnd ||
-                breakDuration <= 0 ||
-                breakDuration >= shiftDuration
-            ) {
-                errorMessage.value =
-                    "Khoảng giờ nghỉ giữa ca phải nằm trong khoảng thời gian làm việc";
-                resetTime();
-                return;
-            }
+        if (
+            breakBeginMin < shiftBegin ||
+            breakEndMin > shiftEnd ||
+            breakDuration <= 0 ||
+            breakDuration >= shiftDuration
+        ) {
+            fieldValid.beginBreakTime =
+                "Khoảng giờ nghỉ giữa ca phải nằm trong khoảng thời gian làm việc";
+            resetTime();
+            return false;
         }
     }
 
@@ -324,26 +335,93 @@ function round2(num) {
 }
 
 /**
+ * Focus vào input lỗi đầu tiên
+ * createdBy: TMHieu
+ */
+const focusFirstInvalidInput = async () => {
+    await nextTick();
+
+    const fieldOrder = [
+        "shiftCode",
+        "shiftName",
+        "shiftBeginTime",
+        "shiftEndTime",
+        "beginBreakTime",
+        "endBreakTime",
+    ];
+
+    for (const field of fieldOrder) {
+        if (fieldValid[field] && inputRefs[field]) {
+            // alert lỗi đầu tiên
+            showAlert(fieldValid[field]);
+            lastFocusField.value = field;
+            break;
+        }
+    }
+};
+
+function validateField(field) {
+    switch (field) {
+        case "shiftCode":
+            fieldValid.shiftCode = shift.value.shiftCode ? "" : "Mã ca không được để trống";
+            break;
+
+        case "shiftName":
+            fieldValid.shiftName = shift.value.shiftName ? "" : "Tên ca không được để trống";
+            break;
+
+        case "shiftBeginTime":
+            fieldValid.shiftBeginTime = shift.value.shiftBeginTime
+                ? ""
+                : "Giờ vào ca không được để trống";
+            break;
+
+        case "shiftEndTime":
+            fieldValid.shiftEndTime = shift.value.shiftEndTime
+                ? ""
+                : "Giờ hết ca không được để trống";
+            break;
+    }
+}
+
+function validateForm() {
+    fieldValid.shiftCode = "";
+    fieldValid.shiftName = "";
+    fieldValid.shiftBeginTime = "";
+    fieldValid.shiftEndTime = "";
+    fieldValid.beginBreakTime = "";
+    fieldValid.endBreakTime = "";
+    validateField("shiftCode");
+    validateField("shiftName");
+    validateField("shiftBeginTime");
+    validateField("shiftEndTime");
+
+    validateTime(
+        shift.value.shiftBeginTime,
+        shift.value.shiftEndTime,
+        shift.value.beginBreakTime,
+        shift.value.endBreakTime,
+    );
+
+    return !Object.values(fieldValid).some(Boolean);
+}
+
+const handleBlur = (field) => {
+    validateField(field);
+};
+
+/**
  * Hàm xử lý sự kiện submit form
  * createdBy: TMHieu (29/01/2026)
  */
 const handleSubmit = (isSubmitAndAdd) => {
     isSubmit.value = true;
-
-    const allValid = Object.values(fieldValid.value).every(Boolean);
+    const allValid = validateForm();
     if (!allValid) {
+        // Focus vào input lỗi đầu tiên
+        focusFirstInvalidInput();
         return;
     }
-
-    if (
-        !validateTime(
-            shift.value.shiftBeginTime,
-            shift.value.shiftEndTime,
-            shift.value.beginBreakTime,
-            shift.value.endBreakTime,
-        )
-    )
-        return;
 
     const isUpdate = props.typeForm === "edit";
     const payload = buildPayload(shift.value, isUpdate);
@@ -358,6 +436,12 @@ const handleSubmit = (isSubmitAndAdd) => {
 const handleCloseForm = () => {
     isFormOpen.value = false;
     isSubmit.value = false;
+    fieldValid.shiftCode = "";
+    fieldValid.shiftName = "";
+    fieldValid.shiftBeginTime = "";
+    fieldValid.shiftEndTime = "";
+    fieldValid.beginBreakTime = "";
+    fieldValid.endBreakTime = "";
     shift.value = createShift();
     resetTime();
 };
@@ -409,14 +493,11 @@ defineExpose({
 });
 //#endregion Methods
 
-const handleShowError = (message) => {
-    errorMessage.value = message;
-};
-
 const modelClose = () => {
     showConfirm.value = false;
     isSubmit.value = false;
     errorMessage.value = "";
+    inputRefs[lastFocusField.value]?.focusInput();
 };
 </script>
 
@@ -460,13 +541,13 @@ const modelClose = () => {
                     <div class="form-shift__label form-shift__label--required">Mã ca</div>
                     <ms-input
                         :label="'Mã ca'"
+                        :ref="(el) => (inputRefs.shiftCode = el)"
                         v-model="shift.shiftCode"
                         :width="474"
-                        v-model:isValid="fieldValid.shiftCode"
-                        v-model:isSubmit="isSubmit"
                         :maxLength="20"
                         :firstFocus="true"
-                        @error="handleShowError"
+                        :error="fieldValid.shiftCode"
+                        @blurInput="handleBlur('shiftCode')"
                         required
                     ></ms-input>
                 </div>
@@ -474,12 +555,12 @@ const modelClose = () => {
                     <div class="form-shift__label form-shift__label--required">Tên ca</div>
                     <ms-input
                         v-model="shift.shiftName"
+                        :ref="(el) => (inputRefs.shiftName = el)"
                         :label="'Tên ca'"
                         :width="474"
-                        v-model:isValid="fieldValid.shiftName"
-                        v-model:isSubmit="isSubmit"
                         :maxLength="50"
-                        @error="handleShowError"
+                        :error="fieldValid.shiftName"
+                        @blurInput="handleBlur('shiftName')"
                         required
                     ></ms-input>
                 </div>
@@ -489,11 +570,11 @@ const modelClose = () => {
                         <ms-input
                             :label="'Giờ vào ca'"
                             v-model="shift.shiftBeginTime"
+                            :ref="(el) => (inputRefs.shiftBeginTime = el)"
                             :width="122"
-                            v-model:isValid="fieldValid.shiftBeginTime"
-                            v-model:isSubmit="isSubmit"
                             :type="'HH:MM'"
-                            @error="handleShowError"
+                            :error="fieldValid.shiftBeginTime"
+                            @blurInput="handleBlur('shiftBeginTime')"
                             required
                         ></ms-input>
                     </div>
@@ -504,12 +585,12 @@ const modelClose = () => {
 
                         <ms-input
                             :label="'Giờ hết ca'"
+                            :ref="(el) => (inputRefs.shiftEndTime = el)"
                             v-model="shift.shiftEndTime"
                             :width="122"
-                            v-model:isValid="fieldValid.shiftEndTime"
-                            v-model:isSubmit="isSubmit"
                             :type="'HH:MM'"
-                            @error="handleShowError"
+                            :error="fieldValid.shiftEndTime"
+                            @blurInput="handleBlur('shiftEndTime')"
                             required
                         ></ms-input>
                     </div>
@@ -521,6 +602,8 @@ const modelClose = () => {
                             :type="'HH:MM'"
                             v-model="shift.beginBreakTime"
                             :placeholder="'HH:MM'"
+                            :ref="(el) => (inputRefs.beginBreakTime = el)"
+                            :error="fieldValid.beginBreakTime"
                             :width="122"
                         ></ms-input>
                     </div>
@@ -531,6 +614,8 @@ const modelClose = () => {
                             :type="'HH:MM'"
                             v-model="shift.endBreakTime"
                             :placeholder="'HH:MM'"
+                            :ref="(el) => (inputRefs.endBreakTime = el)"
+                            :error="fieldValid.endBreakTime"
                             :width="122"
                         ></ms-input>
                     </div>
