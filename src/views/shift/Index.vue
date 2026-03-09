@@ -248,33 +248,35 @@ const handleSubmitAndAdd = (shift) => {
  * createdBy: TMHieu (22/01/2026)
  */
 function addShift(shift, isSaveAndAdd = false) {
-    ShiftsAPI.create(shift).then((res) => {
-        if (res.status === 201 || res.status === 200) {
-            const newShift = res.data.data || shift;
+    ShiftsAPI.create(shift)
+        .then((res) => {
+            if (res.status === 201 || res.status === 200) {
+                const newShift = res.data.data || shift;
 
-            newShift.shiftId = res.data.id;
-            newShift.createdBy = shift.createdBy;
-            newShift.createdDate = new Date().toISOString();
-            newShift.modifiedBy = shift.createdBy;
-            newShift.modifiedDate = new Date().toISOString();
-            // thêm vào đầu bảng
-            rows.value.unshift(newShift);
+                newShift.shiftId = res.data.id;
+                newShift.createdBy = shift.createdBy;
+                newShift.createdDate = new Date().toISOString();
+                newShift.modifiedBy = shift.createdBy;
+                newShift.modifiedDate = new Date().toISOString();
+                // thêm vào đầu bảng
+                rows.value.unshift(newShift);
 
-            // nếu vượt quá pageSize thì bỏ row cuối
-            if (rows.value.length > payload.pageSize) {
-                rows.value.pop();
+                // nếu vượt quá pageSize thì bỏ row cuối
+                if (rows.value.length > payload.pageSize) {
+                    rows.value.pop();
+                }
+
+                payload.totalRows++;
+
+                $toastSuccess("Thêm ca làm việc thành công");
+                shiftFormRef.value?.handleCloseForm();
+                if (isSaveAndAdd) {
+                    typeForm.value = "add";
+                    isFormOpen.value = true;
+                }
             }
-
-            payload.totalRows++;
-
-            $toastSuccess("Thêm ca làm việc thành công");
-            shiftFormRef.value?.handleCloseForm();
-            if (isSaveAndAdd) {
-                typeForm.value = "add";
-                isFormOpen.value = true;
-            }
-        }
-    });
+        })
+        .catch((error) => {});
 }
 
 /**
@@ -283,18 +285,22 @@ function addShift(shift, isSaveAndAdd = false) {
  * createdBy: TMHieu (22/01/2026)
  */
 function updateShift(shift) {
-    ShiftsAPI.update(shift.shiftId, shift).then((res) => {
-        if (res.status === 201 || res.status === 200) {
-            const index = rows.value.findIndex((x) => x.shiftId === shift.shiftId);
+    ShiftsAPI.update(shift.shiftId, shift)
+        .then((res) => {
+            if (res.status === 201 || res.status === 200) {
+                const index = rows.value.findIndex((x) => x.shiftId === shift.shiftId);
 
-            if (index !== -1) {
-                rows.value[index] = { ...shift };
+                if (index !== -1) {
+                    rows.value[index] = { ...shift };
+                }
+
+                $toastSuccess("Cập nhật ca làm việc thành công");
+                shiftFormRef.value?.handleCloseForm();
             }
-
-            $toastSuccess("Cập nhật ca làm việc thành công");
-            shiftFormRef.value?.handleCloseForm();
-        }
-    });
+        })
+        .catch((error) => {
+            console.log(error);
+        });
 }
 
 /**

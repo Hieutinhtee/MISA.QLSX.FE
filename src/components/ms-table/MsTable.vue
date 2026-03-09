@@ -773,6 +773,15 @@ const toggleRow = (id) => {
 const clearChecked = () => {
     selected.value = [];
 };
+
+/**
+ * Kiểm tra cột có đang được lọc không
+ * createdBy: TMHieu
+ */
+const hasFilter = (field) => {
+    if (!Array.isArray(localData.filters)) return false;
+    return localData.filters.some((f) => f.field === field);
+};
 //#endregion
 
 //#region Expose
@@ -828,6 +837,13 @@ defineExpose({
     </div>
 
     <div class="content__datagrid">
+        <div
+            class="table__empty d-flex flex-column align-items-center gap-12"
+            v-if="!props.rows.length && !loading"
+        >
+            <img src="/src/assets/image/background/empty-data.svg" alt="Empty" class="empty__img" />
+            <div class="empty__title">Không có dữ liệu</div>
+        </div>
         <table class="content__table">
             <thead class="content__table-header">
                 <tr>
@@ -892,7 +908,11 @@ defineExpose({
 
                             <div
                                 v-if="item.typeFilter"
-                                class="content__table-filter-icon"
+                                :class="
+                                    hasFilter(item.key)
+                                        ? 'content__table-filter-icon--active'
+                                        : 'content__table-filter-icon'
+                                "
                                 @click.stop="showFilterPopup(item.key)"
                             ></div>
 

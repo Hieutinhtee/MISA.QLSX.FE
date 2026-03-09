@@ -63,6 +63,7 @@ tbody tr:focus td {
 
 .content__datagrid {
     overflow: auto;
+    position: relative;
 }
 
 /* sticky first column */
@@ -345,4 +346,11 @@ tbody tr:focus .pinned-column {
     width: 1px;
     background-color: #d1d5db;
     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+}
+
+.table__empty {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }

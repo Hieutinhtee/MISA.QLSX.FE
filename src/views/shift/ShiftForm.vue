@@ -1,5 +1,5 @@
 <script setup>
-import { ref, defineModel, watch, nextTick, reactive } from "vue";
+import { ref, defineModel, watch, nextTick, reactive, onMounted, onBeforeUnmount } from "vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import MsInput from "@/components/ms-input/MsInput.vue";
 import MsRadioButton from "@/components/ms-radio-button/MsRadioButton.vue";
@@ -499,6 +499,37 @@ const modelClose = () => {
     errorMessage.value = "";
     inputRefs[lastFocusField.value]?.focusInput();
 };
+
+const handleKeydown = (e) => {
+    if (!isFormOpen.value) return;
+
+    // Ctrl + Shift + S
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        handleSubmit(true);
+        return;
+    }
+
+    // Ctrl + S
+    if (e.ctrlKey && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        handleSubmit(false);
+        return;
+    }
+
+    // Esc
+    if (e.key === "Escape") {
+        handleCloseForm();
+    }
+};
+
+onMounted(() => {
+    window.addEventListener("keydown", handleKeydown);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener("keydown", handleKeydown);
+});
 </script>
 
 <template>
@@ -508,12 +539,7 @@ const modelClose = () => {
     </ms-alert>
 
     <!-- Form thêm ca làm việc  -->
-    <div
-        v-if="isFormOpen"
-        class="form-shift-modal"
-        @keydown.ctrl.s.prevent="handleSubmit"
-        @keydown.esc="handleCloseForm"
-    >
+    <div v-if="isFormOpen" class="form-shift-modal">
         <div class="form-shift__overlay"></div>
         <div class="form-shift__content d-flex flex-column">
             <div class="form-shift__header d-flex justify-content-between align-items-center">

@@ -5,17 +5,87 @@ import { ref, onMounted } from "vue";
 const menu = ref([
     { name: "home", title: "Tổng quan" },
     { name: "order", title: "Đơn đặt hàng", active: false },
-    { name: "plan", title: "Kế hoạch sản xuất", active: false },
-    { name: "coordinate", title: "Điều phối và thực thi", active: false },
-    { name: "quality", title: "Kiểm tra chát lượng", active: false },
-    { name: "material", title: "Kho vật  tư", active: false },
-    { name: "cost", title: "Giá thành kế hoạch", active: false },
+    {
+        name: "plan",
+        title: "Kế hoạch sản xuất",
+        active: false,
+        children: [
+            { title: "Kế hoạch tổng thể" },
+            { title: "Kế hoạch chi tiết" },
+            { title: "Kế hoạch nguyên vật liệu" },
+            { title: "Yêu cầu mua NVL" },
+        ],
+    },
+    {
+        name: "coordinate",
+        title: "Điều phối và thực thi",
+        active: false,
+        children: [
+            { title: "Kế hoạch tổng thể" },
+            { title: "Kế hoạch chi tiết" },
+            { title: "Kế hoạch nguyên vật liệu" },
+            { title: "Yêu cầu mua NVL" },
+        ],
+    },
+    {
+        name: "quality",
+        title: "Kiểm tra chát lượng",
+        active: false,
+        children: [{ title: "Kế hoạch tổng thể" }, { title: "Kế hoạch chi tiết" }],
+    },
+    {
+        name: "material",
+        title: "Kho vật  tư",
+        active: false,
+        children: [{ title: "Kế hoạch nguyên vật liệu" }, { title: "Yêu cầu mua NVL" }],
+    },
+    {
+        name: "cost",
+        title: "Giá thành kế hoạch",
+        active: false,
+        children: [
+            { title: "Kế hoạch tổng thể" },
+            { title: "Kế hoạch chi tiết" },
+            { title: "Kế hoạch nguyên vật liệu" },
+            { title: "Yêu cầu mua NVL" },
+        ],
+    },
     { line: true },
     { name: "report", title: "Báo cáo", active: false },
     { line: true },
-    { name: "product", title: "Sản phẩm, NVL", active: false },
-    { name: "process", title: "Quy trình sản xuất", active: false },
-    { name: "production", title: "Năng lực sản xuất", active: false },
+    {
+        name: "product",
+        title: "Sản phẩm, NVL",
+        active: false,
+        children: [
+            { title: "Kế hoạch tổng thể" },
+            { title: "Kế hoạch chi tiết" },
+            { title: "Kế hoạch nguyên vật liệu" },
+            { title: "Yêu cầu mua NVL" },
+        ],
+    },
+    {
+        name: "process",
+        title: "Quy trình sản xuất",
+        active: false,
+        children: [
+            { title: "Kế hoạch tổng thể" },
+            { title: "Kế hoạch chi tiết" },
+            { title: "Kế hoạch nguyên vật liệu" },
+            { title: "Yêu cầu mua NVL" },
+        ],
+    },
+    {
+        name: "production",
+        title: "Năng lực sản xuất",
+        active: false,
+        children: [
+            { title: "Kế hoạch tổng thể" },
+            { title: "Kế hoạch chi tiết" },
+            { title: "Kế hoạch nguyên vật liệu" },
+            { title: "Yêu cầu mua NVL" },
+        ],
+    },
     { name: "category", title: "Danh mục khác", active: true },
     { name: "system", title: "Thiết lập", active: false },
 ]);
@@ -52,6 +122,16 @@ function toggleSidebar() {
     }
 }
 
+const activeMenu = ref(null);
+
+const toggleMenu = (name) => {
+    if (activeMenu.value === name) {
+        activeMenu.value = null;
+    } else {
+        activeMenu.value = name;
+    }
+};
+
 const openDev = (nameItem) => {
     if (nameItem === "category") return;
     window.$dev();
@@ -72,14 +152,36 @@ const openDev = (nameItem) => {
                         'align-items-center',
                         toggleState === 'collapsed' ? 'sidebar__menu-item--collapsed' : '',
                     ]"
-                    @click="openDev(item.name)"
+                    @click="item.children ? toggleMenu(item.name) : openDev(item.name)"
                 >
                     <div :class="['sidebar__' + item.name + '-icon', 'sidebar__icon']"></div>
                     <div :class="['sidebar__title', toggleState === 'collapsed' ? 'hidden' : '']">
                         {{ item.title }}
                     </div>
+                    <div v-if="item.children" class="sidebar__icon sidebar__down-icon"></div>
                 </div>
+
                 <div v-else class="sidebar__menu-line"></div>
+                <transition name="submenu-fade">
+                    <div
+                        v-if="
+                            item.children && activeMenu === item.name && toggleState !== 'collapsed'
+                        "
+                        class="sidebar__submenu"
+                    >
+                        <div
+                            v-for="child in item.children"
+                            :key="child.title"
+                            class="sidebar__menu-item sidebar__submenu-item d-flex align-items-center"
+                            @click="openDev()"
+                        >
+                            <div :class="['sidebar__enter-icon', 'sidebar__icon']"></div>
+                            <div :class="['sidebar__title']">
+                                {{ child.title }}
+                            </div>
+                        </div>
+                    </div>
+                </transition>
             </div>
         </div>
 
@@ -109,6 +211,43 @@ const openDev = (nameItem) => {
 </template>
 
 <style scoped>
+.sidebar__submenu {
+    display: flex;
+    flex-direction: column;
+    row-gap: 4px;
+    overflow: hidden; /* quan trọng để cắt nội dung khi thu chiều cao */
+}
+
+/* Transition submenu: mở bằng tăng chiều cao, đóng bằng giảm chiều cao */
+.submenu-fade-enter-active,
+.submenu-fade-leave-active {
+    transition:
+        max-height 0.5s ease-in-out,
+        opacity 0.2s ease-in-out;
+}
+
+/* Bắt đầu: thu nhỏ + mờ */
+.submenu-fade-enter-from,
+.submenu-fade-leave-to {
+    max-height: 0;
+    opacity: 0;
+}
+
+/* Kết thúc: mở rộng + hiện rõ
+   500px là giá trị đủ lớn cho mọi submenu (có thể chỉnh cao/thấp hơn nếu cần) */
+.submenu-fade-enter-to,
+.submenu-fade-leave-from {
+    max-height: 300px;
+    opacity: 1;
+}
+
+.sidebar__enter-icon {
+    opacity: 0;
+}
+
+.sidebar__submenu-item:hover .sidebar__enter-icon {
+    opacity: 1;
+}
 /* Style thanh sidebar */
 .sidebar {
     background-color: #111827;
@@ -119,9 +258,11 @@ const openDev = (nameItem) => {
     border-bottom: 1px solid #4b515d;
     padding: 12px 12px 0 12px;
     row-gap: 4px;
+    overflow: hidden;
 }
 
 .sidebar__menu-item {
+    position: relative;
     padding: 8px 0;
     border-radius: var(--border-radius);
     z-index: 2;
