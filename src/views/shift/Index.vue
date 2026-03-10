@@ -83,7 +83,6 @@ const columns = ref([
     {
         key: "createdDate",
         name: "Ngày tạo",
-        typeFilter: "date",
         width: 160,
         type: "date",
     },
@@ -96,7 +95,7 @@ const columns = ref([
     {
         key: "modifiedDate",
         name: "Ngày sửa",
-        typeFilter: "date",
+
         width: 160,
         type: "date",
     },
@@ -117,9 +116,22 @@ const shiftTableRef = ref(null);
 
 //#region State Data
 
+/**
+ * Trạng thái đóng mở form xác nhan xóa
+ * createdBy: TMHieu (28/01/2026)
+ */
 const isOpenModal = ref(false);
+
+/**
+ * Text hiển thị trong form xác nhận xóa
+ * createdBy: TMHieu (28/01/2026)
+ */
 const formText = ref("");
-const showConfirm = ref(false);
+
+/**
+ * Trạng thái loading của table khi gọi API
+ * createdBy: TMHieu (28/01/2026)
+ */
 const loading = ref(false);
 
 /**
@@ -157,17 +169,6 @@ const payload = reactive({
     sorts: [],
 });
 
-// /**
-//  * Các trường dùng để tìm kiếm ca làm việc
-//  * createdBy: TMHieu (29/01/2026)
-//  */
-// const searchFields = ref([
-//     "shiftCode",
-//     "shiftName",
-//     "modifiedBy",
-//     "createdBy",
-// ]);
-
 /**
  * Kiểu form hiện tại: thêm hoặc sửa
  * createdBy: TMHieu (29/01/2026)
@@ -188,8 +189,8 @@ const isFormOpen = ref(false);
 const selectedRow = ref(null);
 
 /**
- * lưu lại row được gửi lên từ bảng
- * row xóa hoặc edit
+ * lưu lại các row được gửi lên từ bảng
+ * row xóa hoặc edit khi xử lí hàng loạt
  * createdBy: TMHieu (29/01/2026)
  */
 const selectedRows = ref(null);
@@ -248,35 +249,33 @@ const handleSubmitAndAdd = (shift) => {
  * createdBy: TMHieu (22/01/2026)
  */
 function addShift(shift, isSaveAndAdd = false) {
-    ShiftsAPI.create(shift)
-        .then((res) => {
-            if (res.status === 201 || res.status === 200) {
-                const newShift = res.data.data || shift;
+    ShiftsAPI.create(shift).then((res) => {
+        if (res.status === 201 || res.status === 200) {
+            const newShift = res.data.data || shift;
 
-                newShift.shiftId = res.data.id;
-                newShift.createdBy = shift.createdBy;
-                newShift.createdDate = new Date().toISOString();
-                newShift.modifiedBy = shift.createdBy;
-                newShift.modifiedDate = new Date().toISOString();
-                // thêm vào đầu bảng
-                rows.value.unshift(newShift);
+            newShift.shiftId = res.data.id;
+            newShift.createdBy = shift.createdBy;
+            newShift.createdDate = new Date().toISOString();
+            newShift.modifiedBy = shift.createdBy;
+            newShift.modifiedDate = new Date().toISOString();
+            // thêm vào đầu bảng
+            rows.value.unshift(newShift);
 
-                // nếu vượt quá pageSize thì bỏ row cuối
-                if (rows.value.length > payload.pageSize) {
-                    rows.value.pop();
-                }
-
-                payload.totalRows++;
-
-                $toastSuccess("Thêm ca làm việc thành công");
-                shiftFormRef.value?.handleCloseForm();
-                if (isSaveAndAdd) {
-                    typeForm.value = "add";
-                    isFormOpen.value = true;
-                }
+            // nếu vượt quá pageSize thì bỏ row cuối
+            if (rows.value.length > payload.pageSize) {
+                rows.value.pop();
             }
-        })
-        .catch((error) => {});
+
+            payload.totalRows++;
+
+            $toastSuccess("Thêm ca làm việc thành công");
+            shiftFormRef.value?.handleCloseForm();
+            if (isSaveAndAdd) {
+                typeForm.value = "add";
+                isFormOpen.value = true;
+            }
+        }
+    });
 }
 
 /**
@@ -342,7 +341,7 @@ function handleDelete(row) {
 }
 
 /**
- * Xử lý sự kiện xóa dòng trên bảng
+ * Xử lý sự kiện xóa nhiều dòng cùng lúc trên bảng
  * @param row dữ liệu 1 row trên bảng
  * createdBy: TMHieu (02/02/2026)
  */
@@ -352,6 +351,10 @@ function handleBatchDelete(rows) {
     selectedRows.value = rows;
 }
 
+/**
+ * Xử lý sự kiện xác nhận xóa trong modal
+ * createdBy: TMHieu (02/02/2026)
+ */
 const handleConfirmDelete = () => {
     if (selectedRow.value) {
         deleteShift(selectedRow.value.shiftId);
@@ -377,6 +380,11 @@ function handleEdit(row) {
     selectedRow.value = row;
 }
 
+/**
+ * Xử lý sự kiện thay đổi trạng thái hoạt động của 1 ca làm việc
+ * @param {Object} row dữ liệu 1 row trên bảng
+ * createdBy: TMHieu (02/02/2026)
+ */
 function handleChangeActive(row) {
     ShiftsAPI.update(row.shiftId, row).then(() => {
         const index = rows.value.findIndex((x) => x.shiftId === row.shiftId);
@@ -387,6 +395,12 @@ function handleChangeActive(row) {
     });
 }
 
+/**
+ * Xử lý sự kiện thay đổi trạng thái hoạt động của nhiều ca làm việc cùng lúc
+ * @param {Array} ids mảng id của các ca làm việc
+ * @param {boolean} isActive trạng thái hoạt động mới
+ * createdBy: TMHieu (02/02/2026)
+ */
 function handleBatchActive(ids, isActive) {
     ShiftsAPI.batchActive(ids, isActive).then((res) => {
         if (res.status === 201 || res.status === 200) {
@@ -405,6 +419,7 @@ function handleBatchActive(ids, isActive) {
         }
     });
 }
+
 // #endregion edit
 /**
  * Hàm xử lý sự kiện mở form thêm ca làm việc
@@ -457,13 +472,9 @@ async function loadDataForAPI() {
         } finally {
             loading.value = false;
         }
-    }, 400); // Dùng setTimeout 400ms để thấy loading
+    }, 300); // Dùng setTimeout 300ms để thấy loading
 }
 //#endregion Methods
-
-//#region watchers
-
-//endregion watchers
 
 //#region Lifecycle Hooks
 onMounted(() => {
@@ -478,7 +489,6 @@ onMounted(() => {
         v-model="isOpenModal"
         title="Xác nhận xóa"
         :showConfirm="true"
-        @close="showConfirm = false"
         @confirm="handleConfirmDelete"
     >
         <span v-html="formText"></span>

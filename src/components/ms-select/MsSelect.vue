@@ -185,6 +185,7 @@ watch(
     (val) => {
         const found = optionsByType.value.find((o) => o.value === val);
         if (found) searchValue.value = found.label;
+        selectedValue.value = val;
     },
     { immediate: true },
 );

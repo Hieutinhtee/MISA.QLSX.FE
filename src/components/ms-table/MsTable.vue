@@ -77,12 +77,12 @@ const filterOptions = ref([
     {
         value: "eq",
         label: "Bằng",
-        type: ["text", "number", "date"],
+        type: ["text", "number"],
     },
     {
         value: "neq",
         label: "Khác",
-        type: ["text", "number", "date"],
+        type: ["text", "number"],
     },
 
     {
@@ -109,33 +109,33 @@ const filterOptions = ref([
     {
         value: "lt",
         label: "Nhỏ hơn",
-        type: ["number", "date"],
+        type: ["number"],
     },
     {
         value: "lte",
         label: "Nhỏ hơn hoặc bằng",
-        type: ["number", "date"],
+        type: ["number"],
     },
     {
         value: "gt",
         label: "Lớn hơn",
-        type: ["number", "date"],
+        type: ["number"],
     },
     {
         value: "gte",
         label: "Lớn hơn hoặc bằng",
-        type: ["number", "date"],
+        type: ["number"],
     },
 
     {
         value: "isnull",
         label: "(Trống)",
-        type: ["text", "number", "date"],
+        type: ["text", "number"],
     },
     {
         value: "notnull",
         label: "(Không trống)",
-        type: ["text", "number", "date"],
+        type: ["text", "number"],
     },
 
     {
@@ -415,6 +415,11 @@ const unpinColumn = (key) => {
     isShowSortPopup.value = null;
 };
 
+/**
+ * Xử lý sự kiện click vào icon filter để mở popup filter
+ * createdBy: TMHieu (29/01/2026)
+ * @param {string} key - Key của cột cần hiển thị popup filter
+ */
 const showFilterPopup = (key) => {
     if (isShowFilterPopup.value === key) {
         isShowFilterPopup.value = null;
@@ -429,6 +434,11 @@ const showFilterPopup = (key) => {
     filterValue.value = current?.value ?? "";
 };
 
+/**
+ * Áp dụng filter
+ * @param {string} key - Key của cột cần áp dụng filter
+ * createdBy: TMHieu
+ */
 const applyFilter = (key) => {
     if (!filterOperator.value) return;
 
@@ -438,6 +448,11 @@ const applyFilter = (key) => {
     headerFilter(key, filterOperator.value, value);
 };
 
+/**
+ * Xóa filter
+ * @param {string} key - Key của cột cần xóa filter
+ * createdBy: TMHieu
+ */
 const clearFilter = (key) => {
     headerFilter(key, null);
 };
@@ -458,7 +473,7 @@ const getRowId = (row) => {
  * createdBy: TMHieu (28/01/2026)
  */
 const getFieldType = (field) => {
-    const valid = ["text", "number", "date", "custom", "HH:mm"];
+    const valid = ["text", "number", , "custom", "HH:mm"];
     return valid.includes(field) ? field : "text";
 };
 
@@ -926,7 +941,7 @@ defineExpose({
                                     <div class="popup__header-title">Lọc {{ item.name }}</div>
                                     <div
                                         class="popup__header-close-btn"
-                                        @click="clearFilter(item.key)"
+                                        @click="isShowFilterPopup = null"
                                     >
                                         <div class="icon-close"></div>
                                     </div>

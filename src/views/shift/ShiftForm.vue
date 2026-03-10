@@ -66,7 +66,7 @@ const inputRefs = reactive({
 });
 
 /**
- * Trạng thái xóa ca làm việc
+ * Trạng thái đóng mở alert xác nhận lỗi
  * createdBy: TMHieu (30/01/2026)
  */
 const showConfirm = ref(false);
@@ -105,7 +105,7 @@ const shift = ref(createShift());
 
 //#region Emit
 /**
- * Khai báo emit sự kiện submit
+ * Khai báo emit sự kiện submit, submit-and-add để gửi dữ liệu lên cho component cha xử lý
  * createdBy: TMHieu (30/01/2026)
  */
 const emit = defineEmits(["submit", "submit-and-add"]);
@@ -143,6 +143,11 @@ watch(
     },
 );
 
+/**
+ * Hàm hiển thị alert lỗi
+ * createdBy: TMHieu (30/01/2026)
+ * @param {string} message - Nội dung lỗi cần hiển thị
+ */
 function showAlert(message) {
     errorMessage.value = message;
     showConfirm.value = true;
