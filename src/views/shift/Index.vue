@@ -1,11 +1,12 @@
 <script setup>
-import { onMounted, ref, reactive } from "vue";
+import { onMounted, ref } from "vue";
 import MsTable from "@/components/ms-table/MsTable.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
 import shiftForm from "./ShiftForm.vue";
 import ShiftsAPI from "@/apis/components/shifts/shiftsAPI";
 import { $toastSuccess, $toastError } from "@/utils/toastService";
+import { usePagingTable } from "@/composables/usePagingTable";
 
 // #region Constants
 
@@ -127,17 +128,8 @@ const isOpenModal = ref(false);
  */
 const formText = ref("");
 
-/**
- * Trạng thái loading của table khi gọi API
- * createdBy: TMHieu (28/01/2026)
- */
-const loading = ref(false);
-
-/**
- * Dữ liệu bảng ca làm việc
- * createdBy: TMHieu (28/01/2026)
- */
-const rows = ref([]);
+const { loading, rows, payload, reloadData, onPaginationUpdate, onSearchChange, loadDataForAPI } =
+    usePagingTable(ShiftsAPI);
 
 /**
  * @typedef {Object} FilterItem
@@ -160,14 +152,6 @@ const rows = ref([]);
  * @property {FilterItem[]} filters - Danh sách filter
  * @property {SortItem[]} sorts - Danh sách sort
  */
-const payload = reactive({
-    page: 1,
-    pageSize: 20,
-    search: "",
-    filters: [],
-    sorts: [],
-});
-
 /**
  * Kiểu form hiện tại: thêm hoặc sửa
  * createdBy: TMHieu (29/01/2026)
@@ -196,19 +180,6 @@ const selectedRows = ref(null);
 //#endregion State Data
 
 //#region Methods
-
-/**
- * Hàm reload lại dữ liệu về trạng thái mặc định (trang 1, clear filter)
- * createdby: TMHieu - 09.12.2025
- */
-function reloadData() {
-    payload.page = 1;
-    payload.pageSize = 20;
-    payload.search = "";
-    payload.filters = [];
-    payload.sorts = [];
-    loadDataForAPI();
-}
 
 /**
  * Xử lý dữ liệu khi form gửi lên sự kiện submit
@@ -439,40 +410,6 @@ function handleDuplicate(row) {
     isFormOpen.value = true;
 }
 
-/**
- * Hàm xử lý khi thay đổi phân trang (nhận từ component con)
- * @param {Object} newPayload - { page, pageSize }
- * createdby: TMHieu - 09.12.2025
- */
-function onPaginationUpdate(newPayload) {
-    Object.assign(payload, newPayload);
-    loadDataForAPI();
-}
-
-const onSearchChange = (newPayload) => {
-    Object.assign(payload, newPayload);
-    loadDataForAPI();
-};
-
-/**
- * Hàm gọi API lấy danh sách khách hàng theo payload hiện tại
- * createdby: TMHieu - 09.12.2025
- */
-async function loadDataForAPI() {
-    loading.value = true;
-    setTimeout(async () => {
-        try {
-            // const { page, pageSize, search } = payload;
-            const result = await ShiftsAPI.paging(JSON.parse(JSON.stringify(payload)));
-            rows.value.splice(0, rows.value.length, ...result.data.data);
-            payload.totalRows = result.data.meta.total;
-        } catch (err) {
-            console.error(err);
-        } finally {
-            loading.value = false;
-        }
-    }, 300); // Dùng setTimeout 300ms để thấy loading
-}
 //#endregion Methods
 
 //#region Lifecycle Hooks

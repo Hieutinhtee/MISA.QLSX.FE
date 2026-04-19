@@ -1,7 +1,8 @@
 <script setup>
-import { onMounted, reactive, ref } from "vue";
+import { onMounted, ref } from "vue";
 import MsTable from "@/components/ms-table/MsTable.vue";
 import EmployeesAPI from "@/apis/components/employees/employeesAPI";
+import { usePagingTable } from "@/composables/usePagingTable";
 
 const columns = ref([
     { key: "employeeCode", name: "Mã nhân viên", typeFilter: "text", width: 140 },
@@ -23,49 +24,8 @@ const columns = ref([
     { key: "updatedAt", name: "Ngày sửa", type: "date", width: 140 },
 ]);
 
-const loading = ref(false);
-const rows = ref([]);
-
-const payload = reactive({
-    page: 1,
-    pageSize: 20,
-    search: "",
-    filters: [],
-    sorts: [],
-    totalRows: 0,
-});
-
-function reloadData() {
-    payload.page = 1;
-    payload.pageSize = 20;
-    payload.search = "";
-    payload.filters = [];
-    payload.sorts = [];
-    loadDataForAPI();
-}
-
-function onPaginationUpdate(newPayload) {
-    Object.assign(payload, newPayload);
-    loadDataForAPI();
-}
-
-const onSearchChange = (newPayload) => {
-    Object.assign(payload, newPayload);
-    loadDataForAPI();
-};
-
-async function loadDataForAPI() {
-    loading.value = true;
-    try {
-        const result = await EmployeesAPI.paging(JSON.parse(JSON.stringify(payload)));
-        rows.value.splice(0, rows.value.length, ...result.data.data);
-        payload.totalRows = result.data.meta.total;
-    } catch (err) {
-        console.error(err);
-    } finally {
-        loading.value = false;
-    }
-}
+const { loading, rows, payload, reloadData, onPaginationUpdate, onSearchChange, loadDataForAPI } =
+    usePagingTable(EmployeesAPI);
 
 onMounted(() => {
     loadDataForAPI();

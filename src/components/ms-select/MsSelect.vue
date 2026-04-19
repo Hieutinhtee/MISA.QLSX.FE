@@ -22,6 +22,7 @@
         <div
             v-if="isOpen"
             class="ms-select__dropdown"
+            :style="dropdownStyle"
             :class="{
                 'ms-select__dropdown--bottom': dropdownPosition !== 'top',
                 'ms-select__dropdown--top': dropdownPosition === 'top',
@@ -83,6 +84,14 @@ const props = defineProps({
     placeholder: {
         type: String,
         default: "Chọn giá trị",
+    },
+    /**
+     * Chiều cao tối đa của dropdown
+     * Có thể truyền number (px) hoặc string (vd: "40vh")
+     */
+    maxHeight: {
+        type: [Number, String],
+        default: 200,
     },
 });
 
@@ -164,6 +173,18 @@ const filteredOptions = computed(() => {
     if (!searchValue.value) return options;
 
     return options.filter((o) => o.label.toLowerCase().includes(searchValue.value.toLowerCase()));
+});
+
+const dropdownStyle = computed(() => {
+    if (typeof props.maxHeight === "number") {
+        return {
+            maxHeight: `${props.maxHeight}px`,
+        };
+    }
+
+    return {
+        maxHeight: props.maxHeight,
+    };
 });
 
 /**
@@ -351,6 +372,7 @@ function toggleDropdown() {
     right: 8px;
     top: 20%;
     -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
     mask-position: -202px -18px;
     background-color: #4b5563;
     width: 16px;
@@ -365,8 +387,8 @@ function toggleDropdown() {
     border: 1px solid #ddd;
     border-radius: 4px;
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
-    /* max-height: 200px; */
     overflow: auto;
+    z-index: 20;
 }
 
 .ms-select__dropdown--top {

@@ -11,9 +11,11 @@ Tài liệu này là bộ khung dùng Copilot hiệu quả hơn trong dự án F
 
 ## Các file mẫu
 
+- `.github/copilot-instructions.md`
 - `docs/copilot/skill-template.md`
 - `docs/copilot/agent-template.md`
 - `docs/copilot/subagent-template.md`
+- `docs/copilot/ui-layout-review-agent.md`
 
 ## Gợi ý thực tế
 

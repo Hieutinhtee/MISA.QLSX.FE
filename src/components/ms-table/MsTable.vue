@@ -5,7 +5,7 @@ import MsSelect from "@/components/ms-select/MsSelect.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import MsInput from "@/components/ms-input/MsInput.vue";
 import { formatTimeHHMM, formatDateDDMMYYYY } from "@/utils/common.js";
-import { Tooltip } from "ant-design-vue";
+import { Tooltip, InputNumber } from "ant-design-vue";
 import { createFilter, createSort } from "@/common/model/shiftModel";
 
 //#region Props & Emits
@@ -31,6 +31,10 @@ const props = defineProps({
     loading: {
         type: Boolean,
         default: false,
+    },
+    storageKey: {
+        type: String,
+        default: "",
     },
 });
 
@@ -196,10 +200,15 @@ const showMoreRowId = ref(null);
  */
 const isShowSortPopup = ref(null);
 
+/**
+ * Popup lọc theo từng cột trong header table.
+ * createdBy: TMHieu
+ */
 const isShowFilterPopup = ref(null);
 
 /**
- * Danh sách key của các cột đã ghim (theo thứ tự ghim)
+ * Danh sách key của các cột đã ghim.
+ * Thứ tự phần tử quyết định thứ tự hiển thị cột ghim.
  * createdBy: TMHieu
  */
 const pinnedColumns = ref([]);
@@ -221,9 +230,66 @@ const popupPosition = ref({ x: 0, y: 0 });
  * createdBy: TMHieu (29/01/2026)
  */
 const currentRow = ref(null);
+
+/**
+ * Trạng thái popup tùy chỉnh cột.
+ * Bao gồm tìm kiếm, sắp xếp, ghim và kéo thả.
+ * createdBy: TMHieu
+ */
+const isColumnDrawerOpen = ref(false);
+const columnSearch = ref("");
+const columnSettings = ref([]);
+const draggedColumnKey = ref(null);
+const dragOverColumnKey = ref(null);
 //#endregion
 
 //#region Computed
+
+const columnStorageKey = computed(() => {
+    const key = props.storageKey?.trim();
+    if (key) return `ms-table-columns:${key}`;
+
+    const path = typeof window !== "undefined" ? window.location.pathname : "default";
+    const columnsKey = props.columns.map((c) => c.key).join("|");
+    return `ms-table-columns:${path}:${columnsKey}`;
+});
+
+const orderedColumnSettings = computed(() => {
+    return [...columnSettings.value].sort((a, b) => a.order - b.order);
+});
+
+const filteredColumnSettings = computed(() => {
+    const keyword = columnSearch.value.trim().toLowerCase();
+    if (!keyword) return orderedColumnSettings.value;
+
+    return orderedColumnSettings.value.filter((item) =>
+        (item.name || "").toLowerCase().includes(keyword),
+    );
+});
+
+const isAllColumnsChecked = computed(() => {
+    if (!columnSettings.value.length) return false;
+    return columnSettings.value.every((item) => item.visible);
+});
+
+const displayColumns = computed(() => {
+    const settingsMap = new Map(columnSettings.value.map((item) => [item.key, item]));
+
+    return [...props.columns]
+        .filter((column) => settingsMap.get(column.key)?.visible !== false)
+        .map((column) => {
+            const setting = settingsMap.get(column.key);
+            return {
+                ...column,
+                width: setting?.width ?? column.width ?? 100,
+            };
+        })
+        .sort((a, b) => {
+            const orderA = settingsMap.get(a.key)?.order ?? 0;
+            const orderB = settingsMap.get(b.key)?.order ?? 0;
+            return orderA - orderB;
+        });
+});
 
 /**
  * Sắp xếp columns: cột đã ghim lên đầu, giữ nguyên thứ tự còn lại
@@ -233,7 +299,7 @@ const sortedColumns = computed(() => {
     const pinned = [];
     const unpinned = [];
 
-    props.columns.forEach((col) => {
+    displayColumns.value.forEach((col) => {
         if (pinnedColumns.value.includes(col.key)) {
             pinned.push(col);
         } else {
@@ -254,13 +320,17 @@ const sortedColumns = computed(() => {
  * createdBy: TMHieu
  */
 const getPinnedColumnLeft = (key) => {
-    const index = pinnedColumns.value.indexOf(key);
+    const visiblePinnedColumns = pinnedColumns.value.filter((pinnedKey) =>
+        displayColumns.value.some((column) => column.key === pinnedKey),
+    );
+
+    const index = visiblePinnedColumns.indexOf(key);
     if (index === -1) return 0;
 
     let left = 48; // width của cột checkbox
 
     for (let i = 0; i < index; i++) {
-        const col = props.columns.find((c) => c.key === pinnedColumns.value[i]);
+        const col = displayColumns.value.find((c) => c.key === visiblePinnedColumns[i]);
         left += col?.width || 100;
     }
 
@@ -373,6 +443,22 @@ watch(
         selected.value = [];
         emit("update:selected", []);
     },
+);
+
+watch(
+    () => props.columns,
+    () => {
+        initColumnSettings();
+    },
+    { immediate: true, deep: true },
+);
+
+watch(
+    () => columnSettings.value,
+    () => {
+        saveColumnSettings();
+    },
+    { deep: true },
 );
 //#endregion
 
@@ -549,6 +635,212 @@ function changePage(action) {
  */
 const handleDelete = (row) => {
     emit("deleteRow", row);
+};
+
+const openColumnDrawer = () => {
+    isColumnDrawerOpen.value = true;
+};
+
+const closeColumnDrawer = () => {
+    isColumnDrawerOpen.value = false;
+};
+
+function createDefaultColumnSettings() {
+    return props.columns.map((column, index) => ({
+        key: column.key,
+        name: column.name,
+        visible: true,
+        order: index,
+        width: Number(column.width) || 100,
+    }));
+}
+
+function normalizeColumnOrder() {
+    columnSettings.value = [...columnSettings.value]
+        .sort((a, b) => a.order - b.order)
+        .map((item, index) => ({
+            ...item,
+            order: index,
+        }));
+}
+
+function initColumnSettings() {
+    const defaults = createDefaultColumnSettings();
+
+    try {
+        const raw = localStorage.getItem(columnStorageKey.value);
+        if (!raw) {
+            columnSettings.value = defaults;
+            return;
+        }
+
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) {
+            columnSettings.value = defaults;
+            return;
+        }
+
+        const merged = defaults.map((defaultItem) => {
+            const existed = parsed.find((item) => item.key === defaultItem.key);
+
+            return {
+                ...defaultItem,
+                visible: existed?.visible ?? true,
+                order: Number.isFinite(existed?.order) ? existed.order : defaultItem.order,
+                width: Number(existed?.width) || defaultItem.width,
+            };
+        });
+
+        columnSettings.value = merged;
+        normalizeColumnOrder();
+    } catch {
+        columnSettings.value = defaults;
+    }
+}
+
+function saveColumnSettings() {
+    try {
+        const payload = columnSettings.value.map((item) => ({
+            key: item.key,
+            visible: item.visible,
+            order: item.order,
+            width: item.width,
+        }));
+
+        localStorage.setItem(columnStorageKey.value, JSON.stringify(payload));
+    } catch {
+        // ignore local storage exception
+    }
+}
+
+const toggleColumnVisible = (key) => {
+    const target = columnSettings.value.find((item) => item.key === key);
+    if (!target) return;
+
+    const visibleCount = columnSettings.value.filter((item) => item.visible).length;
+    if (target.visible && visibleCount <= 1) return;
+
+    target.visible = !target.visible;
+
+    if (!target.visible) {
+        pinnedColumns.value = pinnedColumns.value.filter((pinnedKey) => pinnedKey !== key);
+    }
+};
+
+/**
+ * Bắt đầu kéo một dòng trong popup tùy chỉnh cột.
+ * createdBy: TMHieu
+ */
+const startColumnDrag = (key, event) => {
+    draggedColumnKey.value = key;
+    event.dataTransfer.effectAllowed = "move";
+};
+
+/**
+ * Đánh dấu dòng đang hover khi kéo thả để hiển thị vùng thả.
+ * createdBy: TMHieu
+ */
+const handleDragOverColumn = (key) => {
+    dragOverColumnKey.value = key;
+};
+
+/**
+ * Reset state kéo thả sau khi kết thúc thao tác.
+ * createdBy: TMHieu
+ */
+const endColumnDrag = () => {
+    draggedColumnKey.value = null;
+    dragOverColumnKey.value = null;
+};
+
+/**
+ * Thả cột vào vị trí mới và lưu lại thứ tự.
+ * createdBy: TMHieu
+ */
+const dropColumn = (targetKey) => {
+    const sourceKey = draggedColumnKey.value;
+    endColumnDrag();
+
+    if (!sourceKey || sourceKey === targetKey) return;
+
+    const sorted = [...orderedColumnSettings.value];
+    const sourceIndex = sorted.findIndex((item) => item.key === sourceKey);
+    const targetIndex = sorted.findIndex((item) => item.key === targetKey);
+
+    if (sourceIndex === -1 || targetIndex === -1) return;
+
+    const [moved] = sorted.splice(sourceIndex, 1);
+    sorted.splice(targetIndex, 0, moved);
+
+    columnSettings.value = sorted.map((item, index) => ({
+        ...item,
+        order: index,
+    }));
+};
+
+/**
+ * Cập nhật độ rộng cột với giới hạn min/max để tránh layout vỡ.
+ * createdBy: TMHieu
+ */
+const updateColumnWidth = (key, width) => {
+    const target = columnSettings.value.find((item) => item.key === key);
+    if (!target) return;
+
+    const value = Number(width);
+    if (!Number.isFinite(value)) return;
+
+    target.width = Math.min(1000, Math.max(60, Math.round(value)));
+};
+
+/**
+ * Chọn hoặc bỏ chọn tất cả cột trong popup.
+ * Khi bỏ chọn, vẫn giữ 1 cột hiển thị để table không bị rỗng.
+ * createdBy: TMHieu
+ */
+const toggleAllColumnsVisible = () => {
+    if (!columnSettings.value.length) return;
+
+    const nextVisible = !isAllColumnsChecked.value;
+
+    if (nextVisible) {
+        columnSettings.value.forEach((item) => {
+            item.visible = true;
+        });
+        return;
+    }
+
+    const ordered = [...orderedColumnSettings.value];
+    const keepKey = ordered[0]?.key;
+
+    columnSettings.value.forEach((item) => {
+        item.visible = item.key === keepKey;
+    });
+
+    pinnedColumns.value = pinnedColumns.value.filter((key) => key === keepKey);
+};
+
+/**
+ * Ghim hoặc bỏ ghim cột hiện tại.
+ * Nếu cột đang ẩn thì bật hiển thị trước khi ghim.
+ * createdBy: TMHieu
+ */
+const togglePinnedColumn = (key) => {
+    const target = columnSettings.value.find((item) => item.key === key);
+    if (!target) return;
+
+    if (!target.visible) target.visible = true;
+
+    if (isPinned(key)) {
+        const index = pinnedColumns.value.indexOf(key);
+        if (index !== -1) pinnedColumns.value.splice(index, 1);
+    } else {
+        pinnedColumns.value.push(key);
+    }
+};
+
+const restoreDefaultColumns = () => {
+    columnSettings.value = createDefaultColumnSettings();
+    pinnedColumns.value = [];
 };
 
 /**
@@ -844,11 +1136,25 @@ defineExpose({
                 >Xóa</ms-button
             >
         </div>
-        <tooltip placement="top" :align="{ offset: [0, 4] }" :trigger="['hover', 'focus']">
-            <template #title> <span>Lấy lại dữ liệu</span> </template
-            ><ms-button :type="'outline'" @click="handleReload">
-                <div class="content__reload-icon"></div> </ms-button
-        ></tooltip>
+        <div class="d-flex gap-8">
+            <tooltip placement="top" :align="{ offset: [0, 4] }" :trigger="['hover', 'focus']">
+                <template #title>
+                    <span>Lấy lại dữ liệu</span>
+                </template>
+                <ms-button :type="'outline'" @click="handleReload">
+                    <div class="content__reload-icon"></div>
+                </ms-button>
+            </tooltip>
+
+            <tooltip placement="top" :align="{ offset: [0, 4] }" :trigger="['hover', 'focus']">
+                <template #title>
+                    <span>Thiết lập</span>
+                </template>
+                <ms-button :type="'outline'" @click="openColumnDrawer">
+                    <div class="content__table-setting-icon"></div>
+                </ms-button>
+            </tooltip>
+        </div>
     </div>
 
     <div class="content__datagrid">
@@ -872,7 +1178,7 @@ defineExpose({
                         ]"
                         :class="{ 'pinned-column': isPinned(item.key) }"
                         v-for="item in sortedColumns"
-                        :key="item"
+                        :key="item.key"
                     >
                         <div class="content__table-header-wrapper d-flex align-items-center">
                             <div class="content__table-header-line"></div>
@@ -1175,6 +1481,119 @@ defineExpose({
             </div>
         </div>
     </div>
+
+    <Teleport to="body">
+        <div v-if="isColumnDrawerOpen" class="table-column-drawer">
+            <div class="table-column-drawer__overlay" @click="closeColumnDrawer"></div>
+
+            <div class="table-column-drawer__panel d-flex flex-column">
+                <div
+                    class="table-column-drawer__header d-flex justify-content-between align-items-center"
+                >
+                    <div class="table-column-drawer__title">Tùy chỉnh giao diện</div>
+                    <div class="table-column-drawer__close" @click="closeColumnDrawer">×</div>
+                </div>
+
+                <div class="table-column-drawer__search-wrap">
+                    <ms-input
+                        v-model="columnSearch"
+                        class="table-column-drawer__search"
+                        placeholder="Tìm kiếm"
+                        :width="300"
+                    />
+                </div>
+
+                <div class="table-column-drawer__table-head">
+                    <!-- Check all: bật/tắt toàn bộ cột hiển thị -->
+                    <div class="drawer-col-check d-flex">
+                        <input
+                            type="checkbox"
+                            :checked="isAllColumnsChecked"
+                            @change="toggleAllColumnsVisible"
+                        />
+                    </div>
+                    <!-- Tên cột dữ liệu -->
+                    <div class="drawer-col-name">Tên cột dữ liệu</div>
+                    <!-- Độ rộng cột -->
+                    <div class="drawer-col-width">Độ rộng</div>
+                    <!-- Ghim cột -->
+                    <div class="drawer-col-pin">Ghim</div>
+                    <!-- Kéo thả sắp xếp -->
+                    <div class="drawer-col-order">Kéo thả</div>
+                </div>
+
+                <div class="table-column-drawer__body">
+                    <div
+                        v-for="item in filteredColumnSettings"
+                        :key="item.key"
+                        class="table-column-drawer__row"
+                        :class="{
+                            'table-column-drawer__row--dragging': draggedColumnKey === item.key,
+                            'table-column-drawer__row--drag-over': dragOverColumnKey === item.key,
+                        }"
+                        draggable="true"
+                        @dragstart="startColumnDrag(item.key, $event)"
+                        @dragend="endColumnDrag"
+                        @dragover.prevent="handleDragOverColumn(item.key)"
+                        @drop="dropColumn(item.key)"
+                    >
+                        <!-- Checkbox bật/tắt hiển thị cột -->
+                        <div class="drawer-col-check">
+                            <input
+                                type="checkbox"
+                                :checked="item.visible"
+                                @change="toggleColumnVisible(item.key)"
+                            />
+                        </div>
+                        <!-- Tên cột -->
+                        <div class="drawer-col-name">{{ item.name }}</div>
+                        <!-- Chỉnh độ rộng -->
+                        <div class="drawer-col-width">
+                            <InputNumber
+                                :min="60"
+                                :max="1000"
+                                :step="10"
+                                size="small"
+                                class="table-column-drawer__width-input"
+                                :value="item.width"
+                                @change="(value) => updateColumnWidth(item.key, value)"
+                            />
+                        </div>
+                        <!-- Nút ghim / bỏ ghim -->
+                        <div
+                            class="drawer-col-pin d-flex justify-content-center align-items-center"
+                        >
+                            <button
+                                class="drawer-pin-btn"
+                                type="button"
+                                :title="isPinned(item.key) ? 'Bỏ ghim cột' : 'Ghim cột'"
+                                @click.stop="togglePinnedColumn(item.key)"
+                            >
+                                <div :class="isPinned(item.key) ? 'unpin-icon' : 'pin-icon'"></div>
+                            </button>
+                        </div>
+                        <!-- Tay nắm kéo thả -->
+                        <div
+                            class="drawer-col-order d-flex justify-content-center align-items-center"
+                        >
+                            <button class="drawer-drag-handle" type="button" title="Kéo để sắp xếp">
+                                ⋮⋮
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="table-column-drawer__footer d-flex justify-content-between align-items-center"
+                >
+                    <ms-button :type="'outline'" @click="restoreDefaultColumns"
+                        >Lấy lại mặc định</ms-button
+                    >
+                    <ms-button @click="closeColumnDrawer">Đóng</ms-button>
+                </div>
+            </div>
+        </div>
+    </Teleport>
 </template>
 
 <style scoped>

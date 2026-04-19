@@ -90,6 +90,8 @@ const menu = ref([
             { title: "Yêu cầu mua NVL" },
         ],
     },
+    { name: "contractTemplate", title: "Mẫu hợp đồng", active: false },
+    { name: "contract", title: "Hợp đồng", active: false },
     { name: "category", title: "Ca làm việc", active: true },
     { name: "system", title: "Thiết lập", active: false },
 ]);
@@ -147,17 +149,34 @@ const openDev = (nameItem) => {
         return;
     }
 
+    if (nameItem === "contractTemplate") {
+        router.push("/contract-templates");
+        return;
+    }
+
+    if (nameItem === "contract") {
+        router.push("/contracts");
+        return;
+    }
+
     window.$dev();
 };
 
 const currentMenu = computed(() => {
     if (route.path.startsWith("/employees")) return "production";
     if (route.path.startsWith("/shifts")) return "category";
+    if (route.path.startsWith("/contract-templates")) return "contractTemplate";
+    if (route.path.startsWith("/contracts")) return "contract";
     return "";
 });
 
 const handleMenuClick = (item) => {
-    if (item.name === "category" || item.name === "production") {
+    if (
+        item.name === "category" ||
+        item.name === "production" ||
+        item.name === "contractTemplate" ||
+        item.name === "contract"
+    ) {
         openDev(item.name);
         return;
     }
