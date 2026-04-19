@@ -1,5 +1,9 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { computed, ref, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+
+const route = useRoute();
+const router = useRouter();
 
 // Dữ liệu menu sidebar
 const menu = ref([
@@ -77,7 +81,7 @@ const menu = ref([
     },
     {
         name: "production",
-        title: "Năng lực sản xuất",
+        title: "Nhân viên",
         active: false,
         children: [
             { title: "Kế hoạch tổng thể" },
@@ -86,7 +90,7 @@ const menu = ref([
             { title: "Yêu cầu mua NVL" },
         ],
     },
-    { name: "category", title: "Danh mục khác", active: true },
+    { name: "category", title: "Ca làm việc", active: true },
     { name: "system", title: "Thiết lập", active: false },
 ]);
 
@@ -133,8 +137,37 @@ const toggleMenu = (name) => {
 };
 
 const openDev = (nameItem) => {
-    if (nameItem === "category") return;
+    if (nameItem === "category") {
+        router.push("/shifts");
+        return;
+    }
+
+    if (nameItem === "production") {
+        router.push("/employees");
+        return;
+    }
+
     window.$dev();
+};
+
+const currentMenu = computed(() => {
+    if (route.path.startsWith("/employees")) return "production";
+    if (route.path.startsWith("/shifts")) return "category";
+    return "";
+});
+
+const handleMenuClick = (item) => {
+    if (item.name === "category" || item.name === "production") {
+        openDev(item.name);
+        return;
+    }
+
+    if (item.children) {
+        toggleMenu(item.name);
+        return;
+    }
+
+    openDev(item.name);
 };
 </script>
 
@@ -147,12 +180,12 @@ const openDev = (nameItem) => {
                     v-if="item.title"
                     :class="[
                         'sidebar__menu-item',
-                        item.active ? 'sidebar__menu-item--active' : '',
+                        currentMenu === item.name ? 'sidebar__menu-item--active' : '',
                         'd-flex',
                         'align-items-center',
                         toggleState === 'collapsed' ? 'sidebar__menu-item--collapsed' : '',
                     ]"
-                    @click="item.children ? toggleMenu(item.name) : openDev(item.name)"
+                    @click="handleMenuClick(item)"
                 >
                     <div :class="['sidebar__' + item.name + '-icon', 'sidebar__icon']"></div>
                     <div :class="['sidebar__title', toggleState === 'collapsed' ? 'hidden' : '']">

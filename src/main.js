@@ -1,5 +1,6 @@
 import { createApp } from "vue";
 import App from "./App.vue";
+import router from "./router";
 
 import Toast from "vue-toastification";
 import "vue-toastification/dist/index.css";
@@ -15,5 +16,7 @@ app.use(Toast, {
     draggable: true,
     hideProgressBar: true,
 });
+
+app.use(router);
 
 app.mount("#app");

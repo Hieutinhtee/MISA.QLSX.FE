@@ -1,11 +1,10 @@
 <script setup>
-import { onMounted, ref, watch, reactive } from "vue";
+import { onMounted, ref, reactive } from "vue";
 import MsTable from "@/components/ms-table/MsTable.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
 import shiftForm from "./ShiftForm.vue";
 import ShiftsAPI from "@/apis/components/shifts/shiftsAPI";
-import { createShift } from "@/common/model/shiftModel";
 import { $toastSuccess, $toastError } from "@/utils/toastService";
 
 // #region Constants
@@ -32,37 +31,37 @@ const columns = ref([
         width: 250,
     },
     {
-        key: "shiftBeginTime",
+        key: "startTime",
         name: "Giờ vào ca",
         width: 130,
         type: "HH:mm",
     },
     {
-        key: "shiftEndTime",
+        key: "endTime",
         name: "Giờ hết ca",
         width: 130,
         type: "HH:mm",
     },
     {
-        key: "beginBreakTime",
+        key: "breakStartTime",
         name: "Bắt đầu nghỉ giữa ca",
         width: 200,
         type: "HH:mm",
     },
     {
-        key: "endBreakTime",
+        key: "breakEndTime",
         name: "Kết thúc nghỉ giữa ca",
         width: 210,
         type: "HH:mm",
     },
     {
-        key: "workingTime",
+        key: "workingHours",
         name: "Thời gian làm việc (giờ)",
         typeFilter: "number",
         width: 210,
     },
     {
-        key: "breakTime",
+        key: "breakHours",
         name: "Thời gian nghỉ giữa ca (giờ)",
         typeFilter: "number",
         width: 230,
@@ -81,19 +80,19 @@ const columns = ref([
         width: 160,
     },
     {
-        key: "createdDate",
+        key: "createdAt",
         name: "Ngày tạo",
         width: 160,
         type: "date",
     },
     {
-        key: "modifiedBy",
+        key: "updatedBy",
         name: "Người sửa",
         typeFilter: "text",
         width: 160,
     },
     {
-        key: "modifiedDate",
+        key: "updatedAt",
         name: "Ngày sửa",
 
         width: 160,
@@ -255,9 +254,9 @@ function addShift(shift, isSaveAndAdd = false) {
 
             newShift.shiftId = res.data.id;
             newShift.createdBy = shift.createdBy;
-            newShift.createdDate = new Date().toISOString();
-            newShift.modifiedBy = shift.createdBy;
-            newShift.modifiedDate = new Date().toISOString();
+            newShift.createdAt = new Date().toISOString();
+            newShift.updatedBy = shift.createdBy;
+            newShift.updatedAt = new Date().toISOString();
             // thêm vào đầu bảng
             rows.value.unshift(newShift);
 

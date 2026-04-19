@@ -1,14 +1,12 @@
 <script setup>
 import TheNavbar from "./layout/TheNavbar.vue";
 import TheSidebar from "./layout/TheSidebar.vue";
-import shiftView from "./views/shift/Index.vue";
 import { ConfigProvider } from "ant-design-vue";
 import viVN from "ant-design-vue/es/locale/vi_VN";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import MsAlert from "./components/ms-alert/MsAlert.vue";
 import { ref } from "vue";
-import { createPinia } from "pinia";
 // Dayjs
 dayjs.locale("vi");
 
@@ -41,7 +39,7 @@ window.$dev = () => {
                 <the-sidebar></the-sidebar>
 
                 <!-- Content -->
-                <shift-view></shift-view>
+                <router-view></router-view>
             </div></div
     ></config-provider>
 

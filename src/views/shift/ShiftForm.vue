@@ -59,10 +59,10 @@ const errorMessage = ref("");
 const inputRefs = reactive({
     shiftCode: null,
     shiftName: null,
-    shiftBeginTime: null,
-    shiftEndTime: null,
-    beginBreakTime: null,
-    endBreakTime: null,
+    startTime: null,
+    endTime: null,
+    breakStartTime: null,
+    breakEndTime: null,
 });
 
 /**
@@ -78,10 +78,10 @@ const showConfirm = ref(false);
 const fieldValid = reactive({
     shiftCode: "",
     shiftName: "",
-    shiftBeginTime: "",
-    shiftEndTime: "",
-    beginBreakTime: "",
-    endBreakTime: "",
+    startTime: "",
+    endTime: "",
+    breakStartTime: "",
+    breakEndTime: "",
 });
 
 /**
@@ -136,8 +136,8 @@ watch(
                 ...props.data,
                 shiftId: "",
                 shiftCode: "",
-                workingTime: null,
-                breakTime: null,
+                workingHours: null,
+                breakHours: null,
             };
         }
     },
@@ -159,10 +159,10 @@ function showAlert(message) {
  */
 watch(
     () => [
-        shift.value.shiftBeginTime,
-        shift.value.shiftEndTime,
-        shift.value.beginBreakTime,
-        shift.value.endBreakTime,
+        shift.value.startTime,
+        shift.value.endTime,
+        shift.value.breakStartTime,
+        shift.value.breakEndTime,
     ],
     ([begin, end, breakBegin, breakEnd]) => {
         if (!begin || !end) {
@@ -205,9 +205,9 @@ watch(
             }
         }
 
-        shift.value.breakTime = round2(breakDuration / 60);
+        shift.value.breakHours = round2(breakDuration / 60);
 
-        shift.value.workingTime = round2((shiftDuration - breakDuration) / 60);
+        shift.value.workingHours = round2((shiftDuration - breakDuration) / 60);
     },
 );
 
@@ -217,20 +217,20 @@ watch(
 
 function validateTime(begin, end, breakBegin, breakEnd) {
     if (begin === end) {
-        fieldValid.shiftEndTime = "Giờ hết ca không được bằng giờ vào ca.";
+        fieldValid.endTime = "Giờ hết ca không được bằng giờ vào ca.";
         resetTime();
         return false;
     }
 
     if (breakBegin && !breakEnd) {
-        fieldValid.endBreakTime =
+        fieldValid.breakEndTime =
             "Bạn đã nhập thời gian bắt đầu nghỉ giữa ca nhưng chưa nhập thời gian kết thúc nghỉ giữa ca. Vui lòng kiểm tra lại";
         resetTime();
         return false;
     }
 
     if (!breakBegin && breakEnd) {
-        fieldValid.beginBreakTime =
+        fieldValid.breakStartTime =
             "Bạn đã nhập thời gian kết thúc nghỉ giữa ca nhưng chưa nhập thời gian bắt đầu nghỉ giữa ca. Vui lòng kiểm tra lại";
         resetTime();
         return false;
@@ -238,7 +238,7 @@ function validateTime(begin, end, breakBegin, breakEnd) {
 
     if (breakBegin && breakEnd) {
         if (breakBegin === breakEnd) {
-            fieldValid.endBreakTime = "Giờ kết thúc nghỉ giữa ca không được bằng giờ nghỉ giữa ca";
+            fieldValid.breakEndTime = "Giờ kết thúc nghỉ giữa ca không được bằng giờ nghỉ giữa ca";
             resetTime();
             return false;
         }
@@ -264,7 +264,7 @@ function validateTime(begin, end, breakBegin, breakEnd) {
             breakDuration <= 0 ||
             breakDuration >= shiftDuration
         ) {
-            fieldValid.beginBreakTime =
+            fieldValid.breakStartTime =
                 "Khoảng giờ nghỉ giữa ca phải nằm trong khoảng thời gian làm việc";
             resetTime();
             return false;
@@ -279,8 +279,8 @@ function validateTime(begin, end, breakBegin, breakEnd) {
  * createdBy: TMHieu (30/01/2026)
  */
 function resetTime() {
-    shift.value.workingTime = null;
-    shift.value.breakTime = null;
+    shift.value.workingHours = null;
+    shift.value.breakHours = null;
 }
 
 /**
@@ -349,10 +349,10 @@ const focusFirstInvalidInput = async () => {
     const fieldOrder = [
         "shiftCode",
         "shiftName",
-        "shiftBeginTime",
-        "shiftEndTime",
-        "beginBreakTime",
-        "endBreakTime",
+        "startTime",
+        "endTime",
+        "breakStartTime",
+        "breakEndTime",
     ];
 
     for (const field of fieldOrder) {
@@ -375,16 +375,12 @@ function validateField(field) {
             fieldValid.shiftName = shift.value.shiftName ? "" : "Tên ca không được để trống";
             break;
 
-        case "shiftBeginTime":
-            fieldValid.shiftBeginTime = shift.value.shiftBeginTime
-                ? ""
-                : "Giờ vào ca không được để trống";
+        case "startTime":
+            fieldValid.startTime = shift.value.startTime ? "" : "Giờ vào ca không được để trống";
             break;
 
-        case "shiftEndTime":
-            fieldValid.shiftEndTime = shift.value.shiftEndTime
-                ? ""
-                : "Giờ hết ca không được để trống";
+        case "endTime":
+            fieldValid.endTime = shift.value.endTime ? "" : "Giờ hết ca không được để trống";
             break;
     }
 }
@@ -392,20 +388,20 @@ function validateField(field) {
 function validateForm() {
     fieldValid.shiftCode = "";
     fieldValid.shiftName = "";
-    fieldValid.shiftBeginTime = "";
-    fieldValid.shiftEndTime = "";
-    fieldValid.beginBreakTime = "";
-    fieldValid.endBreakTime = "";
+    fieldValid.startTime = "";
+    fieldValid.endTime = "";
+    fieldValid.breakStartTime = "";
+    fieldValid.breakEndTime = "";
     validateField("shiftCode");
     validateField("shiftName");
-    validateField("shiftBeginTime");
-    validateField("shiftEndTime");
+    validateField("startTime");
+    validateField("endTime");
 
     validateTime(
-        shift.value.shiftBeginTime,
-        shift.value.shiftEndTime,
-        shift.value.beginBreakTime,
-        shift.value.endBreakTime,
+        shift.value.startTime,
+        shift.value.endTime,
+        shift.value.breakStartTime,
+        shift.value.breakEndTime,
     );
 
     return !Object.values(fieldValid).some(Boolean);
@@ -443,15 +439,15 @@ const handleCloseForm = () => {
     isSubmit.value = false;
     fieldValid.shiftCode = "";
     fieldValid.shiftName = "";
-    fieldValid.shiftBeginTime = "";
-    fieldValid.shiftEndTime = "";
-    fieldValid.beginBreakTime = "";
-    fieldValid.endBreakTime = "";
+    fieldValid.startTime = "";
+    fieldValid.endTime = "";
+    fieldValid.breakStartTime = "";
+    fieldValid.breakEndTime = "";
     shift.value = createShift();
     resetTime();
 };
 
-const currentUser = "Thái Minh Hiếu";
+const currentUser = "b8373a59-3be2-11f1-97ac-d0c5d346d1a4";
 
 /**
  * Hàm xử lý trước khi sự kiện submit form
@@ -465,10 +461,10 @@ function buildPayload(shiftData, isUpdate = false) {
 
     const basePayload = {
         ...rest,
-        shiftBeginTime: formatTime(rest.shiftBeginTime),
-        shiftEndTime: formatTime(rest.shiftEndTime),
-        beginBreakTime: formatTime(rest.beginBreakTime),
-        endBreakTime: formatTime(rest.endBreakTime),
+        startTime: formatTime(rest.startTime),
+        endTime: formatTime(rest.endTime),
+        breakStartTime: formatTime(rest.breakStartTime),
+        breakEndTime: formatTime(rest.breakEndTime),
     };
 
     if (!isUpdate) {
@@ -478,17 +474,17 @@ function buildPayload(shiftData, isUpdate = false) {
         return {
             ...basePayload,
             createdBy: currentUser,
-            createdDate: new Date().toISOString(),
-            modifiedDate: new Date().toISOString(),
-            modifiedBy: currentUser,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            updatedBy: currentUser,
         };
     }
 
     // Khi update → giữ id
     return {
         ...basePayload,
-        modifiedBy: currentUser,
-        modifiedDate: new Date().toISOString(),
+        updatedBy: currentUser,
+        updatedAt: new Date().toISOString(),
     };
 }
 
@@ -589,7 +585,7 @@ onBeforeUnmount(() => {
                         :ref="(el) => (inputRefs.shiftName = el)"
                         :label="'Tên ca'"
                         :width="474"
-                        :maxLength="50"
+                        :maxLength="100"
                         :error="fieldValid.shiftName"
                         @blurInput="handleBlur('shiftName')"
                         required
@@ -600,12 +596,12 @@ onBeforeUnmount(() => {
                         <div class="form-shift__label form-shift__label--required">Giờ vào ca</div>
                         <ms-input
                             :label="'Giờ vào ca'"
-                            v-model="shift.shiftBeginTime"
-                            :ref="(el) => (inputRefs.shiftBeginTime = el)"
+                            v-model="shift.startTime"
+                            :ref="(el) => (inputRefs.startTime = el)"
                             :width="122"
                             :type="'HH:MM'"
-                            :error="fieldValid.shiftBeginTime"
-                            @blurInput="handleBlur('shiftBeginTime')"
+                            :error="fieldValid.startTime"
+                            @blurInput="handleBlur('startTime')"
                             required
                         ></ms-input>
                     </div>
@@ -616,12 +612,12 @@ onBeforeUnmount(() => {
 
                         <ms-input
                             :label="'Giờ hết ca'"
-                            :ref="(el) => (inputRefs.shiftEndTime = el)"
-                            v-model="shift.shiftEndTime"
+                            :ref="(el) => (inputRefs.endTime = el)"
+                            v-model="shift.endTime"
                             :width="122"
                             :type="'HH:MM'"
-                            :error="fieldValid.shiftEndTime"
-                            @blurInput="handleBlur('shiftEndTime')"
+                            :error="fieldValid.endTime"
+                            @blurInput="handleBlur('endTime')"
                             required
                         ></ms-input>
                     </div>
@@ -631,10 +627,10 @@ onBeforeUnmount(() => {
                         <div class="form-shift__label">Bắt đầu nghỉ giữa ca</div>
                         <ms-input
                             :type="'HH:MM'"
-                            v-model="shift.beginBreakTime"
+                            v-model="shift.breakStartTime"
                             :placeholder="'HH:MM'"
-                            :ref="(el) => (inputRefs.beginBreakTime = el)"
-                            :error="fieldValid.beginBreakTime"
+                            :ref="(el) => (inputRefs.breakStartTime = el)"
+                            :error="fieldValid.breakStartTime"
                             :width="122"
                         ></ms-input>
                     </div>
@@ -643,10 +639,10 @@ onBeforeUnmount(() => {
                         <div class="form-shift__label flex-1">Kết thúc nghỉ giữa ca</div>
                         <ms-input
                             :type="'HH:MM'"
-                            v-model="shift.endBreakTime"
+                            v-model="shift.breakEndTime"
                             :placeholder="'HH:MM'"
-                            :ref="(el) => (inputRefs.endBreakTime = el)"
-                            :error="fieldValid.endBreakTime"
+                            :ref="(el) => (inputRefs.breakEndTime = el)"
+                            :error="fieldValid.breakEndTime"
                             :width="122"
                         ></ms-input>
                     </div>
@@ -655,18 +651,18 @@ onBeforeUnmount(() => {
                 <div class="form-shift__wrapper-item d-flex justify-content-between">
                     <div class="form-shift__item d-flex flex-1">
                         <div class="form-shift__label">Thời gian làm việc (giờ)</div>
-                        <ms-input v-model="shift.workingTime" :width="122" disabled></ms-input>
+                        <ms-input v-model="shift.workingHours" :width="122" disabled></ms-input>
                     </div>
 
                     <div class="form-shift__item d-flex justify-content-between flex-1">
                         <div class="form-shift__label">Thời gian nghỉ giữa ca (giờ)</div>
-                        <ms-input v-model="shift.breakTime" :width="122" disabled></ms-input>
+                        <ms-input v-model="shift.breakHours" :width="122" disabled></ms-input>
                     </div>
                 </div>
 
                 <div class="form-shift__item d-flex justify-content-between">
                     <div class="form-shift__label">Mô tả</div>
-                    <ms-textarea v-model="shift.shiftDescription"></ms-textarea>
+                    <ms-textarea v-model="shift.description"></ms-textarea>
                 </div>
                 <div v-if="props.typeForm === 'edit'" class="form-shift__item">
                     <div class="form-shift__item d-flex">

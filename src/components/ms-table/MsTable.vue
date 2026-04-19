@@ -473,7 +473,7 @@ const getRowId = (row) => {
  * createdBy: TMHieu (28/01/2026)
  */
 const getFieldType = (field) => {
-    const valid = ["text", "number", , "custom", "HH:mm"];
+    const valid = ["text", "number", "custom", "HH:mm", "date"];
     return valid.includes(field) ? field : "text";
 };
 
