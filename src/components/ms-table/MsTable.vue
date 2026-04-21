@@ -1,5 +1,14 @@
 <script setup>
-import { ref, defineProps, watch, computed, reactive, onMounted, onBeforeUnmount } from "vue";
+import {
+    ref,
+    defineProps,
+    watch,
+    computed,
+    reactive,
+    onMounted,
+    onBeforeUnmount,
+    nextTick,
+} from "vue";
 import { renderValue } from "@/utils/renderRowTable.js";
 import MsSelect from "@/components/ms-select/MsSelect.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
@@ -241,6 +250,13 @@ const columnSearch = ref("");
 const columnSettings = ref([]);
 const draggedColumnKey = ref(null);
 const dragOverColumnKey = ref(null);
+const datagridRef = ref(null);
+const datagridWidth = ref(0);
+
+const CHECKBOX_COLUMN_WIDTH = 48;
+const ACTION_COLUMN_WIDTH = 80;
+
+let datagridResizeObserver = null;
 //#endregion
 
 //#region Computed
@@ -275,7 +291,7 @@ const isAllColumnsChecked = computed(() => {
 const displayColumns = computed(() => {
     const settingsMap = new Map(columnSettings.value.map((item) => [item.key, item]));
 
-    return [...props.columns]
+    const columns = [...props.columns]
         .filter((column) => settingsMap.get(column.key)?.visible !== false)
         .map((column) => {
             const setting = settingsMap.get(column.key);
@@ -289,6 +305,27 @@ const displayColumns = computed(() => {
             const orderB = settingsMap.get(b.key)?.order ?? 0;
             return orderA - orderB;
         });
+
+    if (!columns.length) return columns;
+
+    const availableWidth = Math.max(
+        datagridWidth.value - CHECKBOX_COLUMN_WIDTH - ACTION_COLUMN_WIDTH,
+        0,
+    );
+    const totalWidth = columns.reduce((sum, column) => sum + (Number(column.width) || 100), 0);
+
+    if (availableWidth <= totalWidth) return columns;
+
+    const lastIndex = columns.length - 1;
+    const lastColumn = columns[lastIndex];
+    const extraWidth = availableWidth - totalWidth;
+
+    columns[lastIndex] = {
+        ...lastColumn,
+        width: (Number(lastColumn.width) || 100) + extraWidth,
+    };
+
+    return columns;
 });
 
 /**
@@ -460,6 +497,16 @@ watch(
     },
     { deep: true },
 );
+
+watch(
+    () => [props.columns, columnSettings.value],
+    () => {
+        nextTick(() => {
+            updateDatagridWidth();
+        });
+    },
+    { deep: true, immediate: true },
+);
 //#endregion
 
 //#region Lifecycle Hooks
@@ -467,10 +514,33 @@ onMounted(() => {
     document.addEventListener("click", handleClickOutsideShowMorePopup);
     // Khởi tạo range khi component mount lần đầu
     computeRecordRange(localData.page || 1);
+
+    nextTick(() => {
+        updateDatagridWidth();
+    });
+
+    if (typeof ResizeObserver !== "undefined") {
+        datagridResizeObserver = new ResizeObserver(() => {
+            updateDatagridWidth();
+        });
+
+        if (datagridRef.value) {
+            datagridResizeObserver.observe(datagridRef.value);
+        }
+    } else {
+        window.addEventListener("resize", updateDatagridWidth);
+    }
 });
 
 onBeforeUnmount(() => {
     document.removeEventListener("click", handleClickOutsideShowMorePopup);
+
+    if (datagridResizeObserver) {
+        datagridResizeObserver.disconnect();
+        datagridResizeObserver = null;
+    } else {
+        window.removeEventListener("resize", updateDatagridWidth);
+    }
 });
 //#endregion
 
@@ -580,6 +650,11 @@ function computeRecordRange(pageNumber) {
         localData.recordStart + localData.pageSize - 1,
         localData.totalRows,
     );
+}
+
+function updateDatagridWidth() {
+    if (!datagridRef.value) return;
+    datagridWidth.value = Math.floor(datagridRef.value.clientWidth || 0);
 }
 
 /**
@@ -1157,7 +1232,7 @@ defineExpose({
         </div>
     </div>
 
-    <div class="content__datagrid">
+    <div class="content__datagrid" ref="datagridRef">
         <div
             class="table__empty d-flex flex-column align-items-center gap-12"
             v-if="!props.rows.length && !loading"
