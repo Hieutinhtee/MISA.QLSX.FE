@@ -3,6 +3,7 @@ import ShiftView from "@/views/shift/Index.vue";
 import EmployeeView from "@/views/employee/Index.vue";
 import ContractTemplateView from "@/views/contract-template/Index.vue";
 import ContractView from "@/views/contract/Index.vue";
+import PayrollView from "@/views/payroll/Index.vue";
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -30,6 +31,11 @@ const router = createRouter({
             path: "/contracts",
             name: "contracts",
             component: ContractView,
+        },
+        {
+            path: "/payrolls",
+            name: "payrolls",
+            component: PayrollView,
         },
     ],
 });

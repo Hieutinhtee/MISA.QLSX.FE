@@ -92,6 +92,7 @@ const menu = ref([
     },
     { name: "contractTemplate", title: "Mẫu hợp đồng", active: false },
     { name: "contract", title: "Hợp đồng", active: false },
+    { name: "payroll", title: "Bảng lương", active: false },
     { name: "category", title: "Ca làm việc", active: true },
     { name: "system", title: "Thiết lập", active: false },
 ]);
@@ -159,6 +160,11 @@ const openDev = (nameItem) => {
         return;
     }
 
+    if (nameItem === "payroll") {
+        router.push("/payrolls");
+        return;
+    }
+
     window.$dev();
 };
 
@@ -167,6 +173,7 @@ const currentMenu = computed(() => {
     if (route.path.startsWith("/shifts")) return "category";
     if (route.path.startsWith("/contract-templates")) return "contractTemplate";
     if (route.path.startsWith("/contracts")) return "contract";
+    if (route.path.startsWith("/payrolls")) return "payroll";
     return "";
 });
 
@@ -175,7 +182,8 @@ const handleMenuClick = (item) => {
         item.name === "category" ||
         item.name === "production" ||
         item.name === "contractTemplate" ||
-        item.name === "contract"
+        item.name === "contract" ||
+        item.name === "payroll"
     ) {
         openDev(item.name);
         return;

@@ -1,0 +1,554 @@
+<script setup>
+import { ref, defineModel, watch, nextTick, reactive, onMounted, onBeforeUnmount } from "vue";
+import MsButton from "@/components/ms-button/MsButton.vue";
+import MsDatePicker from "@/components/ms-date-picker/MsDatePicker.vue";
+import { createSalaryPeriod } from "@/common/model/salaryPeriodModel";
+import MsAlert from "@/components/ms-alert/MsAlert.vue";
+import { Tooltip } from "ant-design-vue";
+
+//#region constants
+/**
+ * Tiêu đề form kỳ lương
+ * createdBy: TMHieu (25/04/2026)
+ */
+const TITLE_SALARY_PERIOD_FORM_ADD = "Thêm Kỳ lương";
+const TITLE_SALARY_PERIOD_FORM_EDIT = "Sửa Kỳ lương";
+
+//#endregion constants
+
+//#region Props
+/**
+ * Props của component SalaryPeriodForm
+ * @property {string} typeForm - Kiểu form hiện tại: thêm hoặc sửa. Mặc định là "add"
+ * createdBy: TMHieu (25/04/2026)
+ */
+const props = defineProps({
+    typeForm: {
+        type: String,
+        default: "add",
+        validator: (value) => ["add", "edit"].includes(value),
+    },
+    data: {
+        type: Object,
+    },
+});
+//#endregion
+
+//#region State Data
+/**
+ * Trạng thái mở/đóng form kỳ lương
+ * createdBy: TMHieu (25/04/2026)
+ */
+const isFormOpen = defineModel({
+    type: Boolean,
+    default: false,
+});
+
+/**
+ * Lưu chuỗi lỗi nếu có
+ * createdBy: TMHieu (25/04/2026)
+ */
+const errorMessage = ref("");
+
+/**
+ * Ref tới các input component
+ * createdBy: TMHieu
+ */
+const inputRefs = reactive({
+    startDate: null,
+    endDate: null,
+});
+
+/**
+ * Trạng thái đóng mở alert xác nhận lỗi
+ * createdBy: TMHieu (25/04/2026)
+ */
+const showConfirm = ref(false);
+
+/**
+ * Trạng thái hợp lệ của các trường trong form
+ * createdBy: TMHieu (25/04/2026)
+ */
+const fieldValid = reactive({
+    startDate: "",
+    endDate: "",
+});
+
+/**
+ * ref đến focus cuối cùng để khi mở form có thể focus vào đó
+ * created by: TMHieu (25/04/2026)
+ */
+const lastFocusField = ref(null);
+
+/**
+ * Trạng thái đã submit form
+ * createdBy: TMHieu (25/04/2026)
+ */
+const isSubmit = ref(false);
+
+/**
+ * Dữ liệu kỳ lương trong form
+ * createdBy: TMHieu (25/04/2026)
+ */
+const salaryPeriod = ref(createSalaryPeriod());
+//#endregion State Data
+
+//#region Emit
+/**
+ * Khai báo emit sự kiện submit, submit-and-add để gửi dữ liệu lên cho component cha xử lý
+ * createdBy: TMHieu (25/04/2026)
+ */
+const emit = defineEmits(["submit", "submit-and-add"]);
+// #endregion emit
+
+//#region Watch
+
+/**
+ * lắng nghe mở form, xử lí mở form add hoặc edit
+ * đổ dữ liệu nếu là edit
+ * createdBy: TMHieu (25/04/2026)
+ */
+watch(
+    () => isFormOpen.value,
+    (open) => {
+        if (!open) return;
+
+        if (props.typeForm === "edit" && props.data) {
+            salaryPeriod.value = { ...props.data };
+        }
+
+        if (props.typeForm === "add") {
+            salaryPeriod.value = createSalaryPeriod();
+        }
+    },
+);
+
+/**
+ * Hàm hiển thị alert lỗi
+ * createdBy: TMHieu (25/04/2026)
+ * @param {string} message - Nội dung lỗi cần hiển thị
+ */
+function showAlert(message) {
+    errorMessage.value = message;
+    showConfirm.value = true;
+}
+
+/**
+ * Validate ngày kết thúc phải sau ngày bắt đầu
+ * createdBy: TMHieu (25/04/2026)
+ */
+watch(
+    () => [salaryPeriod.value.startDate, salaryPeriod.value.endDate],
+    ([start, end]) => {
+        if (start && end) {
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            if (endDate <= startDate) {
+                fieldValid.endDate = "Ngày kết thúc phải sau ngày bắt đầu";
+            } else {
+                fieldValid.endDate = "";
+            }
+        }
+    },
+);
+
+//#endregion watch
+
+//#region Methods
+
+/**
+ * Focus vào input lỗi đầu tiên
+ * createdBy: TMHieu
+ */
+const focusFirstInvalidInput = async () => {
+    await nextTick();
+
+    const fieldOrder = ["startDate", "endDate"];
+
+    for (const field of fieldOrder) {
+        if (fieldValid[field] && inputRefs[field]) {
+            // alert lỗi đầu tiên
+            showAlert(fieldValid[field]);
+            lastFocusField.value = field;
+            break;
+        }
+    }
+};
+
+function validateField(field) {
+    switch (field) {
+        case "startDate":
+            fieldValid.startDate = salaryPeriod.value.startDate ? "" : "Ngày bắt đầu không được để trống";
+            break;
+
+        case "endDate":
+            fieldValid.endDate = salaryPeriod.value.endDate ? "" : "Ngày kết thúc không được để trống";
+            break;
+    }
+}
+
+function validateForm() {
+    fieldValid.startDate = "";
+    fieldValid.endDate = "";
+    validateField("startDate");
+    validateField("endDate");
+
+    // Validate ngày kết thúc phải sau ngày bắt đầu
+    if (salaryPeriod.value.startDate && salaryPeriod.value.endDate) {
+        const startDate = new Date(salaryPeriod.value.startDate);
+        const endDate = new Date(salaryPeriod.value.endDate);
+        if (endDate <= startDate) {
+            fieldValid.endDate = "Ngày kết thúc phải sau ngày bắt đầu";
+        }
+    }
+
+    return !Object.values(fieldValid).some(Boolean);
+}
+
+const handleBlur = (field) => {
+    validateField(field);
+};
+
+/**
+ * Hàm xử lý sự kiện submit form
+ * createdBy: TMHieu (25/04/2026)
+ */
+const handleSubmit = (isSubmitAndAdd) => {
+    isSubmit.value = true;
+    const allValid = validateForm();
+    if (!allValid) {
+        // Focus vào input lỗi đầu tiên
+        focusFirstInvalidInput();
+        return;
+    }
+
+    const isUpdate = props.typeForm === "edit";
+    const payload = buildPayload(salaryPeriod.value, isUpdate);
+
+    if (isSubmitAndAdd) {
+        emit("submit-and-add", payload);
+    } else {
+        emit("submit", payload);
+    }
+};
+
+const handleCloseForm = () => {
+    isFormOpen.value = false;
+    isSubmit.value = false;
+    fieldValid.startDate = "";
+    fieldValid.endDate = "";
+    salaryPeriod.value = createSalaryPeriod();
+};
+
+const currentUser = "b8373a59-3be2-11f1-97ac-d0c5d346d1a4";
+
+/**
+ * Hàm xử lý trước khi sự kiện submit form
+ * createdBy: TMHieu (25/04/2026)
+ * @param periodData dữ liệu cơ bản trên form
+ * @param isUpdate có phải update hay không
+ * @returns dữ liệu cơ bản trên form
+ */
+function buildPayload(periodData, isUpdate = false) {
+    const { ...rest } = periodData;
+
+    const basePayload = {
+        ...rest,
+        startDate: rest.startDate ? new Date(rest.startDate).toISOString() : null,
+        endDate: rest.endDate ? new Date(rest.endDate).toISOString() : null,
+    };
+
+    if (!isUpdate) {
+        // Khi thêm mới → xóa id
+        delete basePayload.salaryPeriodId;
+
+        return {
+            ...basePayload,
+            createdBy: currentUser,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            updatedBy: currentUser,
+        };
+    }
+
+    // Khi update → giữ id
+    return {
+        ...basePayload,
+        updatedBy: currentUser,
+        updatedAt: new Date().toISOString(),
+    };
+}
+
+// Đẩy lên cho phép cha gọi đến để đóng và reset form
+defineExpose({
+    handleCloseForm,
+});
+//#endregion Methods
+
+/**
+ * Trả về class hiển thị trạng thái kỳ lương theo badge.
+ * @param {string|null|undefined} status
+ * @returns {string}
+ */
+const getStatusClass = (status) => {
+    const normalized = (status || "").toLowerCase();
+
+    if (normalized === "draft") return "status-chip status-chip--draft";
+    if (normalized === "locked") return "status-chip status-chip--locked";
+    if (normalized === "paid") return "status-chip status-chip--paid";
+
+    return "status-chip status-chip--default";
+};
+
+/**
+ * Chuẩn hóa text hiển thị trạng thái kỳ lương.
+ * @param {string|null|undefined} status
+ * @returns {string}
+ */
+const getStatusText = (status) => {
+    const normalized = (status || "").toLowerCase();
+
+    if (normalized === "draft") return "Nháp";
+    if (normalized === "locked") return "Đã khóa";
+    if (normalized === "paid") return "Đã chi trả";
+
+    return status || "Không xác định";
+};
+
+const modelClose = () => {
+    showConfirm.value = false;
+    isSubmit.value = false;
+    errorMessage.value = "";
+    inputRefs[lastFocusField.value]?.focusInput();
+};
+
+const handleKeydown = (e) => {
+    if (!isFormOpen.value) return;
+
+    // Ctrl + Shift + S
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        handleSubmit(true);
+        return;
+    }
+
+    // Ctrl + S
+    if (e.ctrlKey && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        handleSubmit(false);
+        return;
+    }
+
+    // Esc
+    if (e.key === "Escape") {
+        handleCloseForm();
+    }
+};
+
+onMounted(() => {
+    window.addEventListener("keydown", handleKeydown);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener("keydown", handleKeydown);
+});
+</script>
+
+<template>
+    <!-- Alert error -->
+    <ms-alert v-model="showConfirm" title="Cảnh báo" @close="modelClose">
+        {{ errorMessage }}
+    </ms-alert>
+
+    <!-- Form thêm kỳ lương  -->
+    <div v-if="isFormOpen" class="form-salary-period-modal">
+        <div class="form-salary-period__overlay"></div>
+        <div class="form-salary-period__content d-flex flex-column">
+            <div class="form-salary-period__header d-flex justify-content-between align-items-center">
+                <div class="form-salary-period__title">
+                    {{ props.typeForm === "edit" ? TITLE_SALARY_PERIOD_FORM_EDIT : TITLE_SALARY_PERIOD_FORM_ADD }}
+                </div>
+                <div class="d-flex gap-12">
+                    <tooltip placement="top" :align="{ offset: [0, 4] }">
+                        <template #title>
+                            <span>Trợ giúp</span>
+                        </template>
+                        <div class="form-salary-period__help-icon pointer"></div>
+                    </tooltip>
+                    <tooltip placement="top" :align="{ offset: [0, 4] }">
+                        <template #title>
+                            <span>Đóng (Ecs)</span>
+                        </template>
+                        <div class="form-salary-period__close-icon pointer" @click="handleCloseForm"></div>
+                    </tooltip>
+                </div>
+            </div>
+
+            <div class="form-salary-period__body d-flex flex-column">
+                <div class="form-salary-period__item d-flex justify-content-between">
+                    <div class="form-salary-period__label form-salary-period__label--required">Ngày bắt đầu</div>
+                    <ms-date-picker
+                        :label="'Ngày bắt đầu'"
+                        :ref="(el) => (inputRefs.startDate = el)"
+                        v-model="salaryPeriod.startDate"
+                        :width="300"
+                        :error="fieldValid.startDate"
+                        @blurInput="handleBlur('startDate')"
+                        required
+                    ></ms-date-picker>
+                </div>
+
+                <div class="form-salary-period__item d-flex justify-content-between">
+                    <div class="form-salary-period__label form-salary-period__label--required">Ngày kết thúc</div>
+                    <ms-date-picker
+                        :label="'Ngày kết thúc'"
+                        :ref="(el) => (inputRefs.endDate = el)"
+                        v-model="salaryPeriod.endDate"
+                        :width="300"
+                        :error="fieldValid.endDate"
+                        @blurInput="handleBlur('endDate')"
+                        required
+                    ></ms-date-picker>
+                </div>
+
+                <div v-if="props.typeForm === 'edit'" class="form-salary-period__item">
+                    <div class="form-salary-period__label">Trạng thái</div>
+                    <div class="form-salary-period__status">
+                        <span :class="getStatusClass(salaryPeriod.status)">
+                            {{ getStatusText(salaryPeriod.status) }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-salary-period__footer d-flex align-items-center justify-content-end">
+                <div class="form-salary-period__footer-buttons d-flex align-items-center">
+                    <ms-button :tooltip="'Crtl + S'" @click="handleSubmit(false)" tabindex="0"
+                        >Lưu</ms-button
+                    >
+                    <ms-button
+                        :tooltip="'Crtl + Shift + S'"
+                        :type="'outline'"
+                        tabindex="0"
+                        @click="handleSubmit(true)"
+                        >Lưu và thêm</ms-button
+                    >
+                    <ms-button :type="'outline'" @click="handleCloseForm" tabindex="0"
+                        >Hủy</ms-button
+                    >
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<style scoped>
+/* Style phần form thêm kỳ lương  */
+.form-salary-period-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+}
+
+.form-salary-period__overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.45);
+    z-index: 10;
+}
+
+.form-salary-period__content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    height: max-content;
+    width: 500px;
+    background-color: white;
+    border-radius: var(--border-radius);
+    z-index: 11;
+    overflow: hidden;
+}
+
+.form-salary-period__header {
+    margin: 16px 20px;
+}
+
+.form-salary-period__title {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.form-salary-period__body {
+    flex: 1;
+    padding: 20px;
+    min-height: 0;
+    row-gap: 16px;
+}
+
+.form-salary-period__footer {
+    height: 56px;
+    width: 100%;
+    border-top: 1px solid #e0e0e0;
+    padding: 12px 20px;
+}
+
+.form-salary-period__label {
+    width: 150px;
+    font-weight: 500;
+    line-height: 27px;
+    margin-right: 16px;
+}
+
+.form-salary-period__label--required::after {
+    content: "*";
+    color: red;
+    margin-left: 3px;
+}
+
+.form-salary-period__status {
+    padding: 8px 16px;
+}
+
+.form-salary-period__footer-buttons {
+    column-gap: 8px;
+    flex-direction: row-reverse;
+}
+
+.status-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-chip--draft {
+    background: #e0f2fe;
+    color: #075985;
+}
+
+.status-chip--locked {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-chip--paid {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-chip--default {
+    background: #f3f4f6;
+    color: #374151;
+}
+/* Kết thúc Style phần form thêm kỳ lương  */
+</style>

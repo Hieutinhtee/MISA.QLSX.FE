@@ -1,0 +1,52 @@
+@import "../shift/Index.css";
+
+.workflow-guide {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    color: #0f172a;
+    font-size: 13px;
+}
+
+.status-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-chip--draft {
+    background: #e0f2fe;
+    color: #075985;
+}
+
+.status-chip--locked {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-chip--paid {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-chip--default {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.action-cell {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.action-cell .ms-button {
+    height: 30px;
+    padding: 4px 12px;
+}

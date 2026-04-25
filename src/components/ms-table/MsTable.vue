@@ -1412,9 +1412,11 @@ defineExpose({
                             "
                         >
                             <!-- Tùy chỉnh hiển thị cột trong bảng -->
-                            <template v-if="getFieldType(column.type) === 'custom'">
+                            <template
+                                v-if="$slots[column.key] || getFieldType(column.type) === 'custom'"
+                            >
                                 <slot :name="column.key" :row="row" :value="row[column.key]">
-                                    <!-- {{ renderValue(row[column.key]) }} -->
+                                    {{ renderValue(row[column.key]) }}
                                 </slot>
                             </template>
 
