@@ -1,8 +1,12 @@
 <script setup>
-import { ref } from "vue";
+import { inject, ref } from "vue";
+import { useRouter } from "vue-router";
 import ShiftsAPI from "@/apis/components/shifts/shiftsAPI";
 import { Tooltip } from "ant-design-vue";
 import { $toastError } from "@/utils/toastService";
+
+const router = useRouter();
+const { authState, logout } = inject("auth");
 
 const icons = ref([
     { name: "package", badge: 0, tooltip: "Tra cứu tồn kho" },
@@ -39,6 +43,11 @@ function handleExportExcel() {
 const openDev = () => {
     window.$dev();
 };
+
+async function handleLogout() {
+    await logout();
+    router.push("/login");
+}
 </script>
 
 <template>
@@ -54,6 +63,11 @@ const openDev = () => {
         </div>
 
         <div class="navbar__right d-flex align-items-center">
+            <div class="navbar__user" v-if="authState?.user">
+                {{ authState.user.name || "Người dùng" }}
+            </div>
+            <button class="navbar__logout" @click="handleLogout">Đăng xuất</button>
+
             <tooltip placement="bottom" :align="{ offset: [0, -2] }">
                 <template #title>
                     <span>Xuất khẩu Excel</span>
@@ -115,6 +129,21 @@ const openDev = () => {
     height: 16px;
     background-color: #d1d5db;
     margin-right: 14px;
+}
+
+.navbar__user {
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+.navbar__logout {
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-right: 12px;
+    cursor: pointer;
+    font-weight: 600;
 }
 
 .navbar__item {

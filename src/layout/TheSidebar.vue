@@ -1,100 +1,181 @@
 <script setup>
-import { computed, ref, onMounted } from "vue";
+import { computed, inject, ref, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 const route = useRoute();
 const router = useRouter();
+const { authState } = inject("auth");
+
+const currentRole = computed(() => {
+    let role = authState?.user?.role || null;
+    // Normalize: remove "ROLE_" prefix if present
+    if (role?.startsWith("ROLE_")) {
+        role = role.substring(5);
+    }
+    return role;
+});
+
+const canAccessRoles = (roles) => {
+    if (!roles || roles.length === 0) {
+        return true;
+    }
+
+    return roles.includes(currentRole.value);
+};
 
 // Dữ liệu menu sidebar
 const menu = ref([
-    { name: "home", title: "Tổng quan" },
-    { name: "order", title: "Đơn đặt hàng", active: false },
     {
-        name: "plan",
-        title: "Kế hoạch sản xuất",
-        active: false,
-        children: [
-            { title: "Kế hoạch tổng thể" },
-            { title: "Kế hoạch chi tiết" },
-            { title: "Kế hoạch nguyên vật liệu" },
-            { title: "Yêu cầu mua NVL" },
-        ],
+        name: "home",
+        title: "Tổng quan",
+        iconClass: "sidebar__home-icon",
+        roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
     },
-    {
-        name: "coordinate",
-        title: "Điều phối và thực thi",
-        active: false,
-        children: [
-            { title: "Kế hoạch tổng thể" },
-            { title: "Kế hoạch chi tiết" },
-            { title: "Kế hoạch nguyên vật liệu" },
-            { title: "Yêu cầu mua NVL" },
-        ],
-    },
-    {
-        name: "quality",
-        title: "Kiểm tra chát lượng",
-        active: false,
-        children: [{ title: "Kế hoạch tổng thể" }, { title: "Kế hoạch chi tiết" }],
-    },
-    {
-        name: "material",
-        title: "Kho vật  tư",
-        active: false,
-        children: [{ title: "Kế hoạch nguyên vật liệu" }, { title: "Yêu cầu mua NVL" }],
-    },
-    {
-        name: "cost",
-        title: "Giá thành kế hoạch",
-        active: false,
-        children: [
-            { title: "Kế hoạch tổng thể" },
-            { title: "Kế hoạch chi tiết" },
-            { title: "Kế hoạch nguyên vật liệu" },
-            { title: "Yêu cầu mua NVL" },
-        ],
-    },
-    { line: true },
-    { name: "report", title: "Báo cáo", active: false },
-    { line: true },
-    {
-        name: "product",
-        title: "Sản phẩm, NVL",
-        active: false,
-        children: [
-            { title: "Kế hoạch tổng thể" },
-            { title: "Kế hoạch chi tiết" },
-            { title: "Kế hoạch nguyên vật liệu" },
-            { title: "Yêu cầu mua NVL" },
-        ],
-    },
-    {
-        name: "process",
-        title: "Quy trình sản xuất",
-        active: false,
-        children: [
-            { title: "Kế hoạch tổng thể" },
-            { title: "Kế hoạch chi tiết" },
-            { title: "Kế hoạch nguyên vật liệu" },
-            { title: "Yêu cầu mua NVL" },
-        ],
-    },
+    // { name: "order", title: "Đơn đặt hàng", active: false },
+    // {
+    //     name: "plan",
+    //     title: "Kế hoạch sản xuất",
+    //     active: false,
+    //     children: [
+    //         { title: "Kế hoạch tổng thể" },
+    //         { title: "Kế hoạch chi tiết" },
+    //         { title: "Kế hoạch nguyên vật liệu" },
+    //         { title: "Yêu cầu mua NVL" },
+    //     ],
+    // },
+    // {
+    //     name: "coordinate",
+    //     title: "Điều phối và thực thi",
+    //     active: false,
+    //     children: [
+    //         { title: "Kế hoạch tổng thể" },
+    //         { title: "Kế hoạch chi tiết" },
+    //         { title: "Kế hoạch nguyên vật liệu" },
+    //         { title: "Yêu cầu mua NVL" },
+    //     ],
+    // },
+    // {
+    //     name: "quality",
+    //     title: "Kiểm tra chát lượng",
+    //     active: false,
+    //     children: [{ title: "Kế hoạch tổng thể" }, { title: "Kế hoạch chi tiết" }],
+    // },
+    // {
+    //     name: "material",
+    //     title: "Kho vật  tư",
+    //     active: false,
+    //     children: [{ title: "Kế hoạch nguyên vật liệu" }, { title: "Yêu cầu mua NVL" }],
+    // },
+    // {
+    //     name: "cost",
+    //     title: "Giá thành kế hoạch",
+    //     active: false,
+    //     children: [
+    //         { title: "Kế hoạch tổng thể" },
+    //         { title: "Kế hoạch chi tiết" },
+    //         { title: "Kế hoạch nguyên vật liệu" },
+    //         { title: "Yêu cầu mua NVL" },
+    //     ],
+    // },
+    // { line: true },
+    // { name: "report", title: "Báo cáo", active: false },
+    // { line: true },
+    // {
+    //     name: "product",
+    //     title: "Sản phẩm, NVL",
+    //     active: false,
+    //     children: [
+    //         { title: "Kế hoạch tổng thể" },
+    //         { title: "Kế hoạch chi tiết" },
+    //         { title: "Kế hoạch nguyên vật liệu" },
+    //         { title: "Yêu cầu mua NVL" },
+    //     ],
+    // },
+    // {
+    //     name: "process",
+    //     title: "Quy trình sản xuất",
+    //     active: false,
+    //     children: [
+    //         { title: "Kế hoạch tổng thể" },
+    //         { title: "Kế hoạch chi tiết" },
+    //         { title: "Kế hoạch nguyên vật liệu" },
+    //         { title: "Yêu cầu mua NVL" },
+    //     ],
+    // },
     {
         name: "production",
         title: "Nhân viên",
+        iconClass: "sidebar__production-icon",
         active: false,
+        roles: ["ADMIN", "HR", "MANAGER"],
         children: [
-            { title: "Kế hoạch tổng thể" },
-            { title: "Kế hoạch chi tiết" },
-            { title: "Kế hoạch nguyên vật liệu" },
-            { title: "Yêu cầu mua NVL" },
+            {
+                title: "Danh sách nhân viên",
+                path: "/employees",
+                roles: ["ADMIN", "HR", "MANAGER"],
+            },
+            {
+                title: "Nhân viên chưa có HĐ",
+                path: "/employees-without-contract",
+                roles: ["ADMIN", "HR"],
+            },
         ],
     },
-    { name: "contractTemplate", title: "Mẫu hợp đồng", active: false },
-    { name: "contract", title: "Hợp đồng", active: false },
-    { name: "payroll", title: "Bảng lương", active: false },
-    { name: "category", title: "Ca làm việc", active: true },
-    { name: "system", title: "Thiết lập", active: false },
+    {
+        name: "contract",
+        title: "Hợp đồng",
+        iconClass: "sidebar__process-icon",
+        active: false,
+        roles: ["ADMIN", "HR", "MANAGER"],
+        children: [
+            {
+                title: "Danh sách hợp đồng",
+                path: "/contracts",
+                roles: ["ADMIN", "HR", "MANAGER"],
+            },
+            {
+                title: "Mẫu hợp đồng",
+                path: "/contract-templates",
+                roles: ["ADMIN", "HR"],
+            },
+        ],
+    },
+    {
+        name: "payroll",
+        title: "Bảng lương",
+        iconClass: "sidebar__cost-icon",
+        active: false,
+        roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
+    },
+    {
+        name: "allowance",
+        title: "Phụ cấp",
+        iconClass: "sidebar__category-icon",
+        active: false,
+        roles: ["ADMIN", "HR"],
+    },
+    {
+        name: "businessTrip",
+        title: "Công tác",
+        iconClass: "sidebar__category-icon",
+        active: false,
+        roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
+    },
+    {
+        name: "evaluation",
+        title: "Đánh giá",
+        iconClass: "sidebar__category-icon",
+        active: false,
+        roles: ["ADMIN", "HR", "MANAGER"],
+    },
+    {
+        name: "category",
+        title: "Ca làm việc",
+        iconClass: "sidebar__category-icon",
+        active: true,
+        roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
+    },
+    { name: "system", title: "Thiết lập", iconClass: "sidebar__system-icon", active: false },
 ]);
 
 // Trạng thái toggle sidebar
@@ -131,13 +212,45 @@ function toggleSidebar() {
 
 const activeMenu = ref(null);
 
-const toggleMenu = (name) => {
-    if (activeMenu.value === name) {
-        activeMenu.value = null;
-    } else {
-        activeMenu.value = name;
+const currentEmployeeSubmenu = computed(() => {
+    if (route.path.startsWith("/employees-without-contract")) {
+        return "/employees-without-contract";
     }
-};
+
+    if (route.path.startsWith("/employees")) {
+        return "/employees";
+    }
+
+    return "";
+});
+
+const currentContractSubmenu = computed(() => {
+    if (route.path.startsWith("/contract-templates")) {
+        return "/contract-templates";
+    }
+
+    if (route.path.startsWith("/contracts")) {
+        return "/contracts";
+    }
+
+    return "";
+});
+
+watch(
+    () => route.path,
+    (path) => {
+        // Chỉ set activeMenu khi path thay đổi, không reset
+        if (path.startsWith("/employees")) {
+            activeMenu.value = "production";
+        } else if (path.startsWith("/contracts") || path.startsWith("/contract-templates")) {
+            activeMenu.value = "contract";
+        } else {
+            // Khi navigate đến trang không thuộc nhóm nào, đóng submenu
+            activeMenu.value = null;
+        }
+    },
+    { immediate: true },
+);
 
 const openDev = (nameItem) => {
     if (nameItem === "category") {
@@ -145,23 +258,23 @@ const openDev = (nameItem) => {
         return;
     }
 
-    if (nameItem === "production") {
-        router.push("/employees");
-        return;
-    }
-
-    if (nameItem === "contractTemplate") {
-        router.push("/contract-templates");
-        return;
-    }
-
-    if (nameItem === "contract") {
-        router.push("/contracts");
-        return;
-    }
-
     if (nameItem === "payroll") {
         router.push("/payrolls");
+        return;
+    }
+
+    if (nameItem === "allowance") {
+        router.push("/allowances");
+        return;
+    }
+
+    if (nameItem === "businessTrip") {
+        router.push("/business-trips");
+        return;
+    }
+
+    if (nameItem === "evaluation") {
+        router.push("/evaluations");
         return;
     }
 
@@ -171,30 +284,34 @@ const openDev = (nameItem) => {
 const currentMenu = computed(() => {
     if (route.path.startsWith("/employees")) return "production";
     if (route.path.startsWith("/shifts")) return "category";
-    if (route.path.startsWith("/contract-templates")) return "contractTemplate";
-    if (route.path.startsWith("/contracts")) return "contract";
+    if (route.path.startsWith("/contracts") || route.path.startsWith("/contract-templates")) {
+        return "contract";
+    }
     if (route.path.startsWith("/payrolls")) return "payroll";
+    if (route.path.startsWith("/allowances")) return "allowance";
+    if (route.path.startsWith("/business-trips")) return "businessTrip";
+    if (route.path.startsWith("/evaluations")) return "evaluation";
     return "";
 });
 
 const handleMenuClick = (item) => {
-    if (
-        item.name === "category" ||
-        item.name === "production" ||
-        item.name === "contractTemplate" ||
-        item.name === "contract" ||
-        item.name === "payroll"
-    ) {
+    // Menu không có con - navigate trực tiếp
+    if (!item.children) {
         openDev(item.name);
         return;
     }
 
-    if (item.children) {
-        toggleMenu(item.name);
-        return;
+    // Menu có con - toggle submenu
+    if (activeMenu.value === item.name) {
+        // Đang mở → đóng
+        activeMenu.value = null;
+    } else {
+        // Đang đóng → mở + navigate đến trang đầu tiên
+        activeMenu.value = item.name;
+        if (item.children && item.children[0]?.path) {
+            router.push(item.children[0].path);
+        }
     }
-
-    openDev(item.name);
 };
 </script>
 
@@ -202,47 +319,81 @@ const handleMenuClick = (item) => {
     <div class="sidebar d-flex flex-column">
         <!-- Sidebar menu -->
         <div class="sidebar__menu flex-1 d-flex flex-column">
-            <div v-for="item in menu" :key="item">
-                <div
-                    v-if="item.title"
-                    :class="[
-                        'sidebar__menu-item',
-                        currentMenu === item.name ? 'sidebar__menu-item--active' : '',
-                        'd-flex',
-                        'align-items-center',
-                        toggleState === 'collapsed' ? 'sidebar__menu-item--collapsed' : '',
-                    ]"
-                    @click="handleMenuClick(item)"
-                >
-                    <div :class="['sidebar__' + item.name + '-icon', 'sidebar__icon']"></div>
-                    <div :class="['sidebar__title', toggleState === 'collapsed' ? 'hidden' : '']">
-                        {{ item.title }}
-                    </div>
-                    <div v-if="item.children" class="sidebar__icon sidebar__down-icon"></div>
-                </div>
-
-                <div v-else class="sidebar__menu-line"></div>
-                <transition name="submenu-fade">
+            <template v-for="item in menu" :key="item.name || item.title">
+                <div v-if="canAccessRoles(item.roles)">
                     <div
-                        v-if="
-                            item.children && activeMenu === item.name && toggleState !== 'collapsed'
-                        "
-                        class="sidebar__submenu"
+                        v-if="item.title"
+                        :class="[
+                            'sidebar__menu-item',
+                            currentMenu === item.name ? 'sidebar__menu-item--active' : '',
+                            'd-flex',
+                            'align-items-center',
+                            toggleState === 'collapsed' ? 'sidebar__menu-item--collapsed' : '',
+                        ]"
+                        @click="handleMenuClick(item)"
                     >
                         <div
-                            v-for="child in item.children"
-                            :key="child.title"
-                            class="sidebar__menu-item sidebar__submenu-item d-flex align-items-center"
-                            @click="openDev()"
+                            :class="[
+                                item.iconClass || 'sidebar__' + item.name + '-icon',
+                                'sidebar__icon',
+                            ]"
+                        ></div>
+                        <div
+                            :class="['sidebar__title', toggleState === 'collapsed' ? 'hidden' : '']"
                         >
-                            <div :class="['sidebar__enter-icon', 'sidebar__icon']"></div>
-                            <div :class="['sidebar__title']">
-                                {{ child.title }}
+                            {{ item.title }}
+                        </div>
+                        <div v-if="item.children" class="sidebar__icon sidebar__down-icon"></div>
+                    </div>
+
+                    <div v-else class="sidebar__menu-line"></div>
+                    <transition name="submenu-fade">
+                        <div
+                            v-if="
+                                item.children &&
+                                activeMenu === item.name &&
+                                toggleState !== 'collapsed'
+                            "
+                            class="sidebar__submenu"
+                        >
+                            <div
+                                v-for="child in item.children?.filter((subItem) =>
+                                    canAccessRoles(subItem.roles),
+                                )"
+                                :key="child.title"
+                                :class="[
+                                    'sidebar__menu-item',
+                                    'sidebar__submenu-item',
+                                    'd-flex',
+                                    'align-items-center',
+                                    currentEmployeeSubmenu === child.path ||
+                                    currentContractSubmenu === child.path
+                                        ? 'sidebar__submenu-item--active'
+                                        : '',
+                                ]"
+                            >
+                                <RouterLink
+                                    v-if="child.path"
+                                    :to="child.path"
+                                    class="sidebar__submenu-link d-flex align-items-center"
+                                    @click.stop
+                                >
+                                    <div :class="['sidebar__enter-icon', 'sidebar__icon']"></div>
+                                    <div :class="['sidebar__title']">
+                                        {{ child.title }}
+                                    </div>
+                                </RouterLink>
+                                <template v-else>
+                                    <div :class="['sidebar__enter-icon', 'sidebar__icon']"></div>
+                                    <div :class="['sidebar__title']">
+                                        {{ child.title }}
+                                    </div>
+                                </template>
                             </div>
                         </div>
-                    </div>
-                </transition>
-            </div>
+                    </transition>
+                </div>
+            </template>
         </div>
 
         <!-- sidebar toggle -->
@@ -307,6 +458,18 @@ const handleMenuClick = (item) => {
 
 .sidebar__submenu-item:hover .sidebar__enter-icon {
     opacity: 1;
+}
+
+.sidebar__submenu-item--active {
+    background-color: #252c3b;
+}
+
+.sidebar__submenu-item--active .sidebar__enter-icon {
+    opacity: 1;
+}
+
+.sidebar__submenu-item--active .sidebar__title {
+    color: white;
 }
 /* Style thanh sidebar */
 .sidebar {

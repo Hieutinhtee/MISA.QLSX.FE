@@ -64,6 +64,7 @@ tbody tr:focus td {
 .content__datagrid {
     overflow: auto;
     position: relative;
+    flex: 1;
 }
 
 /* sticky first column */

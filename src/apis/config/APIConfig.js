@@ -19,6 +19,7 @@ const baseURL = "https://localhost:7124/api/v1";
  */
 let api = axios.create({
     baseURL: baseURL,
+    withCredentials: true,
     headers: {
         "Content-Type": "application/json",
     },
@@ -88,6 +89,11 @@ api.interceptors.response.use(
         //  Xử lý Lỗi 5xx - Lỗi Hệ thống
         if (res.status >= 500) {
             $alert("Lỗi hệ thống (5xx), vui lòng thử lại sau.");
+            return Promise.reject(error);
+        }
+
+        if (res.status === 401) {
+            $alert("Bạn không có quyền thực hiện chức năng này.");
             return Promise.reject(error);
         }
 

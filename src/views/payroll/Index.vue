@@ -1,13 +1,15 @@
 <script setup>
+defineOptions({ name: "PayrollIndex" });
+
 import { onMounted, ref } from "vue";
 import MsTable from "@/components/ms-table/MsTable.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import { usePagingTable } from "@/composables/usePagingTable";
 import SalaryPeriodsAPI from "@/apis/components/salary-periods/salaryPeriodsAPI";
-import PayrollsAPI from "@/apis/components/payrolls/payrollsAPI";
 import { $toastSuccess, $toastError } from "@/utils/toastService";
 import SalaryPeriodForm from "./SalaryPeriodForm.vue";
 import PayrollDetail from "./PayrollDetail.vue";
+import PayrollWorkflowModal from "./PayrollWorkflowModal.vue";
 
 const columns = ref([
     { key: "periodLabel", name: "Kỳ lương", width: 150 },
@@ -16,20 +18,15 @@ const columns = ref([
     { key: "status", name: "Trạng thái", typeFilter: "text", width: 170 },
     { key: "createdAt", name: "Ngày tạo", type: "date", width: 150 },
     { key: "updatedAt", name: "Ngày sửa", type: "date", width: 150 },
-    { key: "actions", name: "Thao tác", width: 120 },
-    { key: "workflowActions", name: "Xử lý kỳ lương", width: 460 },
+    { key: "actions", name: "Thao tác", width: 280 },
 ]);
 
 const { loading, rows, payload, reloadData, onPaginationUpdate, onSearchChange, loadDataForAPI } =
     usePagingTable(SalaryPeriodsAPI);
 
-const processingAction = ref({
-    salaryPeriodId: null,
-    action: null,
-});
-
 const showAddPeriodForm = ref(false);
 const showPayrollDetail = ref(false);
+const showWorkflowModal = ref(false);
 const selectedSalaryPeriod = ref(null);
 
 /**
@@ -80,145 +77,6 @@ const getStatusText = (status) => {
 };
 
 /**
- * Kiểm tra một kỳ lương có đang được xử lý action hay không.
- * @param {object} row
- * @returns {boolean}
- */
-const isRowProcessing = (row) => {
-    return processingAction.value.salaryPeriodId === row?.salaryPeriodId;
-};
-
-/**
- * Trả về text nút theo action và trạng thái xử lý hiện tại.
- * @param {object} row
- * @param {'generate'|'calculate'|'lock'|'pay'} action
- * @returns {string}
- */
-const getActionText = (row, action) => {
-    if (isRowProcessing(row) && processingAction.value.action === action) {
-        return "Đang xử lý...";
-    }
-
-    if (action === "generate") return "1. Tạo nháp";
-    if (action === "calculate") return "2. Tính lương";
-    if (action === "lock") return "3. Khóa lương";
-    return "4. Chi trả";
-};
-
-/**
- * Hiển thị hộp thoại xác nhận cho các bước nghiệp vụ nhạy cảm.
- * @param {'generate'|'calculate'|'lock'|'pay'} action
- * @returns {boolean}
- */
-const confirmAction = (action) => {
-    if (action === "lock") {
-        return window.confirm(
-            "Xác nhận khóa kỳ lương này? Sau khi khóa sẽ không thể chỉnh sửa dữ liệu đầu vào.",
-        );
-    }
-
-    if (action === "pay") {
-        return window.confirm("Xác nhận đánh dấu đã chi trả kỳ lương này?");
-    }
-
-    return true;
-};
-
-/**
- * Trả về nội dung thông báo thành công mặc định theo action.
- * @param {'generate'|'calculate'|'lock'|'pay'} action
- * @returns {string}
- */
-const getSuccessMessage = (action) => {
-    if (action === "generate") return "Tạo bảng lương nháp thành công";
-    if (action === "calculate") return "Tính lương kỳ thành công";
-    if (action === "lock") return "Khóa lương kỳ thành công";
-    return "Đánh dấu chi trả thành công";
-};
-
-/**
- * Trả về nội dung thông báo lỗi mặc định theo action.
- * @param {'generate'|'calculate'|'lock'|'pay'} action
- * @returns {string}
- */
-const getErrorMessage = (action) => {
-    if (action === "generate") return "Tạo bảng lương nháp thất bại";
-    if (action === "calculate") return "Tính lương kỳ thất bại";
-    if (action === "lock") return "Khóa lương kỳ thất bại";
-    return "Đánh dấu chi trả thất bại";
-};
-
-/**
- * Chạy action workflow payroll theo salary period.
- * @param {object} row
- * @param {'generate'|'calculate'|'lock'|'pay'} action
- */
-const runAction = async (row, action) => {
-    const salaryPeriodId = row?.salaryPeriodId;
-    if (!salaryPeriodId) {
-        $toastError("Không tìm thấy kỳ lương hợp lệ.");
-        return;
-    }
-
-    if (!confirmAction(action)) {
-        return;
-    }
-
-    processingAction.value = {
-        salaryPeriodId,
-        action,
-    };
-
-    try {
-        if (action === "generate") {
-            const res = await PayrollsAPI.generateByPeriod(salaryPeriodId);
-            $toastSuccess(res?.data?.message || getSuccessMessage(action));
-        }
-
-        if (action === "calculate") {
-            const res = await PayrollsAPI.calculateByPeriod(salaryPeriodId);
-            $toastSuccess(res?.data?.message || getSuccessMessage(action));
-        }
-
-        if (action === "lock") {
-            const res = await PayrollsAPI.lockByPeriod(salaryPeriodId);
-            $toastSuccess(res?.data?.message || getSuccessMessage(action));
-        }
-
-        if (action === "pay") {
-            const res = await PayrollsAPI.payByPeriod(salaryPeriodId);
-            $toastSuccess(res?.data?.message || getSuccessMessage(action));
-        }
-
-        loadDataForAPI();
-    } catch (error) {
-        console.error(error);
-        $toastError(getErrorMessage(action));
-    } finally {
-        processingAction.value = {
-            salaryPeriodId: null,
-            action: null,
-        };
-    }
-};
-
-/**
- * Xác định nút action được phép thao tác theo trạng thái kỳ lương.
- * @param {object} row
- * @returns {{canGenerate: boolean, canCalculate: boolean, canLock: boolean, canPay: boolean}}
- */
-const getActionState = (row) => {
-    const status = (row?.status || "").toLowerCase();
-
-    return {
-        canGenerate: status === "draft",
-        canCalculate: status === "draft",
-        canLock: status === "draft",
-        canPay: status === "locked",
-    };
-};
-
-/**
  * Xử lý khi submit form thêm kỳ lương
  * @param {object} payload - Dữ liệu kỳ lương
  */
@@ -256,6 +114,31 @@ const handlePeriodSubmitAndAdd = async (payload) => {
 const handleViewPayroll = (row) => {
     selectedSalaryPeriod.value = row;
     showPayrollDetail.value = true;
+};
+
+/**
+ * Mở modal quy trình xử lý lương
+ * @param {object} row - Dữ liệu kỳ lương
+ */
+const handleOpenWorkflow = (row) => {
+    selectedSalaryPeriod.value = row;
+    showWorkflowModal.value = true;
+};
+
+/**
+ * Xử lý khi workflow modal yêu cầu refresh dữ liệu
+ */
+const handleWorkflowRefresh = () => {
+    loadDataForAPI();
+};
+
+/**
+ * Xử lý khi workflow modal yêu cầu xem chi tiết
+ * @param {object} row - Dữ liệu kỳ lương
+ */
+const handleWorkflowViewDetail = (row) => {
+    showWorkflowModal.value = false;
+    handleViewPayroll(row);
 };
 
 onMounted(() => {
@@ -297,46 +180,13 @@ onMounted(() => {
                 </template>
 
                 <template #actions="{ row }">
-                    <ms-button
-                        type="primary-outline"
-                        @click="handleViewPayroll(row)"
-                    >
-                        Xem chi tiết
-                    </ms-button>
-                </template>
-
-                <template #workflowActions="{ row }">
                     <div class="action-cell">
-                        <ms-button
-                            type="outline"
-                            :disabled="!getActionState(row).canGenerate || isRowProcessing(row)"
-                            @click="runAction(row, 'generate')"
-                        >
-                            {{ getActionText(row, "generate") }}
+                        <ms-button type="primary-outline" @click="handleOpenWorkflow(row)">
+                            Xử lý lương
                         </ms-button>
 
-                        <ms-button
-                            type="primary-outline"
-                            :disabled="!getActionState(row).canCalculate || isRowProcessing(row)"
-                            @click="runAction(row, 'calculate')"
-                        >
-                            {{ getActionText(row, "calculate") }}
-                        </ms-button>
-
-                        <ms-button
-                            type="danger-outline"
-                            :disabled="!getActionState(row).canLock || isRowProcessing(row)"
-                            @click="runAction(row, 'lock')"
-                        >
-                            {{ getActionText(row, "lock") }}
-                        </ms-button>
-
-                        <ms-button
-                            type="primary"
-                            :disabled="!getActionState(row).canPay || isRowProcessing(row)"
-                            @click="runAction(row, 'pay')"
-                        >
-                            {{ getActionText(row, "pay") }}
+                        <ms-button type="outline" @click="handleViewPayroll(row)">
+                            Xem chi tiết
                         </ms-button>
                     </div>
                 </template>
@@ -345,16 +195,21 @@ onMounted(() => {
 
         <!-- Form thêm kỳ lương -->
         <salary-period-form
-            v-model="showAddPeriodForm"
+            v-model:open="showAddPeriodForm"
             type-form="add"
             @submit="handlePeriodSubmit"
             @submit-and-add="handlePeriodSubmitAndAdd"
         />
 
         <!-- Modal xem chi tiết bảng lương -->
-        <payroll-detail
-            v-model="showPayrollDetail"
+        <payroll-detail v-model:open="showPayrollDetail" :salary-period="selectedSalaryPeriod" />
+
+        <!-- Modal quy trình xử lý lương -->
+        <payroll-workflow-modal
+            v-model:open="showWorkflowModal"
             :salary-period="selectedSalaryPeriod"
+            @refresh="handleWorkflowRefresh"
+            @view-detail="handleWorkflowViewDetail"
         />
     </div>
 </template>

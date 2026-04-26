@@ -35,7 +35,14 @@ const props = defineProps({
     /** prop cho paging, sort */
     paginationData: {
         type: Object,
-        required: true,
+        default: () => ({
+            page: 1,
+            pageSize: 20,
+            search: "",
+            filters: [],
+            sorts: [],
+            totalRows: 0,
+        }),
     },
     loading: {
         type: Boolean,
@@ -44,6 +51,30 @@ const props = defineProps({
     storageKey: {
         type: String,
         default: "",
+    },
+    showSelection: {
+        type: Boolean,
+        default: true,
+    },
+    showRowActions: {
+        type: Boolean,
+        default: true,
+    },
+    showSearch: {
+        type: Boolean,
+        default: true,
+    },
+    showReload: {
+        type: Boolean,
+        default: true,
+    },
+    showColumnConfig: {
+        type: Boolean,
+        default: true,
+    },
+    showPagination: {
+        type: Boolean,
+        default: true,
     },
 });
 
@@ -256,6 +287,9 @@ const datagridWidth = ref(0);
 const CHECKBOX_COLUMN_WIDTH = 48;
 const ACTION_COLUMN_WIDTH = 80;
 
+const selectionColumnWidth = computed(() => (props.showSelection ? CHECKBOX_COLUMN_WIDTH : 0));
+const rowActionsColumnWidth = computed(() => (props.showRowActions ? ACTION_COLUMN_WIDTH : 0));
+
 let datagridResizeObserver = null;
 //#endregion
 
@@ -309,7 +343,7 @@ const displayColumns = computed(() => {
     if (!columns.length) return columns;
 
     const availableWidth = Math.max(
-        datagridWidth.value - CHECKBOX_COLUMN_WIDTH - ACTION_COLUMN_WIDTH,
+        datagridWidth.value - selectionColumnWidth.value - rowActionsColumnWidth.value,
         0,
     );
     const totalWidth = columns.reduce((sum, column) => sum + (Number(column.width) || 100), 0);
@@ -364,7 +398,7 @@ const getPinnedColumnLeft = (key) => {
     const index = visiblePinnedColumns.indexOf(key);
     if (index === -1) return 0;
 
-    let left = 48; // width của cột checkbox
+    let left = selectionColumnWidth.value;
 
     for (let i = 0; i < index; i++) {
         const col = displayColumns.value.find((c) => c.key === visiblePinnedColumns[i]);
@@ -1180,31 +1214,39 @@ defineExpose({
 <template>
     <div class="content__body-header d-flex justify-content-between">
         <div class="content__search-left d-flex align-items-center gap-12">
-            <div class="content__search-icon"></div>
-            <input class="content__search-input" placeholder="Tìm kiếm" v-model="searchInput" />
+            <div v-if="props.showSearch" class="content__search-icon"></div>
+            <input
+                v-if="props.showSearch"
+                class="content__search-input"
+                placeholder="Tìm kiếm"
+                v-model="searchInput"
+            />
 
-            <div v-if="calculateChecked()">
+            <div v-if="props.showSelection && calculateChecked()">
                 Đã chọn <strong>{{ calculateChecked() }}</strong>
             </div>
-            <ms-button @click="clearChecked" v-if="calculateChecked()" type="text"
+            <ms-button
+                v-if="props.showSelection && calculateChecked()"
+                @click="clearChecked"
+                type="text"
                 >Bỏ chọn</ms-button
             >
             <ms-button
+                v-if="props.showSelection && hasInactive"
                 icon-left="content__table-active-icon"
                 type="primary-outline"
-                v-if="hasInactive"
                 @click="handleActive(selected, true)"
                 >Sử dụng</ms-button
             >
             <ms-button
-                v-if="hasActive"
+                v-if="props.showSelection && hasActive"
                 icon-left="content__table-empty-icon"
                 type="danger-outline"
                 @click="handleActive(selected, false)"
                 >Ngừng sử dụng</ms-button
             >
             <ms-button
-                v-if="calculateChecked()"
+                v-if="props.showSelection && calculateChecked()"
                 icon-left="content__table-bin-icon"
                 type="danger-outline"
                 @click="handleBatchDelete(selected)"
@@ -1212,7 +1254,12 @@ defineExpose({
             >
         </div>
         <div class="d-flex gap-8">
-            <tooltip placement="top" :align="{ offset: [0, 4] }" :trigger="['hover', 'focus']">
+            <tooltip
+                v-if="props.showReload"
+                placement="top"
+                :align="{ offset: [0, 4] }"
+                :trigger="['hover', 'focus']"
+            >
                 <template #title>
                     <span>Lấy lại dữ liệu</span>
                 </template>
@@ -1221,7 +1268,12 @@ defineExpose({
                 </ms-button>
             </tooltip>
 
-            <tooltip placement="top" :align="{ offset: [0, 4] }" :trigger="['hover', 'focus']">
+            <tooltip
+                v-if="props.showColumnConfig"
+                placement="top"
+                :align="{ offset: [0, 4] }"
+                :trigger="['hover', 'focus']"
+            >
                 <template #title>
                     <span>Thiết lập</span>
                 </template>
@@ -1243,7 +1295,10 @@ defineExpose({
         <table class="content__table">
             <thead class="content__table-header">
                 <tr>
-                    <th class="content__table-checkbox content__table-checkbox-header">
+                    <th
+                        v-if="props.showSelection"
+                        class="content__table-checkbox content__table-checkbox-header"
+                    >
                         <input type="checkbox" :checked="isHeaderChecked" @change="onHeaderCheck" />
                     </th>
                     <th
@@ -1363,7 +1418,7 @@ defineExpose({
                             </div>
                         </div>
                     </th>
-                    <th class="col-delete" style="width: 80px"></th>
+                    <th v-if="props.showRowActions" class="col-delete" style="width: 80px"></th>
                 </tr>
             </thead>
 
@@ -1371,13 +1426,13 @@ defineExpose({
                 <!-- Loading skeleton -->
                 <template v-if="loading">
                     <tr v-for="n in localData.pageSize" :key="'skeleton-' + n">
-                        <td class="col-checkbox">
+                        <td v-if="props.showSelection" class="col-checkbox">
                             <div class="skeleton skeleton-checkbox"></div>
                         </td>
                         <td v-for="col in sortedColumns" :key="col.key">
                             <div class="skeleton"></div>
                         </td>
-                        <td class="col-delete">
+                        <td v-if="props.showRowActions" class="col-delete">
                             <div class="skeleton skeleton-action"></div>
                         </td>
                     </tr>
@@ -1389,9 +1444,9 @@ defineExpose({
                         v-for="row in rows"
                         :key="getRowId(row)"
                         tabindex="0"
-                        @dblclick="handleEdit(row)"
+                        @dblclick="props.showRowActions ? handleEdit(row) : null"
                     >
-                        <td class="content__table-checkbox col-checkbox">
+                        <td v-if="props.showSelection" class="content__table-checkbox col-checkbox">
                             <input
                                 type="checkbox"
                                 :data-id="row"
@@ -1434,7 +1489,10 @@ defineExpose({
                         </td>
 
                         <!-- Hành động sửa xóa trên bảng -->
-                        <td class="col-delete d-flex justify-content-between align-items-center">
+                        <td
+                            v-if="props.showRowActions"
+                            class="col-delete d-flex justify-content-between align-items-center"
+                        >
                             <div class="btn-modify-wrapper" @click="handleEdit(row)">
                                 <div
                                     class="content__table-btn-modify content__table-btn-edit"
@@ -1504,7 +1562,10 @@ defineExpose({
     </div>
 
     <!-- Phân trang table -->
-    <div class="content__paging d-flex justify-content-between align-items-center">
+    <div
+        v-if="props.showPagination"
+        class="content__paging d-flex justify-content-between align-items-center"
+    >
         <div class="content__paging-info m-r-12">
             Tổng: <b class="total-row">{{ localData.totalRows }}</b> bản ghi
         </div>

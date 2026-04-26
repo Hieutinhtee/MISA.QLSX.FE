@@ -4,10 +4,11 @@ import MsTable from "@/components/ms-table/MsTable.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import PayrollsAPI from "@/apis/components/payrolls/payrollsAPI";
 import { $toastError } from "@/utils/toastService";
+import { Modal } from "ant-design-vue";
 
 //#region Props
 const props = defineProps({
-    modelValue: {
+    open: {
         type: Boolean,
         default: false,
     },
@@ -18,10 +19,12 @@ const props = defineProps({
 });
 //#endregion
 
+const emit = defineEmits(["update:open"]);
+
 //#region State
-const isModalOpen = defineModel({
-    type: Boolean,
-    default: false,
+const modalOpen = computed({
+    get: () => props.open,
+    set: (value) => emit("update:open", value),
 });
 
 const loading = ref(false);
@@ -108,7 +111,7 @@ const onSearchChange = (newPayload) => {
 };
 
 const handleClose = () => {
-    isModalOpen.value = false;
+    modalOpen.value = false;
     payrolls.value = [];
     payload.value = {
         page: 1,
@@ -148,7 +151,7 @@ const getStatusText = (status) => {
 
 //#region Watch
 watch(
-    () => isModalOpen.value,
+    () => modalOpen.value,
     (open) => {
         if (open && props.salaryPeriod) {
             loadPayrolls();
@@ -159,15 +162,18 @@ watch(
 </script>
 
 <template>
-    <div v-if="isModalOpen" class="payroll-detail-modal">
-        <div class="payroll-detail__overlay" @click="handleClose"></div>
-        <div class="payroll-detail__content d-flex flex-column">
-            <div class="payroll-detail__header d-flex justify-content-between align-items-center">
-                <div class="payroll-detail__title">{{ modalTitle }}</div>
-                <div class="payroll-detail__close-icon pointer" @click="handleClose"></div>
-            </div>
-
-            <div class="payroll-detail__body d-flex flex-1">
+    <Modal
+        v-model:open="modalOpen"
+        :title="modalTitle"
+        width="80vw"
+        centered
+        :footer="null"
+        :destroy-on-close="true"
+        :mask-closable="true"
+        @cancel="handleClose"
+    >
+        <div class="payroll-detail__content d-flex flex-1 flex-column">
+            <div class="payroll-detail__body flex-1">
                 <ms-table
                     :columns="columns"
                     :rows="payrolls"
@@ -219,65 +225,21 @@ watch(
                 <ms-button type="outline" @click="handleClose">Đóng</ms-button>
             </div>
         </div>
-    </div>
+    </Modal>
 </template>
 
 <style scoped>
-.payroll-detail-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1000;
-}
-
-.payroll-detail__overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.45);
-    z-index: 10;
-}
-
 .payroll-detail__content {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    height: 80vh;
-    width: 90vw;
-    max-width: 1400px;
-    background-color: white;
-    border-radius: var(--border-radius);
-    z-index: 11;
+    height: 100%;
     overflow: hidden;
-}
-
-.payroll-detail__header {
-    margin: 16px 20px;
-}
-
-.payroll-detail__title {
-    font-size: 24px;
-    font-weight: 700;
-}
-
-.payroll-detail__close-icon {
-    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
-    -webkit-mask-position: -73px -136px;
-    background-color: #666666;
-    width: 24px;
-    height: 24px;
-    cursor: pointer;
 }
 
 .payroll-detail__body {
-    flex: 1;
-    padding: 0 20px 20px 20px;
+    padding: 0 10px 0 10px;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--border-radius);
 }
 
 .payroll-detail__footer {

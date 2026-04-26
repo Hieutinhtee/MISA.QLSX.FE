@@ -89,3 +89,9 @@
 .input--error {
     border: 1px solid red !important;
 }
+
+/* Ant Design Vue modal defaults */
+.ant-modal-title {
+    font-size: 24px !important;
+    font-weight: 700 !important;
+}

@@ -1,11 +1,14 @@
 <script setup>
 import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import MsTable from "@/components/ms-table/MsTable.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import ContractsAPI from "@/apis/components/contracts/contractsAPI";
 import { usePagingTable } from "@/composables/usePagingTable";
 import ContractForm from "./ContractForm.vue";
 import { $toastError, $toastSuccess } from "@/utils/toastService";
+
+const router = useRouter();
 
 const columns = ref([
     { key: "contractCode", name: "Mã hợp đồng", typeFilter: "text", width: 160 },
@@ -25,6 +28,7 @@ const columns = ref([
     { key: "signedAt", name: "Thời điểm ký", type: "date", width: 150 },
     { key: "createdAt", name: "Ngày tạo", type: "date", width: 140 },
     { key: "updatedAt", name: "Ngày sửa", type: "date", width: 140 },
+    { key: "actions", name: "Thao tác", type: "custom", width: 100, fixed: true },
 ]);
 
 const { loading, rows, payload, reloadData, onPaginationUpdate, onSearchChange, loadDataForAPI } =
@@ -44,6 +48,10 @@ function handleEdit(row) {
     typeForm.value = "edit";
     selectedRow.value = row;
     isFormOpen.value = true;
+}
+
+function handleViewDetail(row) {
+    router.push(`/contracts/${row.contractId}`);
 }
 
 async function handleSubmit(data) {
@@ -86,7 +94,17 @@ onMounted(() => {
                 @update:search="onSearchChange"
                 @reload="reloadData"
                 @edit-row="handleEdit"
-            />
+            >
+                <template #actions="{ row }">
+                    <ms-button
+                        type="primary"
+                        size="small"
+                        @click="handleViewDetail(row)"
+                    >
+                        Xem
+                    </ms-button>
+                </template>
+            </ms-table>
 
             <contract-form
                 v-model="isFormOpen"

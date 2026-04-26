@@ -7,7 +7,7 @@ import { createShift } from "@/common/model/shiftModel";
 import MsTextarea from "@/components/ms-textarea/MsTextarea.vue";
 import { formatTime } from "@/utils/common";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
-import { Tooltip } from "ant-design-vue";
+import { Tooltip, Modal } from "ant-design-vue";
 
 //#region constants
 /**
@@ -540,28 +540,17 @@ onBeforeUnmount(() => {
     </ms-alert>
 
     <!-- Form thêm ca làm việc  -->
-    <div v-if="isFormOpen" class="form-shift-modal">
-        <div class="form-shift__overlay"></div>
-        <div class="form-shift__content d-flex flex-column">
-            <div class="form-shift__header d-flex justify-content-between align-items-center">
-                <div class="form-shift__title">
-                    {{ props.typeForm === "edit" ? TITLE_SHIFT_FORM_EDIT : TITLE_SHIFT_FORM_ADD }}
-                </div>
-                <div class="d-flex gap-12">
-                    <tooltip placement="top" :align="{ offset: [0, 4] }">
-                        <template #title>
-                            <span>Trợ giúp</span>
-                        </template>
-                        <div class="form-shift__help-icon pointer"></div>
-                    </tooltip>
-                    <tooltip placement="top" :align="{ offset: [0, 4] }">
-                        <template #title>
-                            <span>Đóng (Ecs)</span>
-                        </template>
-                        <div class="form-shift__close-icon pointer" @click="handleCloseForm"></div>
-                    </tooltip>
-                </div>
-            </div>
+    <Modal
+        v-model:open="isFormOpen"
+        :title="props.typeForm === 'edit' ? TITLE_SHIFT_FORM_EDIT : TITLE_SHIFT_FORM_ADD"
+        width="760px"
+        centered
+        :footer="null"
+        :mask-closable="false"
+        :destroy-on-close="true"
+        @cancel="handleCloseForm"
+    >
+        <div class="form-shift d-flex flex-column">
             <!-- {{ props.data }} -->
             <div class="form-shift__body d-flex flex-column">
                 <div class="form-shift__item d-flex justify-content-between">
@@ -695,46 +684,18 @@ onBeforeUnmount(() => {
                 </div>
             </div>
         </div>
-    </div>
+    </Modal>
 </template>
 
 <style scoped>
 /* Style phần form thêm ca làm việc  */
-.form-shift__overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
+.form-shift {
     width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.45);
-    z-index: 10;
-}
-
-.form-shift__content {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    height: max-content;
-    width: 680px;
-    background-color: white;
-    border-radius: var(--border-radius);
-    z-index: 11;
-    overflow: hidden;
-}
-
-.form-shift__header {
-    margin: 16px 20px;
-}
-
-.form-shift__title {
-    font-size: 24px;
-    font-weight: 700;
 }
 
 .form-shift__body {
     flex: 1;
-    padding: 20px;
+    padding: 20px 0 16px;
     min-height: 0;
     row-gap: 16px;
 }
@@ -765,7 +726,7 @@ onBeforeUnmount(() => {
     height: 56px;
     width: 100%;
     border-top: 1px solid #e0e0e0;
-    padding: 12px 20px;
+    padding: 12px 0 0;
 }
 
 .form-shift__label {

@@ -5,7 +5,7 @@ import MsInput from "@/components/ms-input/MsInput.vue";
 import MsTextarea from "@/components/ms-textarea/MsTextarea.vue";
 import MsSelect from "@/components/ms-select/MsSelect.vue";
 import MsRadioButton from "@/components/ms-radio-button/MsRadioButton.vue";
-import { InputNumber } from "ant-design-vue";
+import { InputNumber, Modal } from "ant-design-vue";
 import { createContractTemplate } from "@/common/model/contractTemplateModel";
 
 const props = defineProps({
@@ -131,17 +131,17 @@ function handleSubmit() {
 </script>
 
 <template>
-    <div v-if="isFormOpen" class="form-modal">
-        <div class="form-modal__overlay"></div>
-
-        <div class="form-modal__content d-flex flex-column">
-            <div class="form-modal__header d-flex align-items-center justify-content-between">
-                <div class="form-modal__title">
-                    {{ props.typeForm === "edit" ? "Sửa mẫu hợp đồng" : "Thêm mẫu hợp đồng" }}
-                </div>
-                <div class="form-modal__close pointer" @click="handleCloseForm">×</div>
-            </div>
-
+    <Modal
+        v-model:open="isFormOpen"
+        :title="props.typeForm === 'edit' ? 'Sửa mẫu hợp đồng' : 'Thêm mẫu hợp đồng'"
+        width="640px"
+        centered
+        :footer="null"
+        :mask-closable="false"
+        :destroy-on-close="true"
+        @cancel="handleCloseForm"
+    >
+        <div class="form-modal d-flex flex-column">
             <div class="form-modal__body d-flex flex-column gap-16">
                 <div class="form-row d-flex justify-content-between align-items-center">
                     <div class="form-label form-label--required">Mã mẫu</div>
@@ -204,42 +204,16 @@ function handleSubmit() {
                 <ms-button :type="'outline'" @click="handleCloseForm">Hủy</ms-button>
             </div>
         </div>
-    </div>
+    </Modal>
 </template>
 
 <style scoped>
-.form-modal__overlay {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.45);
-    z-index: 20;
+.form-modal {
+    width: 100%;
 }
 
-.form-modal__content {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 640px;
-    max-height: 92vh;
-    background: #fff;
-    border-radius: 4px;
-    z-index: 21;
-}
-
-.form-modal__header,
 .form-modal__footer {
     padding: 16px 20px;
-}
-
-.form-modal__title {
-    font-size: 22px;
-    font-weight: 700;
-}
-
-.form-modal__close {
-    font-size: 24px;
-    line-height: 1;
 }
 
 .form-modal__body {

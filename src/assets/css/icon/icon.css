@@ -433,6 +433,32 @@
     mask-position: -266px -6px;
 }
 
+.sidebar__employee-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: 0px -112px;
+    -webkit-mask-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+}
+
+.sidebar__contract-template-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -94px -113px;
+    -webkit-mask-repeat: no-repeat;
+}
+
+.sidebar__contract-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -336px -113px;
+    -webkit-mask-repeat: no-repeat;
+}
+
+.sidebar__payroll-icon {
+    -webkit-mask-image: url(/src/assets/icon/svg/ICON.svg);
+    -webkit-mask-position: -144px -113px;
+    -webkit-mask-repeat: no-repeat;
+}
+
 .sidebar__process-icon {
     -webkit-mask-image: url(/src/assets/icon/svg/sidebar-icon.svg);
     mask-position: -162px -6px;

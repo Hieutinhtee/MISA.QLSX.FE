@@ -1,10 +1,19 @@
 <script setup>
-import { ref, defineModel, watch, nextTick, reactive, onMounted, onBeforeUnmount } from "vue";
+import {
+    ref,
+    defineModel,
+    watch,
+    nextTick,
+    reactive,
+    onMounted,
+    onBeforeUnmount,
+    computed,
+} from "vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import MsDatePicker from "@/components/ms-date-picker/MsDatePicker.vue";
 import { createSalaryPeriod } from "@/common/model/salaryPeriodModel";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
-import { Tooltip } from "ant-design-vue";
+import { Modal } from "ant-design-vue";
 
 //#region constants
 /**
@@ -39,7 +48,7 @@ const props = defineProps({
  * Trạng thái mở/đóng form kỳ lương
  * createdBy: TMHieu (25/04/2026)
  */
-const isFormOpen = defineModel({
+const isFormOpen = defineModel("open", {
     type: Boolean,
     default: false,
 });
@@ -91,6 +100,17 @@ const isSubmit = ref(false);
  * createdBy: TMHieu (25/04/2026)
  */
 const salaryPeriod = ref(createSalaryPeriod());
+
+const modalOpen = computed({
+    get: () => isFormOpen.value,
+    set: (value) => {
+        isFormOpen.value = value;
+    },
+});
+
+const modalTitle = computed(() =>
+    props.typeForm === "edit" ? TITLE_SALARY_PERIOD_FORM_EDIT : TITLE_SALARY_PERIOD_FORM_ADD,
+);
 //#endregion State Data
 
 //#region Emit
@@ -178,11 +198,15 @@ const focusFirstInvalidInput = async () => {
 function validateField(field) {
     switch (field) {
         case "startDate":
-            fieldValid.startDate = salaryPeriod.value.startDate ? "" : "Ngày bắt đầu không được để trống";
+            fieldValid.startDate = salaryPeriod.value.startDate
+                ? ""
+                : "Ngày bắt đầu không được để trống";
             break;
 
         case "endDate":
-            fieldValid.endDate = salaryPeriod.value.endDate ? "" : "Ngày kết thúc không được để trống";
+            fieldValid.endDate = salaryPeriod.value.endDate
+                ? ""
+                : "Ngày kết thúc không được để trống";
             break;
     }
 }
@@ -360,33 +384,23 @@ onBeforeUnmount(() => {
         {{ errorMessage }}
     </ms-alert>
 
-    <!-- Form thêm kỳ lương  -->
-    <div v-if="isFormOpen" class="form-salary-period-modal">
-        <div class="form-salary-period__overlay"></div>
-        <div class="form-salary-period__content d-flex flex-column">
-            <div class="form-salary-period__header d-flex justify-content-between align-items-center">
-                <div class="form-salary-period__title">
-                    {{ props.typeForm === "edit" ? TITLE_SALARY_PERIOD_FORM_EDIT : TITLE_SALARY_PERIOD_FORM_ADD }}
-                </div>
-                <div class="d-flex gap-12">
-                    <tooltip placement="top" :align="{ offset: [0, 4] }">
-                        <template #title>
-                            <span>Trợ giúp</span>
-                        </template>
-                        <div class="form-salary-period__help-icon pointer"></div>
-                    </tooltip>
-                    <tooltip placement="top" :align="{ offset: [0, 4] }">
-                        <template #title>
-                            <span>Đóng (Ecs)</span>
-                        </template>
-                        <div class="form-salary-period__close-icon pointer" @click="handleCloseForm"></div>
-                    </tooltip>
-                </div>
-            </div>
-
+    <!-- Form thêm kỳ lương -->
+    <Modal
+        v-model:open="modalOpen"
+        :title="modalTitle"
+        width="560px"
+        centered
+        :footer="null"
+        :mask-closable="false"
+        :destroy-on-close="true"
+        @cancel="handleCloseForm"
+    >
+        <div class="form-salary-period d-flex flex-column">
             <div class="form-salary-period__body d-flex flex-column">
                 <div class="form-salary-period__item d-flex justify-content-between">
-                    <div class="form-salary-period__label form-salary-period__label--required">Ngày bắt đầu</div>
+                    <div class="form-salary-period__label form-salary-period__label--required">
+                        Ngày bắt đầu
+                    </div>
                     <ms-date-picker
                         :label="'Ngày bắt đầu'"
                         :ref="(el) => (inputRefs.startDate = el)"
@@ -399,7 +413,9 @@ onBeforeUnmount(() => {
                 </div>
 
                 <div class="form-salary-period__item d-flex justify-content-between">
-                    <div class="form-salary-period__label form-salary-period__label--required">Ngày kết thúc</div>
+                    <div class="form-salary-period__label form-salary-period__label--required">
+                        Ngày kết thúc
+                    </div>
                     <ms-date-picker
                         :label="'Ngày kết thúc'"
                         :ref="(el) => (inputRefs.endDate = el)"
@@ -439,55 +455,18 @@ onBeforeUnmount(() => {
                 </div>
             </div>
         </div>
-    </div>
+    </Modal>
 </template>
 
 <style scoped>
 /* Style phần form thêm kỳ lương  */
-.form-salary-period-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
+.form-salary-period {
     width: 100%;
-    height: 100%;
-    z-index: 1000;
-}
-
-.form-salary-period__overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.45);
-    z-index: 10;
-}
-
-.form-salary-period__content {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    height: max-content;
-    width: 500px;
-    background-color: white;
-    border-radius: var(--border-radius);
-    z-index: 11;
-    overflow: hidden;
-}
-
-.form-salary-period__header {
-    margin: 16px 20px;
-}
-
-.form-salary-period__title {
-    font-size: 24px;
-    font-weight: 700;
 }
 
 .form-salary-period__body {
     flex: 1;
-    padding: 20px;
+    padding: 20px 0 16px;
     min-height: 0;
     row-gap: 16px;
 }
@@ -496,7 +475,7 @@ onBeforeUnmount(() => {
     height: 56px;
     width: 100%;
     border-top: 1px solid #e0e0e0;
-    padding: 12px 20px;
+    padding: 12px 0 0;
 }
 
 .form-salary-period__label {
