@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import DashboardView from "@/views/dashboard/Index.vue";
 import ShiftView from "@/views/shift/Index.vue";
 import EmployeeView from "@/views/employee/Index.vue";
 import ContractTemplateView from "@/views/contract-template/Index.vue";
@@ -9,6 +10,7 @@ import EmployeeWithoutContractView from "@/views/employee-without-contract/Index
 import AllowanceView from "@/views/allowance/Index.vue";
 import BusinessTripView from "@/views/business-trip/Index.vue";
 import EvaluationView from "@/views/evaluation/Index.vue";
+import DegreeView from "@/views/degree/Index.vue";
 import LoginView from "@/views/login/LoginView.vue";
 import ForbiddenView from "@/views/forbidden/Index.vue";
 
@@ -17,7 +19,13 @@ const router = createRouter({
     routes: [
         {
             path: "/",
-            redirect: "/shifts",
+            redirect: "/dashboard",
+        },
+        {
+            path: "/dashboard",
+            name: "dashboard",
+            component: DashboardView,
+            meta: { requiresAuth: true, roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"] },
         },
         {
             path: "/login",
@@ -91,6 +99,12 @@ const router = createRouter({
             component: EvaluationView,
             meta: { requiresAuth: true, roles: ["ADMIN", "HR", "MANAGER"] },
         },
+        {
+            path: "/degrees",
+            name: "degrees",
+            component: DegreeView,
+            meta: { requiresAuth: true, roles: ["ADMIN", "HR"] },
+        },
     ],
 });
 
@@ -114,7 +128,7 @@ router.beforeEach((to, from, next) => {
     const allowedRoles = to.meta.roles || [];
 
     if (to.path === "/login" && user) {
-        next("/shifts");
+        next("/dashboard");
         return;
     }
 

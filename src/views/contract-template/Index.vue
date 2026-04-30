@@ -6,6 +6,7 @@ import ContractTemplatesAPI from "@/apis/components/contract-templates/contractT
 import { usePagingTable } from "@/composables/usePagingTable";
 import ContractTemplateForm from "./ContractTemplateForm.vue";
 import { $toastError, $toastSuccess } from "@/utils/toastService";
+import { exportSelectedRows } from "@/utils/exportService";
 
 const columns = ref([
     { key: "templateCode", name: "Mã mẫu", typeFilter: "text", width: 160 },
@@ -54,6 +55,16 @@ async function handleSubmit(data) {
     }
 }
 
+async function handleBatchExport(rows) {
+    try {
+        await exportSelectedRows(ContractTemplatesAPI, rows, "ContractTemplates");
+        $toastSuccess("Xuất excel mẫu hợp đồng thành công");
+    } catch (error) {
+        $toastError("Xuất excel mẫu hợp đồng thất bại");
+        console.error(error);
+    }
+}
+
 onMounted(() => {
     loadDataForAPI();
 });
@@ -76,6 +87,8 @@ onMounted(() => {
                 @update:search="onSearchChange"
                 @reload="reloadData"
                 @edit-row="handleEdit"
+                @batch-export="handleBatchExport"
+                row-actions-name="Thao tác"
             />
 
             <contract-template-form

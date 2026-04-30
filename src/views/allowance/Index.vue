@@ -7,6 +7,7 @@ import AllowanceForm from "./AllowanceForm.vue";
 import AllowancesAPI from "@/apis/components/allowances/allowancesAPI";
 import { $toastSuccess, $toastError } from "@/utils/toastService";
 import { usePagingTable } from "@/composables/usePagingTable";
+import { exportSelectedRows } from "@/utils/exportService";
 
 const columns = ref([
     { key: "allowanceCode", name: "Mã phụ cấp", typeFilter: "text", width: 150 },
@@ -159,6 +160,16 @@ function handleDuplicate(row) {
     isFormOpen.value = true;
 }
 
+async function handleBatchExport(rows) {
+    try {
+        await exportSelectedRows(AllowancesAPI, rows, "Allowances");
+        $toastSuccess("Xuất excel phụ cấp thành công");
+    } catch (error) {
+        $toastError("Xuất excel phụ cấp thất bại");
+        console.error(error);
+    }
+}
+
 onMounted(() => {
     loadDataForAPI();
 });
@@ -192,7 +203,9 @@ onMounted(() => {
                 @delete-row="handleDelete"
                 @edit-row="handleEdit"
                 @batch-delete="handleBatchDelete"
+                @batch-export="handleBatchExport"
                 @duplicate="handleDuplicate"
+                row-actions-name="Thao tác"
                 :loading="loading"
                 ref="allowanceTableRef"
             >

@@ -7,6 +7,7 @@ import ContractsAPI from "@/apis/components/contracts/contractsAPI";
 import { usePagingTable } from "@/composables/usePagingTable";
 import ContractForm from "./ContractForm.vue";
 import { $toastError, $toastSuccess } from "@/utils/toastService";
+import { exportSelectedRows } from "@/utils/exportService";
 
 const router = useRouter();
 
@@ -28,7 +29,6 @@ const columns = ref([
     { key: "signedAt", name: "Thời điểm ký", type: "date", width: 150 },
     { key: "createdAt", name: "Ngày tạo", type: "date", width: 140 },
     { key: "updatedAt", name: "Ngày sửa", type: "date", width: 140 },
-    { key: "actions", name: "Thao tác", type: "custom", width: 100, fixed: true },
 ]);
 
 const { loading, rows, payload, reloadData, onPaginationUpdate, onSearchChange, loadDataForAPI } =
@@ -72,6 +72,16 @@ async function handleSubmit(data) {
     }
 }
 
+async function handleBatchExport(rows) {
+    try {
+        await exportSelectedRows(ContractsAPI, rows, "Contracts");
+        $toastSuccess("Xuất excel hợp đồng thành công");
+    } catch (error) {
+        $toastError("Xuất excel hợp đồng thất bại");
+        console.error(error);
+    }
+}
+
 onMounted(() => {
     loadDataForAPI();
 });
@@ -90,17 +100,16 @@ onMounted(() => {
                 :rows="rows"
                 :pagination-data="payload"
                 :loading="loading"
+                row-actions-name="Thao tác"
+                :row-column-width="100"
                 @update:pagination="onPaginationUpdate"
                 @update:search="onSearchChange"
                 @reload="reloadData"
                 @edit-row="handleEdit"
+                @batch-export="handleBatchExport"
             >
-                <template #actions="{ row }">
-                    <ms-button
-                        type="primary"
-                        size="small"
-                        @click="handleViewDetail(row)"
-                    >
+                <template #row-actions="{ row }">
+                    <ms-button type="primary" size="small" @click="handleViewDetail(row)">
                         Xem
                     </ms-button>
                 </template>

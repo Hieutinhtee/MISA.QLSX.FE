@@ -7,6 +7,7 @@ import EvaluationForm from "./EvaluationForm.vue";
 import EvaluationsAPI from "@/apis/components/evaluations/evaluationsAPI";
 import { $toastSuccess, $toastError } from "@/utils/toastService";
 import { usePagingTable } from "@/composables/usePagingTable";
+import { exportSelectedRows } from "@/utils/exportService";
 
 const columns = ref([
     { key: "evaluationCode", name: "Mã đánh giá", typeFilter: "text", width: 150 },
@@ -18,7 +19,6 @@ const columns = ref([
     { key: "evaluationDate", name: "Ngày áp dụng", width: 150, type: "date" },
     { key: "createdAt", name: "Ngày tạo", width: 150, type: "date" },
     { key: "updatedAt", name: "Ngày sửa", width: 150, type: "date" },
-    { key: "actions", name: "Thao tác", width: 120 },
 ]);
 
 const evaluationFormRef = ref(null);
@@ -89,7 +89,9 @@ function updateEvaluation(evaluation) {
     EvaluationsAPI.update(evaluation.evaluationId, evaluation)
         .then((res) => {
             if (res.status === 201 || res.status === 200) {
-                const index = rows.value.findIndex((x) => x.evaluationId === evaluation.evaluationId);
+                const index = rows.value.findIndex(
+                    (x) => x.evaluationId === evaluation.evaluationId,
+                );
                 if (index !== -1) {
                     rows.value[index] = { ...evaluation };
                 }
@@ -160,6 +162,16 @@ function handleDuplicate(row) {
     isFormOpen.value = true;
 }
 
+async function handleBatchExport(rows) {
+    try {
+        await exportSelectedRows(EvaluationsAPI, rows, "Evaluations");
+        $toastSuccess("Xuất excel đánh giá thành công");
+    } catch (error) {
+        $toastError("Xuất excel đánh giá thất bại");
+        console.error(error);
+    }
+}
+
 onMounted(() => {
     loadDataForAPI();
 });
@@ -186,6 +198,7 @@ onMounted(() => {
             <ms-table
                 :columns="columns"
                 :rows="rows"
+                row-actions-name="Thao tác"
                 :pagination-data="payload"
                 @update:pagination="onPaginationUpdate"
                 @update:search="onSearchChange"
@@ -193,6 +206,7 @@ onMounted(() => {
                 @delete-row="handleDelete"
                 @edit-row="handleEdit"
                 @batch-delete="handleBatchDelete"
+                @batch-export="handleBatchExport"
                 @duplicate="handleDuplicate"
                 :loading="loading"
                 ref="evaluationTableRef"

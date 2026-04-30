@@ -5,10 +5,15 @@ import MsInput from "@/components/ms-input/MsInput.vue";
 import MsSelect from "@/components/ms-select/MsSelect.vue";
 import MsTextarea from "@/components/ms-textarea/MsTextarea.vue";
 import MsRadioButton from "@/components/ms-radio-button/MsRadioButton.vue";
-import { DatePicker, InputNumber, Modal } from "ant-design-vue";
+import { Modal } from "ant-design-vue";
+import MsDatePicker from "@/components/ms-date-picker/MsDatePicker.vue";
+import MsInputNumber from "@/components/ms-input-number/MsInputNumber.vue";
 import { createContract } from "@/common/model/contractModel";
 import EmployeesAPI from "@/apis/components/employees/employeesAPI";
 import ContractTemplatesAPI from "@/apis/components/contract-templates/contractTemplatesAPI";
+import { getCurrentUserGuid } from "@/utils/currentUser";
+import MsAlert from "@/components/ms-alert/MsAlert.vue";
+import { useFormValidation } from "@/composables/useFormValidation";
 
 const props = defineProps({
     typeForm: {
@@ -29,23 +34,36 @@ const isFormOpen = defineModel({
     default: false,
 });
 
-const currentUser = "b8373a59-3be2-11f1-97ac-d0c5d346d1a4";
-
 const form = ref(createContract());
 const templateOptions = ref([]);
 const employeeOptions = ref([]);
 
-const errors = ref({
-    contractCode: "",
-    templateId: "",
-    companyRepresentativeId: "",
-    companySignerTitle: "",
-    employeeId: "",
-    effectiveDate: "",
-    baseSalary: "",
-    insuranceSalary: "",
-    salaryRatio: "",
-});
+const {
+    showConfirm,
+    errorMessage,
+    errors,
+    inputRefs,
+    initValidation,
+    handleBlur,
+    validateForm,
+    focusFirstInvalidInput,
+    modelClose,
+    resetErrors,
+} = useFormValidation();
+
+const fieldOrder = [
+    "contractCode",
+    "templateId",
+    "employeeId",
+    "companyRepresentativeId",
+    "companySignerTitle",
+    "effectiveDate",
+    "baseSalary",
+    "insuranceSalary",
+    "salaryRatio",
+];
+
+initValidation(validateField, fieldOrder);
 
 const employeeFilterOptions = computed(() => employeeOptions.value);
 
@@ -100,17 +118,7 @@ watch(
     async (open) => {
         if (!open) return;
 
-        errors.value = {
-            contractCode: "",
-            templateId: "",
-            companyRepresentativeId: "",
-            companySignerTitle: "",
-            employeeId: "",
-            effectiveDate: "",
-            baseSalary: "",
-            insuranceSalary: "",
-            salaryRatio: "",
-        };
+        resetErrors();
 
         await loadSelectData();
 
@@ -137,56 +145,75 @@ function handleCloseForm() {
     form.value = createContract();
 }
 
-function validateForm() {
-    const nextErrors = {
-        contractCode: "",
-        templateId: "",
-        companyRepresentativeId: "",
-        companySignerTitle: "",
-        employeeId: "",
-        effectiveDate: "",
-        baseSalary: "",
-        insuranceSalary: "",
-        salaryRatio: "",
-    };
-
-    if (!form.value.contractCode?.trim())
-        nextErrors.contractCode = "Mã hợp đồng không được để trống";
-    if (!form.value.templateId) nextErrors.templateId = "Mẫu hợp đồng không được để trống";
-    if (!form.value.employeeId) nextErrors.employeeId = "Nhân viên không được để trống";
-    if (!form.value.companyRepresentativeId) {
-        nextErrors.companyRepresentativeId = "Đại diện công ty không được để trống";
+function validateField(field) {
+    switch (field) {
+        case "contractCode":
+            errors.value.contractCode = form.value.contractCode?.trim()
+                ? ""
+                : "Mã hợp đồng không được để trống";
+            break;
+        case "templateId":
+            errors.value.templateId = form.value.templateId
+                ? ""
+                : "Mẫu hợp đồng không được để trống";
+            break;
+        case "employeeId":
+            errors.value.employeeId = form.value.employeeId ? "" : "Nhân viên không được để trống";
+            if (
+                form.value.employeeId &&
+                form.value.companyRepresentativeId &&
+                form.value.employeeId === form.value.companyRepresentativeId
+            ) {
+                errors.value.companyRepresentativeId =
+                    "Đại diện công ty không được trùng nhân viên";
+            }
+            break;
+        case "companyRepresentativeId":
+            errors.value.companyRepresentativeId = form.value.companyRepresentativeId
+                ? ""
+                : "Đại diện công ty không được để trống";
+            if (
+                form.value.employeeId &&
+                form.value.companyRepresentativeId &&
+                form.value.employeeId === form.value.companyRepresentativeId
+            ) {
+                errors.value.companyRepresentativeId =
+                    "Đại diện công ty không được trùng nhân viên";
+            }
+            break;
+        case "companySignerTitle":
+            errors.value.companySignerTitle = form.value.companySignerTitle?.trim()
+                ? ""
+                : "Chức danh người ký không được để trống";
+            break;
+        case "effectiveDate":
+            errors.value.effectiveDate = form.value.effectiveDate
+                ? ""
+                : "Ngày hiệu lực không được để trống";
+            break;
+        case "baseSalary":
+            errors.value.baseSalary =
+                form.value.baseSalary && Number(form.value.baseSalary) > 0
+                    ? ""
+                    : "Lương cơ bản phải lớn hơn 0";
+            break;
+        case "insuranceSalary":
+            errors.value.insuranceSalary =
+                form.value.insuranceSalary && Number(form.value.insuranceSalary) > 0
+                    ? ""
+                    : "Lương đóng BH phải lớn hơn 0";
+            break;
+        case "salaryRatio":
+            errors.value.salaryRatio =
+                form.value.salaryRatio && Number(form.value.salaryRatio) > 0
+                    ? ""
+                    : "Tỷ lệ lương phải lớn hơn 0";
+            break;
     }
-    if (!form.value.companySignerTitle?.trim()) {
-        nextErrors.companySignerTitle = "Chức danh người ký không được để trống";
-    }
-    if (!form.value.effectiveDate) nextErrors.effectiveDate = "Ngày hiệu lực không được để trống";
-
-    if (!form.value.baseSalary || Number(form.value.baseSalary) <= 0) {
-        nextErrors.baseSalary = "Lương cơ bản phải lớn hơn 0";
-    }
-
-    if (!form.value.insuranceSalary || Number(form.value.insuranceSalary) <= 0) {
-        nextErrors.insuranceSalary = "Lương đóng BH phải lớn hơn 0";
-    }
-
-    if (!form.value.salaryRatio || Number(form.value.salaryRatio) <= 0) {
-        nextErrors.salaryRatio = "Tỷ lệ lương phải lớn hơn 0";
-    }
-
-    if (
-        form.value.employeeId &&
-        form.value.companyRepresentativeId &&
-        form.value.employeeId === form.value.companyRepresentativeId
-    ) {
-        nextErrors.companyRepresentativeId = "Đại diện công ty không được trùng nhân viên";
-    }
-
-    errors.value = nextErrors;
-    return !Object.values(nextErrors).some(Boolean);
 }
 
 function buildPayload() {
+    const currentUser = getCurrentUserGuid();
     const isEdit = props.typeForm === "edit";
     const now = new Date().toISOString();
 
@@ -223,13 +250,20 @@ function buildPayload() {
     };
 }
 
-function handleSubmit() {
-    if (!validateForm()) return;
+async function handleSubmit() {
+    if (!validateForm()) {
+        await focusFirstInvalidInput();
+        return;
+    }
     emit("submit", buildPayload());
 }
 </script>
 
 <template>
+    <ms-alert v-model="showConfirm" title="Cảnh báo" @close="modelClose">
+        {{ errorMessage }}
+    </ms-alert>
+
     <Modal
         v-model:open="isFormOpen"
         :title="props.typeForm === 'edit' ? 'Sửa hợp đồng' : 'Thêm hợp đồng'"
@@ -248,6 +282,8 @@ function handleSubmit() {
                         v-model="form.contractCode"
                         :width="430"
                         :error="errors.contractCode"
+                        :ref="(el) => (inputRefs.contractCode = el)"
+                        @blurInput="handleBlur('contractCode')"
                     />
                 </div>
 
@@ -259,10 +295,10 @@ function handleSubmit() {
                             :options="templateOptions"
                             placeholder="Chọn mẫu hợp đồng"
                             :max-height="220"
+                            :ref="(el) => (inputRefs.templateId = el)"
+                            :error="errors.templateId"
+                            @blurInput="handleBlur('templateId')"
                         />
-                        <div v-if="errors.templateId" class="form-error">
-                            {{ errors.templateId }}
-                        </div>
                     </div>
                 </div>
 
@@ -286,10 +322,10 @@ function handleSubmit() {
                             :options="employeeFilterOptions"
                             placeholder="Chọn nhân viên"
                             :max-height="260"
+                            :ref="(el) => (inputRefs.employeeId = el)"
+                            :error="errors.employeeId"
+                            @blurInput="handleBlur('employeeId')"
                         />
-                        <div v-if="errors.employeeId" class="form-error">
-                            {{ errors.employeeId }}
-                        </div>
                     </div>
                 </div>
 
@@ -301,10 +337,10 @@ function handleSubmit() {
                             :options="employeeFilterOptions"
                             placeholder="Chọn đại diện công ty"
                             :max-height="260"
+                            :ref="(el) => (inputRefs.companyRepresentativeId = el)"
+                            :error="errors.companyRepresentativeId"
+                            @blurInput="handleBlur('companyRepresentativeId')"
                         />
-                        <div v-if="errors.companyRepresentativeId" class="form-error">
-                            {{ errors.companyRepresentativeId }}
-                        </div>
                     </div>
                 </div>
 
@@ -314,28 +350,30 @@ function handleSubmit() {
                         v-model="form.companySignerTitle"
                         :width="430"
                         :error="errors.companySignerTitle"
+                        :ref="(el) => (inputRefs.companySignerTitle = el)"
+                        @blurInput="handleBlur('companySignerTitle')"
                     />
                 </div>
 
                 <div class="form-row d-flex justify-content-between align-items-center">
                     <div class="form-label form-label--required">Ngày hiệu lực</div>
                     <div class="w-430">
-                        <date-picker
-                            v-model:value="form.effectiveDate"
+                        <ms-date-picker
+                            v-model="form.effectiveDate"
                             value-format="YYYY-MM-DD"
                             format="DD/MM/YYYY"
                             class="ant-control"
+                            :ref="(el) => (inputRefs.effectiveDate = el)"
+                            :error="errors.effectiveDate"
+                            @blurInput="handleBlur('effectiveDate')"
                         />
-                        <div v-if="errors.effectiveDate" class="form-error">
-                            {{ errors.effectiveDate }}
-                        </div>
                     </div>
                 </div>
 
                 <div class="form-row d-flex justify-content-between align-items-center">
                     <div class="form-label">Thời hạn (tháng)</div>
                     <div class="w-430">
-                        <input-number
+                        <ms-input-number
                             v-model:value="form.termMonths"
                             :min="0"
                             class="ant-control"
@@ -346,42 +384,42 @@ function handleSubmit() {
                 <div class="form-row d-flex justify-content-between align-items-center">
                     <div class="form-label form-label--required">Lương cơ bản</div>
                     <div class="w-430">
-                        <input-number
+                        <ms-input-number
                             v-model:value="form.baseSalary"
                             :min="0"
                             class="ant-control"
+                            :ref="(el) => (inputRefs.baseSalary = el)"
+                            :error="errors.baseSalary"
+                            @blur="handleBlur('baseSalary')"
                         />
-                        <div v-if="errors.baseSalary" class="form-error">
-                            {{ errors.baseSalary }}
-                        </div>
                     </div>
                 </div>
 
                 <div class="form-row d-flex justify-content-between align-items-center">
                     <div class="form-label form-label--required">Lương đóng BH</div>
                     <div class="w-430">
-                        <input-number
+                        <ms-input-number
                             v-model:value="form.insuranceSalary"
                             :min="0"
                             class="ant-control"
+                            :ref="(el) => (inputRefs.insuranceSalary = el)"
+                            :error="errors.insuranceSalary"
+                            @blur="handleBlur('insuranceSalary')"
                         />
-                        <div v-if="errors.insuranceSalary" class="form-error">
-                            {{ errors.insuranceSalary }}
-                        </div>
                     </div>
                 </div>
 
                 <div class="form-row d-flex justify-content-between align-items-center">
                     <div class="form-label form-label--required">Tỷ lệ lương</div>
                     <div class="w-430">
-                        <input-number
+                        <ms-input-number
                             v-model:value="form.salaryRatio"
                             :min="0"
                             class="ant-control"
+                            :ref="(el) => (inputRefs.salaryRatio = el)"
+                            :error="errors.salaryRatio"
+                            @blur="handleBlur('salaryRatio')"
                         />
-                        <div v-if="errors.salaryRatio" class="form-error">
-                            {{ errors.salaryRatio }}
-                        </div>
                     </div>
                 </div>
 
@@ -401,8 +439,8 @@ function handleSubmit() {
                 >
                     <div class="form-label">Ngày ký</div>
                     <div class="w-430">
-                        <date-picker
-                            v-model:value="form.signedAt"
+                        <ms-date-picker
+                            v-model="form.signedAt"
                             value-format="YYYY-MM-DD"
                             format="DD/MM/YYYY"
                             class="ant-control"
@@ -466,11 +504,11 @@ function handleSubmit() {
     width: 100%;
 }
 
-.ant-control:deep(.ant-input-number) {
+.ant-control:deep(.ms-input-number) {
     width: 100%;
 }
 
-.ant-control:deep(.ant-input-number-input) {
+.ant-control:deep(.ms-input-number-input) {
     height: 27px;
 }
 

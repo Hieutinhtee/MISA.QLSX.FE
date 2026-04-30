@@ -22,7 +22,6 @@ const columns = ref([
     { key: "departmentName", name: "Phòng ban", typeFilter: "text", width: 180 },
     { key: "positionName", name: "Vị trí", typeFilter: "text", width: 180 },
     { key: "status", name: "Trạng thái", typeFilter: "status", width: 120 },
-    { key: "actions", name: "Thao tác", type: "custom", width: 120, fixed: true },
 ]);
 
 const getEmployeesWithoutContractPaging = async () => {
@@ -81,10 +80,11 @@ onMounted(() => {
                 :pagination-data="payload"
                 :loading="loading"
                 :show-selection="false"
-                :show-row-actions="false"
+                row-actions-name="Thao tác"
+                :row-column-width="120"
                 @reload="reloadData"
             >
-                <template #actions="{ row }">
+                <template #row-actions="{ row }">
                     <ms-button type="primary" size="small" @click="handleAddContract(row)">
                         Thêm hợp đồng
                     </ms-button>

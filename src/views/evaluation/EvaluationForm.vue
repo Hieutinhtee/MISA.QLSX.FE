@@ -1,5 +1,5 @@
 <script setup>
-import { ref, defineModel, watch, nextTick, reactive, onMounted, onBeforeUnmount } from "vue";
+import { ref, defineModel, watch, onMounted, onBeforeUnmount } from "vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import MsInput from "@/components/ms-input/MsInput.vue";
 import MsTextarea from "@/components/ms-textarea/MsTextarea.vue";
@@ -7,8 +7,12 @@ import MsSelect from "@/components/ms-select/MsSelect.vue";
 import MsRadioButton from "@/components/ms-radio-button/MsRadioButton.vue";
 import { createEvaluation } from "@/common/model/evaluationModel";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
-import { Tooltip, DatePicker, InputNumber, Modal } from "ant-design-vue";
+import { Modal } from "ant-design-vue";
+import MsDatePicker from "@/components/ms-date-picker/MsDatePicker.vue";
+import MsInputNumber from "@/components/ms-input-number/MsInputNumber.vue";
 import EmployeesAPI from "@/apis/components/employees/employeesAPI";
+import { getCurrentUserGuid } from "@/utils/currentUser";
+import { useFormValidation } from "@/composables/useFormValidation";
 
 const TITLE_EVALUATION_FORM_ADD = "Thêm Đánh giá";
 const TITLE_EVALUATION_FORM_EDIT = "Sửa Đánh giá";
@@ -29,28 +33,33 @@ const isFormOpen = defineModel({
     default: false,
 });
 
-const errorMessage = ref("");
-const inputRefs = reactive({
-    evaluationCode: null,
-    employeeId: null,
-    evaluationType: null,
-    reason: null,
-    amount: null,
-    evaluationDate: null,
-});
-const showConfirm = ref(false);
-const fieldValid = reactive({
-    evaluationCode: "",
-    employeeId: "",
-    evaluationType: "",
-    reason: "",
-    amount: "",
-    evaluationDate: "",
-});
-const lastFocusField = ref(null);
 const isSubmit = ref(false);
 const evaluation = ref(createEvaluation());
 const employees = ref([]);
+
+const {
+    showConfirm,
+    errorMessage,
+    errors,
+    inputRefs,
+    initValidation,
+    handleBlur,
+    validateForm,
+    focusFirstInvalidInput,
+    modelClose,
+    resetErrors,
+} = useFormValidation();
+
+const fieldOrder = [
+    "evaluationCode",
+    "employeeId",
+    "evaluationType",
+    "reason",
+    "amount",
+    "evaluationDate",
+];
+
+initValidation(validateField, fieldOrder);
 
 const emit = defineEmits(["submit", "submit-and-add"]);
 
@@ -91,98 +100,50 @@ async function loadEmployees() {
     }
 }
 
-function showAlert(message) {
-    errorMessage.value = message;
-    showConfirm.value = true;
-}
-
-const focusFirstInvalidInput = async () => {
-    await nextTick();
-
-    const fieldOrder = [
-        "evaluationCode",
-        "employeeId",
-        "evaluationType",
-        "reason",
-        "amount",
-        "evaluationDate",
-    ];
-
-    for (const field of fieldOrder) {
-        if (fieldValid[field] && inputRefs[field]) {
-            showAlert(fieldValid[field]);
-            lastFocusField.value = field;
-            break;
-        }
-    }
-};
-
 function validateField(field) {
     switch (field) {
         case "evaluationCode":
-            fieldValid.evaluationCode = evaluation.value.evaluationCode
+            errors.value.evaluationCode = evaluation.value.evaluationCode
                 ? ""
                 : "Mã đánh giá không được để trống";
             break;
 
         case "employeeId":
-            fieldValid.employeeId = evaluation.value.employeeId
+            errors.value.employeeId = evaluation.value.employeeId
                 ? ""
                 : "Nhân viên không được để trống";
             break;
 
         case "evaluationType":
-            fieldValid.evaluationType = evaluation.value.evaluationType
+            errors.value.evaluationType = evaluation.value.evaluationType
                 ? ""
                 : "Loại đánh giá không được để trống";
             break;
 
         case "reason":
-            fieldValid.reason = evaluation.value.reason ? "" : "Lý do không được để trống";
+            errors.value.reason = evaluation.value.reason ? "" : "Lý do không được để trống";
             break;
 
         case "amount":
-            fieldValid.amount =
+            errors.value.amount =
                 evaluation.value.amount && evaluation.value.amount > 0
                     ? ""
                     : "Số tiền phải lớn hơn 0";
             break;
 
         case "evaluationDate":
-            fieldValid.evaluationDate = evaluation.value.evaluationDate
+            errors.value.evaluationDate = evaluation.value.evaluationDate
                 ? ""
                 : "Ngày áp dụng không được để trống";
             break;
     }
 }
 
-function validateForm() {
-    fieldValid.evaluationCode = "";
-    fieldValid.employeeId = "";
-    fieldValid.evaluationType = "";
-    fieldValid.reason = "";
-    fieldValid.amount = "";
-    fieldValid.evaluationDate = "";
-
-    validateField("evaluationCode");
-    validateField("employeeId");
-    validateField("evaluationType");
-    validateField("reason");
-    validateField("amount");
-    validateField("evaluationDate");
-
-    return !Object.values(fieldValid).some(Boolean);
-}
-
-const handleBlur = (field) => {
-    validateField(field);
-};
-
-const handleSubmit = (isSubmitAndAdd) => {
+const handleSubmit = async (isSubmitAndAdd) => {
     isSubmit.value = true;
     const allValid = validateForm();
     if (!allValid) {
-        focusFirstInvalidInput();
+        await focusFirstInvalidInput();
         return;
     }
 
@@ -199,18 +160,12 @@ const handleSubmit = (isSubmitAndAdd) => {
 const handleCloseForm = () => {
     isFormOpen.value = false;
     isSubmit.value = false;
-    fieldValid.evaluationCode = "";
-    fieldValid.employeeId = "";
-    fieldValid.evaluationType = "";
-    fieldValid.reason = "";
-    fieldValid.amount = "";
-    fieldValid.evaluationDate = "";
+    resetErrors();
     evaluation.value = createEvaluation();
 };
 
-const currentUser = "b8373a59-3be2-11f1-97ac-d0c5d346d1a4";
-
 function buildPayload(evaluationData, isUpdate = false) {
+    const currentUser = getCurrentUserGuid();
     const { ...rest } = evaluationData;
 
     if (!isUpdate) {
@@ -234,13 +189,6 @@ function buildPayload(evaluationData, isUpdate = false) {
 defineExpose({
     handleCloseForm,
 });
-
-const modelClose = () => {
-    showConfirm.value = false;
-    isSubmit.value = false;
-    errorMessage.value = "";
-    inputRefs[lastFocusField.value]?.focusInput();
-};
 
 const handleKeydown = (e) => {
     if (!isFormOpen.value) return;
@@ -299,7 +247,7 @@ onBeforeUnmount(() => {
                         :width="474"
                         :maxLength="20"
                         :firstFocus="true"
-                        :error="fieldValid.evaluationCode"
+                        :error="errors.evaluationCode"
                         @blurInput="handleBlur('evaluationCode')"
                         required
                     ></ms-input>
@@ -314,6 +262,9 @@ onBeforeUnmount(() => {
                         :options="employees"
                         placeholder="Chọn nhân viên"
                         :max-height="260"
+                        :ref="(el) => (inputRefs.employeeId = el)"
+                        :error="errors.employeeId"
+                        @blurInput="handleBlur('employeeId')"
                     ></ms-select>
                 </div>
 
@@ -341,31 +292,42 @@ onBeforeUnmount(() => {
 
                 <div class="form-evaluation__item d-flex justify-content-between">
                     <div class="form-evaluation__label form-evaluation__label--required">Lý do</div>
-                    <ms-textarea v-model="evaluation.reason"></ms-textarea>
+                    <ms-textarea
+                        v-model="evaluation.reason"
+                        :ref="(el) => (inputRefs.reason = el)"
+                        :error="errors.reason"
+                        @blurInput="handleBlur('reason')"
+                    ></ms-textarea>
                 </div>
 
                 <div class="form-evaluation__item d-flex justify-content-between">
                     <div class="form-evaluation__label form-evaluation__label--required">
                         Số tiền
                     </div>
-                    <input-number
+                    <ms-input-number
                         v-model:value="evaluation.amount"
                         :min="0"
                         style="width: 474px"
-                    ></input-number>
+                        :ref="(el) => (inputRefs.amount = el)"
+                        :error="errors.amount"
+                        @blur="handleBlur('amount')"
+                    ></ms-input-number>
                 </div>
 
                 <div class="form-evaluation__item d-flex justify-content-between">
                     <div class="form-evaluation__label form-evaluation__label--required">
                         Ngày áp dụng
                     </div>
-                    <date-picker
-                        v-model:value="evaluation.evaluationDate"
+                    <ms-date-picker
+                        v-model="evaluation.evaluationDate"
                         value-format="YYYY-MM-DD"
                         format="DD/MM/YYYY"
                         placeholder="DD/MM/YYYY"
                         style="width: 474px"
-                    ></date-picker>
+                        :ref="(el) => (inputRefs.evaluationDate = el)"
+                        :error="errors.evaluationDate"
+                        @blurInput="handleBlur('evaluationDate')"
+                    ></ms-date-picker>
                 </div>
             </div>
 
@@ -433,15 +395,11 @@ onBeforeUnmount(() => {
     gap: 16px;
 }
 
-.ant-control:deep(.ant-input-number) {
+.ant-control:deep(.ms-input-number) {
     width: 100%;
 }
 
-.ant-control:deep(.ant-input-number-input) {
+.ant-control:deep(.ms-input-number-input) {
     height: 27px;
-}
-
-.ant-control:deep(.ant-picker) {
-    width: 100%;
 }
 </style>

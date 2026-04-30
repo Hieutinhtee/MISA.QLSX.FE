@@ -5,7 +5,10 @@ import MsInput from "@/components/ms-input/MsInput.vue";
 import MsRadioButton from "@/components/ms-radio-button/MsRadioButton.vue";
 import { createAllowance } from "@/common/model/allowanceModel";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
-import { InputNumber, Modal } from "ant-design-vue";
+import { Modal } from "ant-design-vue";
+import MsInputNumber from "@/components/ms-input-number/MsInputNumber.vue";
+import { getCurrentUserGuid } from "@/utils/currentUser";
+import { useFormValidation } from "@/composables/useFormValidation";
 
 const TITLE_ALLOWANCE_FORM_ADD = "Thêm Phụ cấp";
 const TITLE_ALLOWANCE_FORM_EDIT = "Sửa Phụ cấp";
@@ -26,24 +29,25 @@ const isFormOpen = defineModel({
     default: false,
 });
 
-const errorMessage = ref("");
-const inputRefs = reactive({
-    allowanceCode: null,
-    allowanceName: null,
-    amount: null,
-    percent: null,
-});
-const showConfirm = ref(false);
-const fieldValid = reactive({
-    allowanceCode: "",
-    allowanceName: "",
-    calculationType: "",
-    amount: "",
-    percent: "",
-});
-const lastFocusField = ref(null);
 const isSubmit = ref(false);
 const allowance = ref(createAllowance());
+
+const {
+    showConfirm,
+    errorMessage,
+    errors,
+    inputRefs,
+    initValidation,
+    handleBlur,
+    validateForm,
+    focusFirstInvalidInput,
+    modelClose,
+    resetErrors,
+} = useFormValidation();
+
+const fieldOrder = ["allowanceCode", "allowanceName", "calculationType", "amount", "percent"];
+
+initValidation(validateField, fieldOrder);
 
 const emit = defineEmits(["submit", "submit-and-add"]);
 
@@ -81,94 +85,55 @@ watch(
     },
 );
 
-function showAlert(message) {
-    errorMessage.value = message;
-    showConfirm.value = true;
-}
-
-const focusFirstInvalidInput = async () => {
-    await nextTick();
-
-    const fieldOrder = ["allowanceCode", "allowanceName", "calculationType", "amount", "percent"];
-
-    for (const field of fieldOrder) {
-        if (fieldValid[field] && inputRefs[field]) {
-            showAlert(fieldValid[field]);
-            lastFocusField.value = field;
-            break;
-        }
-    }
-};
-
 function validateField(field) {
     switch (field) {
         case "allowanceCode":
-            fieldValid.allowanceCode = allowance.value.allowanceCode
+            errors.value.allowanceCode = allowance.value.allowanceCode
                 ? ""
                 : "Mã phụ cấp không được để trống";
             break;
 
         case "allowanceName":
-            fieldValid.allowanceName = allowance.value.allowanceName
+            errors.value.allowanceName = allowance.value.allowanceName
                 ? ""
                 : "Tên phụ cấp không được để trống";
             break;
 
         case "calculationType":
-            fieldValid.calculationType = allowance.value.calculationType
+            errors.value.calculationType = allowance.value.calculationType
                 ? ""
                 : "Kiểu tính không được để trống";
             break;
 
         case "amount":
             if (allowance.value.calculationType === "FIXED") {
-                fieldValid.amount =
+                errors.value.amount =
                     allowance.value.amount && allowance.value.amount > 0
                         ? ""
                         : "Số tiền phải lớn hơn 0";
+            } else {
+                errors.value.amount = "";
             }
             break;
 
         case "percent":
             if (allowance.value.calculationType === "PERCENT") {
-                fieldValid.percent =
+                errors.value.percent =
                     allowance.value.percent && allowance.value.percent > 0
                         ? ""
                         : "Phần trăm phải lớn hơn 0";
+            } else {
+                errors.value.percent = "";
             }
             break;
     }
 }
 
-function validateForm() {
-    fieldValid.allowanceCode = "";
-    fieldValid.allowanceName = "";
-    fieldValid.calculationType = "";
-    fieldValid.amount = "";
-    fieldValid.percent = "";
-
-    validateField("allowanceCode");
-    validateField("allowanceName");
-    validateField("calculationType");
-
-    if (allowance.value.calculationType === "FIXED") {
-        validateField("amount");
-    } else if (allowance.value.calculationType === "PERCENT") {
-        validateField("percent");
-    }
-
-    return !Object.values(fieldValid).some(Boolean);
-}
-
-const handleBlur = (field) => {
-    validateField(field);
-};
-
-const handleSubmit = (isSubmitAndAdd) => {
+const handleSubmit = async (isSubmitAndAdd) => {
     isSubmit.value = true;
     const allValid = validateForm();
     if (!allValid) {
-        focusFirstInvalidInput();
+        await focusFirstInvalidInput();
         return;
     }
 
@@ -185,17 +150,12 @@ const handleSubmit = (isSubmitAndAdd) => {
 const handleCloseForm = () => {
     isFormOpen.value = false;
     isSubmit.value = false;
-    fieldValid.allowanceCode = "";
-    fieldValid.allowanceName = "";
-    fieldValid.calculationType = "";
-    fieldValid.amount = "";
-    fieldValid.percent = "";
+    resetErrors();
     allowance.value = createAllowance();
 };
 
-const currentUser = "b8373a59-3be2-11f1-97ac-d0c5d346d1a4";
-
 function buildPayload(allowanceData, isUpdate = false) {
+    const currentUser = getCurrentUserGuid();
     const { ...rest } = allowanceData;
 
     if (!isUpdate) {
@@ -219,13 +179,6 @@ function buildPayload(allowanceData, isUpdate = false) {
 defineExpose({
     handleCloseForm,
 });
-
-const modelClose = () => {
-    showConfirm.value = false;
-    isSubmit.value = false;
-    errorMessage.value = "";
-    inputRefs[lastFocusField.value]?.focusInput();
-};
 
 const handleKeydown = (e) => {
     if (!isFormOpen.value) return;
@@ -284,7 +237,7 @@ onBeforeUnmount(() => {
                         :width="474"
                         :maxLength="50"
                         :firstFocus="true"
-                        :error="fieldValid.allowanceCode"
+                        :error="errors.allowanceCode"
                         @blurInput="handleBlur('allowanceCode')"
                         required
                     ></ms-input>
@@ -300,7 +253,7 @@ onBeforeUnmount(() => {
                         :label="'Tên phụ cấp'"
                         :width="474"
                         :maxLength="255"
-                        :error="fieldValid.allowanceName"
+                        :error="errors.allowanceName"
                         @blurInput="handleBlur('allowanceName')"
                         required
                     ></ms-input>
@@ -333,11 +286,14 @@ onBeforeUnmount(() => {
                     class="form-allowance__item d-flex justify-content-between"
                 >
                     <div class="form-allowance__label form-allowance__label--required">Số tiền</div>
-                    <input-number
+                    <ms-input-number
                         v-model:value="allowance.amount"
                         :min="0"
                         style="width: 474px"
-                    ></input-number>
+                        :ref="(el) => (inputRefs.amount = el)"
+                        :error="errors.amount"
+                        @blur="handleBlur('amount')"
+                    ></ms-input-number>
                 </div>
 
                 <div
@@ -347,21 +303,24 @@ onBeforeUnmount(() => {
                     <div class="form-allowance__label form-allowance__label--required">
                         Phần trăm (%)
                     </div>
-                    <input-number
+                    <ms-input-number
                         v-model:value="allowance.percent"
                         :min="0"
                         :max="100"
                         style="width: 474px"
-                    ></input-number>
+                        :ref="(el) => (inputRefs.percent = el)"
+                        :error="errors.percent"
+                        @blur="handleBlur('percent')"
+                    ></ms-input-number>
                 </div>
 
                 <div class="form-allowance__item d-flex justify-content-between">
                     <div class="form-allowance__label">Phiên bản</div>
-                    <input-number
+                    <ms-input-number
                         v-model:value="allowance.version"
                         :min="1"
                         style="width: 474px"
-                    ></input-number>
+                    ></ms-input-number>
                 </div>
             </div>
 
@@ -429,15 +388,11 @@ onBeforeUnmount(() => {
     gap: 16px;
 }
 
-.ant-control:deep(.ant-input-number) {
+.ant-control:deep(.ms-input-number) {
     width: 100%;
 }
 
 .ant-control:deep(.ant-input-number-input) {
     height: 27px;
-}
-
-.ant-control:deep(.ant-picker) {
-    width: 100%;
 }
 </style>

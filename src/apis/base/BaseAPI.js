@@ -74,4 +74,15 @@ export default class BaseAPI {
     bulkType(body) {
         return api.post(`${this.controller}/update-type`, body);
     }
+
+    /**
+     * Hàm xuất excel các bản ghi được chọn
+     * @param {Array} ids
+     * createdby: TMHieu - 13.02.2026
+     */
+    exportSelected(ids) {
+        return api.post(`${this.controller}/export-selected`, ids, {
+            responseType: "blob",
+        });
+    }
 }

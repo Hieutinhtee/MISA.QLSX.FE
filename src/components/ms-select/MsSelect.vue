@@ -1,8 +1,8 @@
 <template>
-    <div class="ms-select" :class="{ 'ms-select--error': isInvalid, 'ms-select--focus': isFocus }">
-        <tooltip placement="top" :align="{ offset: [0, 4] }" :trigger="['hover', 'focus']">
-            <template v-if="showTooltip" #title>
-                <span>dữ liệu không có trong danh sách</span>
+    <div class="ms-select" :class="{ 'ms-select--error': displayError, 'ms-select--focus': isFocus }">
+        <tooltip placement="bottom" :align="{ offset: [0, -4] }">
+            <template v-if="displayError" #title>
+                <span class="tooltip-error">{{ displayError }}</span>
             </template>
             <input
                 ref="inputRef"
@@ -13,7 +13,6 @@
                 @blur="handleBlur"
                 @input="handleInput"
                 @click="selectAll"
-                @mouseenter="handleHover"
             />
         </tooltip>
 
@@ -93,13 +92,17 @@ const props = defineProps({
         type: [Number, String],
         default: 200,
     },
+    error: {
+        type: String,
+        default: "",
+    },
 });
 
 /**
  * Emit cập nhật giá trị cho v-model
  * createdBy: TMHieu
  */
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits(["update:modelValue", "blurInput"]);
 //#endregion
 
 //#region State
@@ -133,13 +136,16 @@ const isFocus = ref(false);
  */
 const isInvalid = ref(false);
 
-/**
- * Trạng thái hiển thị tooltip lỗi
- */
-const showTooltip = ref(false);
+
 //#endregion
 
 //#region Computed
+
+const displayError = computed(() => {
+    if (isInvalid.value) return "Dữ liệu không có trong danh sách";
+    if (props.error) return props.error;
+    return "";
+});
 
 /**
  * Lọc option theo type được truyền từ props
@@ -220,7 +226,6 @@ watch(
 watch(isOpen, (val) => {
     if (val) {
         isTyping.value = false;
-        showTooltip.value = false;
 
         const selected = props.options.find((o) => o.value === props.modelValue);
         if (selected) {
@@ -232,16 +237,7 @@ watch(isOpen, (val) => {
 
 //#region Methods
 
-/**
- * Hiển thị tooltip khi hover nếu dữ liệu không hợp lệ
- *
- * createdBy: TMHieu
- */
-function handleHover() {
-    if (isInvalid.value) {
-        showTooltip.value = true;
-    }
-}
+
 
 /**
  * Xử lý khi focus vào input
@@ -279,10 +275,13 @@ function handleBlur() {
             searchValue.value = selected.label;
         } else {
             searchValue.value = "";
+            isInvalid.value = false;
         }
     } else {
         isInvalid.value = false;
     }
+
+    emit("blurInput");
 }
 
 /**
@@ -352,8 +351,9 @@ function toggleDropdown() {
 
 .ms-select__input {
     width: 100%;
-    height: 28px;
-    padding: 5px 8px 5px 12px;
+    height: 32px;
+    padding: 0 8px 0 12px;
+    box-sizing: border-box;
     border: 1px solid #c8c8c8;
     border-radius: 4px;
     outline: none;
@@ -364,13 +364,14 @@ function toggleDropdown() {
 }
 
 .ms-select--error .ms-select__input {
-    border-color: red;
+    border-color: red !important;
 }
 
 .ms-select__icon {
     position: absolute;
     right: 8px;
-    top: 20%;
+    top: 50%;
+    transform: translateY(-50%);
     -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
     mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
     mask-position: -202px -18px;
@@ -428,5 +429,12 @@ function toggleDropdown() {
 .ms-select__empty {
     padding: 8px;
     color: #888;
+}
+
+.tooltip-error {
+    display: inline-block;
+    max-width: 240px;
+    white-space: normal;
+    word-break: break-word;
 }
 </style>

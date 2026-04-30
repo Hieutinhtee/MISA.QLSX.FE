@@ -273,10 +273,11 @@ defineExpose({
 
 <style scoped>
 input {
-    height: 27px;
+    height: 32px;
     width: 100%;
     min-width: 0;
-    padding: 5px 12px;
+    padding: 0 12px;
+    box-sizing: border-box;
     border-radius: var(--border-radius);
     outline: none;
     border: 0.5px solid #d1d5db;
@@ -308,9 +309,10 @@ input:hover {
 }
 
 .time-input {
-    height: 27px;
+    height: 32px;
     width: 100%;
-    padding: 5px 28px 5px 12px;
+    padding: 0 28px 0 12px;
+    box-sizing: border-box;
     border-radius: 4px;
     border: 1px solid #d1d5db;
     outline: none;

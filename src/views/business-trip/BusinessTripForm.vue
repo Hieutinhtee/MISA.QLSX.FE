@@ -6,8 +6,12 @@ import MsTextarea from "@/components/ms-textarea/MsTextarea.vue";
 import MsSelect from "@/components/ms-select/MsSelect.vue";
 import { createBusinessTrip } from "@/common/model/businessTripModel";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
-import { Tooltip, DatePicker, InputNumber, Modal } from "ant-design-vue";
+import { Modal } from "ant-design-vue";
+import MsDatePicker from "@/components/ms-date-picker/MsDatePicker.vue";
+import MsInputNumber from "@/components/ms-input-number/MsInputNumber.vue";
 import EmployeesAPI from "@/apis/components/employees/employeesAPI";
+import { getCurrentUserGuid } from "@/utils/currentUser";
+import { useFormValidation } from "@/composables/useFormValidation";
 
 const TITLE_BUSINESS_TRIP_FORM_ADD = "Thêm Công tác";
 const TITLE_BUSINESS_TRIP_FORM_EDIT = "Sửa Công tác";
@@ -28,29 +32,33 @@ const isFormOpen = defineModel({
     default: false,
 });
 
-const errorMessage = ref("");
-const inputRefs = reactive({
-    businessTripCode: null,
-    employeeId: null,
-    startDate: null,
-    endDate: null,
-    location: null,
-    purpose: null,
-    supportAmount: null,
-});
-const showConfirm = ref(false);
-const fieldValid = reactive({
-    businessTripCode: "",
-    employeeId: "",
-    startDate: "",
-    endDate: "",
-    location: "",
-    purpose: "",
-});
-const lastFocusField = ref(null);
 const isSubmit = ref(false);
 const businessTrip = ref(createBusinessTrip());
 const employees = ref([]);
+
+const {
+    showConfirm,
+    errorMessage,
+    errors,
+    inputRefs,
+    initValidation,
+    handleBlur,
+    validateForm,
+    focusFirstInvalidInput,
+    modelClose,
+    resetErrors,
+} = useFormValidation();
+
+const fieldOrder = [
+    "businessTripCode",
+    "employeeId",
+    "startDate",
+    "endDate",
+    "location",
+    "purpose",
+];
+
+initValidation(validateField, fieldOrder);
 
 const emit = defineEmits(["submit", "submit-and-add"]);
 
@@ -91,102 +99,56 @@ async function loadEmployees() {
     }
 }
 
-function showAlert(message) {
-    errorMessage.value = message;
-    showConfirm.value = true;
-}
-
-const focusFirstInvalidInput = async () => {
-    await nextTick();
-
-    const fieldOrder = [
-        "businessTripCode",
-        "employeeId",
-        "startDate",
-        "endDate",
-        "location",
-        "purpose",
-    ];
-
-    for (const field of fieldOrder) {
-        if (fieldValid[field] && inputRefs[field]) {
-            showAlert(fieldValid[field]);
-            lastFocusField.value = field;
-            break;
-        }
-    }
-};
-
 function validateField(field) {
     switch (field) {
         case "businessTripCode":
-            fieldValid.businessTripCode = businessTrip.value.businessTripCode
+            errors.value.businessTripCode = businessTrip.value.businessTripCode
                 ? ""
                 : "Mã công tác không được để trống";
             break;
 
         case "employeeId":
-            fieldValid.employeeId = businessTrip.value.employeeId
+            errors.value.employeeId = businessTrip.value.employeeId
                 ? ""
                 : "Nhân viên không được để trống";
             break;
 
         case "startDate":
-            fieldValid.startDate = businessTrip.value.startDate
+            errors.value.startDate = businessTrip.value.startDate
                 ? ""
                 : "Ngày bắt đầu không được để trống";
             break;
 
         case "endDate":
-            fieldValid.endDate = businessTrip.value.endDate
+            errors.value.endDate = businessTrip.value.endDate
                 ? ""
                 : "Ngày kết thúc không được để trống";
             if (businessTrip.value.startDate && businessTrip.value.endDate) {
                 const start = new Date(businessTrip.value.startDate);
                 const end = new Date(businessTrip.value.endDate);
                 if (end < start) {
-                    fieldValid.endDate = "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu";
+                    errors.value.endDate = "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu";
                 }
             }
             break;
 
         case "location":
-            fieldValid.location = businessTrip.value.location ? "" : "Địa điểm không được để trống";
+            errors.value.location = businessTrip.value.location
+                ? ""
+                : "Địa điểm không được để trống";
             break;
 
         case "purpose":
-            fieldValid.purpose = businessTrip.value.purpose ? "" : "Mục đích không được để trống";
+            errors.value.purpose = businessTrip.value.purpose ? "" : "Mục đích không được để trống";
             break;
     }
 }
 
-function validateForm() {
-    fieldValid.businessTripCode = "";
-    fieldValid.employeeId = "";
-    fieldValid.startDate = "";
-    fieldValid.endDate = "";
-    fieldValid.location = "";
-    fieldValid.purpose = "";
-
-    validateField("businessTripCode");
-    validateField("employeeId");
-    validateField("startDate");
-    validateField("endDate");
-    validateField("location");
-    validateField("purpose");
-
-    return !Object.values(fieldValid).some(Boolean);
-}
-
-const handleBlur = (field) => {
-    validateField(field);
-};
-
-const handleSubmit = (isSubmitAndAdd) => {
+const handleSubmit = async (isSubmitAndAdd) => {
     isSubmit.value = true;
     const allValid = validateForm();
     if (!allValid) {
-        focusFirstInvalidInput();
+        await focusFirstInvalidInput();
         return;
     }
 
@@ -203,18 +165,12 @@ const handleSubmit = (isSubmitAndAdd) => {
 const handleCloseForm = () => {
     isFormOpen.value = false;
     isSubmit.value = false;
-    fieldValid.businessTripCode = "";
-    fieldValid.employeeId = "";
-    fieldValid.startDate = "";
-    fieldValid.endDate = "";
-    fieldValid.location = "";
-    fieldValid.purpose = "";
+    resetErrors();
     businessTrip.value = createBusinessTrip();
 };
 
-const currentUser = "b8373a59-3be2-11f1-97ac-d0c5d346d1a4";
-
 function buildPayload(businessTripData, isUpdate = false) {
+    const currentUser = getCurrentUserGuid();
     const { ...rest } = businessTripData;
 
     if (!isUpdate) {
@@ -238,13 +194,6 @@ function buildPayload(businessTripData, isUpdate = false) {
 defineExpose({
     handleCloseForm,
 });
-
-const modelClose = () => {
-    showConfirm.value = false;
-    isSubmit.value = false;
-    errorMessage.value = "";
-    inputRefs[lastFocusField.value]?.focusInput();
-};
 
 const handleKeydown = (e) => {
     if (!isFormOpen.value) return;
@@ -305,7 +254,7 @@ onBeforeUnmount(() => {
                         :width="474"
                         :maxLength="20"
                         :firstFocus="true"
-                        :error="fieldValid.businessTripCode"
+                        :error="errors.businessTripCode"
                         @blurInput="handleBlur('businessTripCode')"
                         required
                     ></ms-input>
@@ -320,6 +269,9 @@ onBeforeUnmount(() => {
                         :options="employees"
                         placeholder="Chọn nhân viên"
                         :max-height="260"
+                        :ref="(el) => (inputRefs.employeeId = el)"
+                        :error="errors.employeeId"
+                        @blurInput="handleBlur('employeeId')"
                     ></ms-select>
                 </div>
 
@@ -328,13 +280,16 @@ onBeforeUnmount(() => {
                         <div class="form-business-trip__label form-business-trip__label--required">
                             Ngày bắt đầu
                         </div>
-                        <date-picker
-                            v-model:value="businessTrip.startDate"
+                        <ms-date-picker
+                            v-model="businessTrip.startDate"
                             value-format="YYYY-MM-DD"
                             format="DD/MM/YYYY"
                             placeholder="DD/MM/YYYY"
                             style="width: 122px"
-                        ></date-picker>
+                            :ref="(el) => (inputRefs.startDate = el)"
+                            :error="errors.startDate"
+                            @blurInput="handleBlur('startDate')"
+                        ></ms-date-picker>
                     </div>
                     <div class="form-business-trip__item d-flex flex-1 justify-content-between">
                         <div
@@ -342,13 +297,16 @@ onBeforeUnmount(() => {
                         >
                             Ngày kết thúc
                         </div>
-                        <date-picker
-                            v-model:value="businessTrip.endDate"
+                        <ms-date-picker
+                            v-model="businessTrip.endDate"
                             value-format="YYYY-MM-DD"
                             format="DD/MM/YYYY"
                             placeholder="DD/MM/YYYY"
                             style="width: 122px"
-                        ></date-picker>
+                            :ref="(el) => (inputRefs.endDate = el)"
+                            :error="errors.endDate"
+                            @blurInput="handleBlur('endDate')"
+                        ></ms-date-picker>
                     </div>
                 </div>
 
@@ -362,7 +320,7 @@ onBeforeUnmount(() => {
                         :label="'Địa điểm'"
                         :width="474"
                         :maxLength="200"
-                        :error="fieldValid.location"
+                        :error="errors.location"
                         @blurInput="handleBlur('location')"
                         required
                     ></ms-input>
@@ -372,16 +330,21 @@ onBeforeUnmount(() => {
                     <div class="form-business-trip__label form-business-trip__label--required">
                         Mục đích
                     </div>
-                    <ms-textarea v-model="businessTrip.purpose"></ms-textarea>
+                    <ms-textarea
+                        v-model="businessTrip.purpose"
+                        :ref="(el) => (inputRefs.purpose = el)"
+                        :error="errors.purpose"
+                        @blurInput="handleBlur('purpose')"
+                    ></ms-textarea>
                 </div>
 
                 <div class="form-business-trip__item d-flex justify-content-between">
                     <div class="form-business-trip__label">Mức hỗ trợ</div>
-                    <input-number
+                    <ms-input-number
                         v-model:value="businessTrip.supportAmount"
                         :min="0"
                         style="width: 474px"
-                    ></input-number>
+                    ></ms-input-number>
                 </div>
             </div>
 
@@ -448,11 +411,11 @@ onBeforeUnmount(() => {
     column-gap: 16px;
 }
 
-.ant-control:deep(.ant-input-number) {
+.ant-control:deep(.ms-input-number) {
     width: 100%;
 }
 
-.ant-control:deep(.ant-input-number-input) {
+.ant-control:deep(.ms-input-number-input) {
     height: 27px;
 }
 

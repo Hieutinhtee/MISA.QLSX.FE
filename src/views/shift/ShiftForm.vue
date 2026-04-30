@@ -6,8 +6,10 @@ import MsRadioButton from "@/components/ms-radio-button/MsRadioButton.vue";
 import { createShift } from "@/common/model/shiftModel";
 import MsTextarea from "@/components/ms-textarea/MsTextarea.vue";
 import { formatTime } from "@/utils/common";
+import { getCurrentUserGuid } from "@/utils/currentUser";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
 import { Tooltip, Modal } from "ant-design-vue";
+import { useFormValidation } from "@/composables/useFormValidation";
 
 //#region constants
 /**
@@ -46,49 +48,30 @@ const isFormOpen = defineModel({
     default: false,
 });
 
-/**
- * Lưu chuỗi lỗi nếu có
- * createdBy: TMHieu (30/01/2026)
- */
-const errorMessage = ref("");
+const {
+    showConfirm,
+    errorMessage,
+    errors,
+    inputRefs,
+    initValidation,
+    handleBlur,
+    validateForm,
+    focusFirstInvalidInput,
+    modelClose,
+    resetErrors,
+    showAlert,
+} = useFormValidation();
 
-/**
- * Ref tới các input component
- * createdBy: TMHieu
- */
-const inputRefs = reactive({
-    shiftCode: null,
-    shiftName: null,
-    startTime: null,
-    endTime: null,
-    breakStartTime: null,
-    breakEndTime: null,
-});
+const fieldOrder = [
+    "shiftCode",
+    "shiftName",
+    "startTime",
+    "endTime",
+    "breakStartTime",
+    "breakEndTime",
+];
 
-/**
- * Trạng thái đóng mở alert xác nhận lỗi
- * createdBy: TMHieu (30/01/2026)
- */
-const showConfirm = ref(false);
-
-/**
- * Trạng thái hợp lệ của các trường trong form
- * createdBy: TMHieu (30/01/2026)
- */
-const fieldValid = reactive({
-    shiftCode: "",
-    shiftName: "",
-    startTime: "",
-    endTime: "",
-    breakStartTime: "",
-    breakEndTime: "",
-});
-
-/**
- * ref đến focus cuối cùng để khi mở form có thể focus vào đó
- * created by: TMHieu (28/01/2026)
- */
-const lastFocusField = ref(null);
+initValidation(validateField, fieldOrder);
 
 /**
  * Trạng thái đã submit form
@@ -142,16 +125,6 @@ watch(
         }
     },
 );
-
-/**
- * Hàm hiển thị alert lỗi
- * createdBy: TMHieu (30/01/2026)
- * @param {string} message - Nội dung lỗi cần hiển thị
- */
-function showAlert(message) {
-    errorMessage.value = message;
-    showConfirm.value = true;
-}
 
 /**
  * lắng nghe thời gian tạm tính
@@ -217,20 +190,20 @@ watch(
 
 function validateTime(begin, end, breakBegin, breakEnd) {
     if (begin === end) {
-        fieldValid.endTime = "Giờ hết ca không được bằng giờ vào ca.";
+        errors.value.endTime = "Giờ hết ca không được bằng giờ vào ca.";
         resetTime();
         return false;
     }
 
     if (breakBegin && !breakEnd) {
-        fieldValid.breakEndTime =
+        errors.value.breakEndTime =
             "Bạn đã nhập thời gian bắt đầu nghỉ giữa ca nhưng chưa nhập thời gian kết thúc nghỉ giữa ca. Vui lòng kiểm tra lại";
         resetTime();
         return false;
     }
 
     if (!breakBegin && breakEnd) {
-        fieldValid.breakStartTime =
+        errors.value.breakStartTime =
             "Bạn đã nhập thời gian kết thúc nghỉ giữa ca nhưng chưa nhập thời gian bắt đầu nghỉ giữa ca. Vui lòng kiểm tra lại";
         resetTime();
         return false;
@@ -238,7 +211,8 @@ function validateTime(begin, end, breakBegin, breakEnd) {
 
     if (breakBegin && breakEnd) {
         if (breakBegin === breakEnd) {
-            fieldValid.breakEndTime = "Giờ kết thúc nghỉ giữa ca không được bằng giờ nghỉ giữa ca";
+            errors.value.breakEndTime =
+                "Giờ kết thúc nghỉ giữa ca không được bằng giờ nghỉ giữa ca";
             resetTime();
             return false;
         }
@@ -264,7 +238,7 @@ function validateTime(begin, end, breakBegin, breakEnd) {
             breakDuration <= 0 ||
             breakDuration >= shiftDuration
         ) {
-            fieldValid.breakStartTime =
+            errors.value.breakStartTime =
                 "Khoảng giờ nghỉ giữa ca phải nằm trong khoảng thời gian làm việc";
             resetTime();
             return false;
@@ -339,77 +313,33 @@ function round2(num) {
     return Math.round(num * 100) / 100;
 }
 
-/**
- * Focus vào input lỗi đầu tiên
- * createdBy: TMHieu
- */
-const focusFirstInvalidInput = async () => {
-    await nextTick();
-
-    const fieldOrder = [
-        "shiftCode",
-        "shiftName",
-        "startTime",
-        "endTime",
-        "breakStartTime",
-        "breakEndTime",
-    ];
-
-    for (const field of fieldOrder) {
-        if (fieldValid[field] && inputRefs[field]) {
-            // alert lỗi đầu tiên
-            showAlert(fieldValid[field]);
-            lastFocusField.value = field;
-            break;
-        }
-    }
-};
-
 function validateField(field) {
     switch (field) {
         case "shiftCode":
-            fieldValid.shiftCode = shift.value.shiftCode ? "" : "Mã ca không được để trống";
+            errors.value.shiftCode = shift.value.shiftCode ? "" : "Mã ca không được để trống";
             break;
 
         case "shiftName":
-            fieldValid.shiftName = shift.value.shiftName ? "" : "Tên ca không được để trống";
+            errors.value.shiftName = shift.value.shiftName ? "" : "Tên ca không được để trống";
             break;
 
         case "startTime":
-            fieldValid.startTime = shift.value.startTime ? "" : "Giờ vào ca không được để trống";
+            errors.value.startTime = shift.value.startTime ? "" : "Giờ vào ca không được để trống";
             break;
 
         case "endTime":
-            fieldValid.endTime = shift.value.endTime ? "" : "Giờ hết ca không được để trống";
+            errors.value.endTime = shift.value.endTime ? "" : "Giờ hết ca không được để trống";
             break;
     }
-}
 
-function validateForm() {
-    fieldValid.shiftCode = "";
-    fieldValid.shiftName = "";
-    fieldValid.startTime = "";
-    fieldValid.endTime = "";
-    fieldValid.breakStartTime = "";
-    fieldValid.breakEndTime = "";
-    validateField("shiftCode");
-    validateField("shiftName");
-    validateField("startTime");
-    validateField("endTime");
-
+    // Luôn gọi validateTime nếu đã điền đủ thông tin cơ bản
     validateTime(
         shift.value.startTime,
         shift.value.endTime,
         shift.value.breakStartTime,
         shift.value.breakEndTime,
     );
-
-    return !Object.values(fieldValid).some(Boolean);
 }
-
-const handleBlur = (field) => {
-    validateField(field);
-};
 
 /**
  * Hàm xử lý sự kiện submit form
@@ -437,17 +367,10 @@ const handleSubmit = (isSubmitAndAdd) => {
 const handleCloseForm = () => {
     isFormOpen.value = false;
     isSubmit.value = false;
-    fieldValid.shiftCode = "";
-    fieldValid.shiftName = "";
-    fieldValid.startTime = "";
-    fieldValid.endTime = "";
-    fieldValid.breakStartTime = "";
-    fieldValid.breakEndTime = "";
+    resetErrors();
     shift.value = createShift();
     resetTime();
 };
-
-const currentUser = "b8373a59-3be2-11f1-97ac-d0c5d346d1a4";
 
 /**
  * Hàm xử lý trước khi sự kiện submit form
@@ -457,6 +380,7 @@ const currentUser = "b8373a59-3be2-11f1-97ac-d0c5d346d1a4";
  * @returns dữ liệu cơ bản trên form
  */
 function buildPayload(shiftData, isUpdate = false) {
+    const currentUser = getCurrentUserGuid();
     const { ...rest } = shiftData;
 
     const basePayload = {
@@ -493,13 +417,6 @@ defineExpose({
     handleCloseForm,
 });
 //#endregion Methods
-
-const modelClose = () => {
-    showConfirm.value = false;
-    isSubmit.value = false;
-    errorMessage.value = "";
-    inputRefs[lastFocusField.value]?.focusInput();
-};
 
 const handleKeydown = (e) => {
     if (!isFormOpen.value) return;
@@ -562,7 +479,7 @@ onBeforeUnmount(() => {
                         :width="474"
                         :maxLength="20"
                         :firstFocus="true"
-                        :error="fieldValid.shiftCode"
+                        :error="errors.shiftCode"
                         @blurInput="handleBlur('shiftCode')"
                         required
                     ></ms-input>
@@ -575,7 +492,7 @@ onBeforeUnmount(() => {
                         :label="'Tên ca'"
                         :width="474"
                         :maxLength="100"
-                        :error="fieldValid.shiftName"
+                        :error="errors.shiftName"
                         @blurInput="handleBlur('shiftName')"
                         required
                     ></ms-input>
@@ -589,7 +506,7 @@ onBeforeUnmount(() => {
                             :ref="(el) => (inputRefs.startTime = el)"
                             :width="122"
                             :type="'HH:MM'"
-                            :error="fieldValid.startTime"
+                            :error="errors.startTime"
                             @blurInput="handleBlur('startTime')"
                             required
                         ></ms-input>
@@ -605,7 +522,7 @@ onBeforeUnmount(() => {
                             v-model="shift.endTime"
                             :width="122"
                             :type="'HH:MM'"
-                            :error="fieldValid.endTime"
+                            :error="errors.endTime"
                             @blurInput="handleBlur('endTime')"
                             required
                         ></ms-input>
@@ -619,8 +536,9 @@ onBeforeUnmount(() => {
                             v-model="shift.breakStartTime"
                             :placeholder="'HH:MM'"
                             :ref="(el) => (inputRefs.breakStartTime = el)"
-                            :error="fieldValid.breakStartTime"
+                            :error="errors.breakStartTime"
                             :width="122"
+                            @blurInput="handleBlur('breakStartTime')"
                         ></ms-input>
                     </div>
 
@@ -631,8 +549,9 @@ onBeforeUnmount(() => {
                             v-model="shift.breakEndTime"
                             :placeholder="'HH:MM'"
                             :ref="(el) => (inputRefs.breakEndTime = el)"
-                            :error="fieldValid.breakEndTime"
+                            :error="errors.breakEndTime"
                             :width="122"
+                            @blurInput="handleBlur('breakEndTime')"
                         ></ms-input>
                     </div>
                 </div>

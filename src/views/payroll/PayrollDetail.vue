@@ -180,6 +180,7 @@ watch(
                     :pagination-data="payload"
                     :loading="loading"
                     storage-key="payroll-detail-table"
+                    row-actions-name="Thao tác"
                     @update:pagination="onPaginationUpdate"
                     @update:search="onSearchChange"
                 >

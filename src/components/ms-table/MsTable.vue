@@ -56,6 +56,14 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    showActiveActions: {
+        type: Boolean,
+        default: false,
+    },
+    showExportSelected: {
+        type: Boolean,
+        default: true,
+    },
     showRowActions: {
         type: Boolean,
         default: true,
@@ -72,9 +80,13 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
-    showPagination: {
-        type: Boolean,
-        default: true,
+    rowColumnWidth: {
+        type: Number,
+
+    },
+    rowActionsName: {
+        type: String,
+        default: "Thao tác",
     },
 });
 
@@ -87,6 +99,7 @@ const emit = defineEmits([
     "update:pagination",
     "batchIsActive",
     "batchDelete",
+    "batchExport",
     "update:selected",
     "row-click",
     "update:search",
@@ -988,6 +1001,10 @@ const handleBatchDelete = (rows) => {
     emit("batchDelete", rows);
 };
 
+const handleBatchExport = (rows) => {
+    emit("batchExport", rows);
+};
+
 /**
  * Xử lý khi nhấn nút ... trên row table
  * Lưu vị trí chuột để render popup đúng chỗ
@@ -1232,18 +1249,24 @@ defineExpose({
                 >Bỏ chọn</ms-button
             >
             <ms-button
-                v-if="props.showSelection && hasInactive"
+                v-if="props.showSelection && props.showActiveActions && hasInactive"
                 icon-left="content__table-active-icon"
                 type="primary-outline"
                 @click="handleActive(selected, true)"
                 >Sử dụng</ms-button
             >
             <ms-button
-                v-if="props.showSelection && hasActive"
+                v-if="props.showSelection && props.showActiveActions && hasActive"
                 icon-left="content__table-empty-icon"
                 type="danger-outline"
                 @click="handleActive(selected, false)"
                 >Ngừng sử dụng</ms-button
+            >
+            <ms-button
+                v-if="props.showSelection && props.showExportSelected && calculateChecked()"
+                type="outline"
+                @click="handleBatchExport(selected)"
+                >Xuất excel</ms-button
             >
             <ms-button
                 v-if="props.showSelection && calculateChecked()"
@@ -1418,7 +1441,15 @@ defineExpose({
                             </div>
                         </div>
                     </th>
-                    <th v-if="props.showRowActions" class="col-delete" style="width: 80px"></th>
+                    <th
+                        v-if="props.showRowActions"
+                        class="col-delete"
+                        :style="{ width: props.rowColumnWidth + 'px' }"
+                    >
+                        <slot name="header-actions">
+                            {{ props.rowActionsName }}
+                        </slot>
+                    </th>
                 </tr>
             </thead>
 
@@ -1492,19 +1523,27 @@ defineExpose({
                         <td
                             v-if="props.showRowActions"
                             class="col-delete d-flex justify-content-between align-items-center"
+                            :style="{ width: props.rowColumnWidth + 'px' }"
                         >
-                            <div class="btn-modify-wrapper" @click="handleEdit(row)">
-                                <div
-                                    class="content__table-btn-modify content__table-btn-edit"
-                                    title="Chỉnh sửa"
-                                ></div>
-                            </div>
-                            <div class="btn-modify-wrapper" @click.stop="handleMore(row, $event)">
-                                <div
-                                    class="content__table-btn-modify content__table-btn-showmore"
-                                    title="Xem thêm"
-                                ></div>
-                            </div>
+                            <slot
+                                name="row-actions"
+                                :row="row"
+                                :handleEdit="handleEdit"
+                                :handleMore="handleMore"
+                            >
+                                <div class="btn-modify-wrapper" @click="handleEdit(row)">
+                                    <div
+                                        class="content__table-btn-modify content__table-btn-edit"
+                                        title="Chỉnh sửa"
+                                    ></div>
+                                </div>
+                                <div class="btn-modify-wrapper" @click.stop="handleMore(row, $event)">
+                                    <div
+                                        class="content__table-btn-modify content__table-btn-showmore"
+                                        title="Xem thêm"
+                                    ></div>
+                                </div>
+                            </slot>
 
                             <!--  Popup xem thêm (sửa, xóa, nhân bản, thay đổi trạng thái) -->
                             <Teleport to="body">
@@ -1529,7 +1568,7 @@ defineExpose({
                                         <div class="content__table-popup-text">Nhân bản</div>
                                     </div>
                                     <div
-                                        v-if="currentRow?.isActive"
+                                        v-if="props.showActiveActions && currentRow?.isActive"
                                         class="content__table-popup-item d-flex"
                                         @click="handleChangeActive(currentRow)"
                                     >
@@ -1537,7 +1576,7 @@ defineExpose({
                                         <div class="content__table-popup-text">Ngừng sử dụng</div>
                                     </div>
                                     <div
-                                        v-else
+                                        v-else-if="props.showActiveActions"
                                         class="content__table-popup-item d-flex"
                                         @click="handleChangeActive(currentRow)"
                                     >

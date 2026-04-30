@@ -5,8 +5,12 @@ import MsInput from "@/components/ms-input/MsInput.vue";
 import MsTextarea from "@/components/ms-textarea/MsTextarea.vue";
 import MsSelect from "@/components/ms-select/MsSelect.vue";
 import MsRadioButton from "@/components/ms-radio-button/MsRadioButton.vue";
-import { InputNumber, Modal } from "ant-design-vue";
+import { Modal } from "ant-design-vue";
+import MsInputNumber from "@/components/ms-input-number/MsInputNumber.vue";
 import { createContractTemplate } from "@/common/model/contractTemplateModel";
+import { getCurrentUserGuid } from "@/utils/currentUser";
+import MsAlert from "@/components/ms-alert/MsAlert.vue";
+import { useFormValidation } from "@/composables/useFormValidation";
 
 const props = defineProps({
     typeForm: {
@@ -28,13 +32,22 @@ const isFormOpen = defineModel({
 });
 
 const form = ref(createContractTemplate());
-const errors = ref({
-    templateCode: "",
-    templateName: "",
-    contractType: "",
-});
+const {
+    showConfirm,
+    errorMessage,
+    errors,
+    inputRefs,
+    initValidation,
+    handleBlur,
+    validateForm,
+    focusFirstInvalidInput,
+    modelClose,
+    resetErrors,
+} = useFormValidation();
 
-const currentUser = "b8373a59-3be2-11f1-97ac-d0c5d346d1a4";
+const fieldOrder = ["templateCode", "templateName", "contractType"];
+
+initValidation(validateField, fieldOrder);
 
 const contractTypeOptions = [
     { value: "Thử việc", label: "Thử việc" },
@@ -47,11 +60,7 @@ watch(
     (open) => {
         if (!open) return;
 
-        errors.value = {
-            templateCode: "",
-            templateName: "",
-            contractType: "",
-        };
+        resetErrors();
 
         if (props.typeForm === "edit" && props.data) {
             form.value = {
@@ -65,27 +74,24 @@ watch(
     },
 );
 
-function validateForm() {
-    const nextErrors = {
-        templateCode: "",
-        templateName: "",
-        contractType: "",
-    };
-
-    if (!form.value.templateCode?.trim()) {
-        nextErrors.templateCode = "Mã mẫu hợp đồng không được để trống";
+function validateField(field) {
+    switch (field) {
+        case "templateCode":
+            errors.value.templateCode = form.value.templateCode?.trim()
+                ? ""
+                : "Mã mẫu hợp đồng không được để trống";
+            break;
+        case "templateName":
+            errors.value.templateName = form.value.templateName?.trim()
+                ? ""
+                : "Tên mẫu hợp đồng không được để trống";
+            break;
+        case "contractType":
+            errors.value.contractType = form.value.contractType
+                ? ""
+                : "Loại hợp đồng không được để trống";
+            break;
     }
-
-    if (!form.value.templateName?.trim()) {
-        nextErrors.templateName = "Tên mẫu hợp đồng không được để trống";
-    }
-
-    if (!form.value.contractType) {
-        nextErrors.contractType = "Loại hợp đồng không được để trống";
-    }
-
-    errors.value = nextErrors;
-    return !Object.values(nextErrors).some(Boolean);
 }
 
 function handleCloseForm() {
@@ -94,6 +100,7 @@ function handleCloseForm() {
 }
 
 function buildPayload() {
+    const currentUser = getCurrentUserGuid();
     const isEdit = props.typeForm === "edit";
     const now = new Date().toISOString();
 
@@ -124,13 +131,20 @@ function buildPayload() {
     };
 }
 
-function handleSubmit() {
-    if (!validateForm()) return;
+async function handleSubmit() {
+    if (!validateForm()) {
+        await focusFirstInvalidInput();
+        return;
+    }
     emit("submit", buildPayload());
 }
 </script>
 
 <template>
+    <ms-alert v-model="showConfirm" title="Cảnh báo" @close="modelClose">
+        {{ errorMessage }}
+    </ms-alert>
+
     <Modal
         v-model:open="isFormOpen"
         :title="props.typeForm === 'edit' ? 'Sửa mẫu hợp đồng' : 'Thêm mẫu hợp đồng'"
@@ -149,6 +163,8 @@ function handleSubmit() {
                         v-model="form.templateCode"
                         :width="420"
                         :error="errors.templateCode"
+                        :ref="(el) => (inputRefs.templateCode = el)"
+                        @blurInput="handleBlur('templateCode')"
                     />
                 </div>
 
@@ -158,6 +174,8 @@ function handleSubmit() {
                         v-model="form.templateName"
                         :width="420"
                         :error="errors.templateName"
+                        :ref="(el) => (inputRefs.templateName = el)"
+                        @blurInput="handleBlur('templateName')"
                     />
                 </div>
 
@@ -169,16 +187,16 @@ function handleSubmit() {
                             :options="contractTypeOptions"
                             placeholder="Chọn loại hợp đồng"
                             :max-height="180"
+                            :ref="(el) => (inputRefs.contractType = el)"
+                            :error="errors.contractType"
+                            @blurInput="handleBlur('contractType')"
                         />
-                        <div v-if="errors.contractType" class="form-error">
-                            {{ errors.contractType }}
-                        </div>
                     </div>
                 </div>
 
                 <div class="form-row d-flex justify-content-between align-items-center">
                     <div class="form-label">Phiên bản</div>
-                    <input-number v-model:value="form.version" :min="1" class="ant-control" />
+                    <ms-input-number v-model:value="form.version" :min="1" class="ant-control" />
                 </div>
 
                 <div class="form-row d-flex align-items-center">
@@ -242,11 +260,11 @@ function handleSubmit() {
     width: 420px;
 }
 
-.ant-control:deep(.ant-input-number) {
+.ant-control:deep(.ms-input-number) {
     width: 100%;
 }
 
-.ant-control:deep(.ant-input-number-input) {
+.ant-control:deep(.ms-input-number-input) {
     height: 27px;
 }
 

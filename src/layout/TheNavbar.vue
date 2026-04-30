@@ -55,9 +55,9 @@ async function handleLogout() {
         <div class="navbar__left d-flex align-items-center">
             <div class="navbar__app-icon"></div>
             <div class="navbar__logo"></div>
-            <div class="navbar__title">Sản xuất</div>
+            <div class="navbar__title">Quản lí nhân sự</div>
             <div class="navbar__company-name d-flex align-items-center pointer" @click="openDev">
-                <div class="navbar__company-title">01. KSX_MISA</div>
+                <div class="navbar__company-title">Công ty MISEM</div>
                 <div class="icon__angle-down-small"></div>
             </div>
         </div>

@@ -115,6 +115,11 @@ const menu = ref([
                 roles: ["ADMIN", "HR", "MANAGER"],
             },
             {
+                title: "Danh mục bằng cấp",
+                path: "/degrees",
+                roles: ["ADMIN", "HR"],
+            },
+            {
                 title: "Nhân viên chưa có HĐ",
                 path: "/employees-without-contract",
                 roles: ["ADMIN", "HR"],
@@ -217,6 +222,10 @@ const currentEmployeeSubmenu = computed(() => {
         return "/employees-without-contract";
     }
 
+    if (route.path.startsWith("/degrees")) {
+        return "/degrees";
+    }
+
     if (route.path.startsWith("/employees")) {
         return "/employees";
     }
@@ -240,7 +249,7 @@ watch(
     () => route.path,
     (path) => {
         // Chỉ set activeMenu khi path thay đổi, không reset
-        if (path.startsWith("/employees")) {
+        if (path.startsWith("/employees") || path.startsWith("/degrees")) {
             activeMenu.value = "production";
         } else if (path.startsWith("/contracts") || path.startsWith("/contract-templates")) {
             activeMenu.value = "contract";
@@ -253,6 +262,11 @@ watch(
 );
 
 const openDev = (nameItem) => {
+    if (nameItem === "home") {
+        router.push("/dashboard");
+        return;
+    }
+
     if (nameItem === "category") {
         router.push("/shifts");
         return;
@@ -282,7 +296,10 @@ const openDev = (nameItem) => {
 };
 
 const currentMenu = computed(() => {
-    if (route.path.startsWith("/employees")) return "production";
+    if (route.path.startsWith("/dashboard")) return "home";
+    if (route.path.startsWith("/employees") || route.path.startsWith("/degrees")) {
+        return "production";
+    }
     if (route.path.startsWith("/shifts")) return "category";
     if (route.path.startsWith("/contracts") || route.path.startsWith("/contract-templates")) {
         return "contract";

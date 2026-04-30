@@ -10,6 +10,7 @@ import { $toastSuccess, $toastError } from "@/utils/toastService";
 import SalaryPeriodForm from "./SalaryPeriodForm.vue";
 import PayrollDetail from "./PayrollDetail.vue";
 import PayrollWorkflowModal from "./PayrollWorkflowModal.vue";
+import { exportSelectedRows } from "@/utils/exportService";
 
 const columns = ref([
     { key: "periodLabel", name: "Kỳ lương", width: 150 },
@@ -18,7 +19,6 @@ const columns = ref([
     { key: "status", name: "Trạng thái", typeFilter: "text", width: 170 },
     { key: "createdAt", name: "Ngày tạo", type: "date", width: 150 },
     { key: "updatedAt", name: "Ngày sửa", type: "date", width: 150 },
-    { key: "actions", name: "Thao tác", width: 280 },
 ]);
 
 const { loading, rows, payload, reloadData, onPaginationUpdate, onSearchChange, loadDataForAPI } =
@@ -141,6 +141,16 @@ const handleWorkflowViewDetail = (row) => {
     handleViewPayroll(row);
 };
 
+const handleBatchExport = async (rows) => {
+    try {
+        await exportSelectedRows(SalaryPeriodsAPI, rows, "SalaryPeriods");
+        $toastSuccess("Xuất excel kỳ lương thành công");
+    } catch (error) {
+        console.error(error);
+        $toastError("Xuất excel kỳ lương thất bại");
+    }
+};
+
 onMounted(() => {
     loadDataForAPI();
 });
@@ -167,9 +177,12 @@ onMounted(() => {
                 :pagination-data="payload"
                 :loading="loading"
                 storage-key="payroll-period-table"
+                row-actions-name="Thao tác"
+                :row-column-width="280"
                 @update:pagination="onPaginationUpdate"
                 @update:search="onSearchChange"
                 @reload="reloadData"
+                @batch-export="handleBatchExport"
             >
                 <template #periodLabel="{ row }">
                     <strong>{{ getPeriodLabel(row) }}</strong>
@@ -179,7 +192,7 @@ onMounted(() => {
                     <span :class="getStatusClass(value)">{{ getStatusText(value) }}</span>
                 </template>
 
-                <template #actions="{ row }">
+                <template #row-actions="{ row }">
                     <div class="action-cell">
                         <ms-button type="primary-outline" @click="handleOpenWorkflow(row)">
                             Xử lý lương

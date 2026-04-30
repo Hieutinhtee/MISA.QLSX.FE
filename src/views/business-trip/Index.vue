@@ -7,10 +7,11 @@ import BusinessTripForm from "./BusinessTripForm.vue";
 import BusinessTripsAPI from "@/apis/components/business-trips/businessTripsAPI";
 import { $toastSuccess, $toastError } from "@/utils/toastService";
 import { usePagingTable } from "@/composables/usePagingTable";
+import { exportSelectedRows } from "@/utils/exportService";
 
 const columns = ref([
     { key: "businessTripCode", name: "Mã công tác", typeFilter: "text", width: 150 },
-    { key: "employeeCode", name: "Mã nhân viên", typeFilter: "text", width: 120 },
+    { key: "employeeCode", name: "Mã nhân viên", typeFilter: "text", width: 140 },
     { key: "employeeName", name: "Tên nhân viên", typeFilter: "text", width: 200 },
     { key: "startDate", name: "Ngày bắt đầu", width: 150, type: "date" },
     { key: "endDate", name: "Ngày kết thúc", width: 150, type: "date" },
@@ -19,7 +20,6 @@ const columns = ref([
     { key: "supportAmount", name: "Mức hỗ trợ", typeFilter: "number", width: 150 },
     { key: "createdAt", name: "Ngày tạo", width: 150, type: "date" },
     { key: "updatedAt", name: "Ngày sửa", width: 150, type: "date" },
-    { key: "actions", name: "Thao tác", width: 120 },
 ]);
 
 const businessTripFormRef = ref(null);
@@ -90,7 +90,9 @@ function updateBusinessTrip(businessTrip) {
     BusinessTripsAPI.update(businessTrip.businessTripId, businessTrip)
         .then((res) => {
             if (res.status === 201 || res.status === 200) {
-                const index = rows.value.findIndex((x) => x.businessTripId === businessTrip.businessTripId);
+                const index = rows.value.findIndex(
+                    (x) => x.businessTripId === businessTrip.businessTripId,
+                );
                 if (index !== -1) {
                     rows.value[index] = { ...businessTrip };
                 }
@@ -161,6 +163,16 @@ function handleDuplicate(row) {
     isFormOpen.value = true;
 }
 
+async function handleBatchExport(rows) {
+    try {
+        await exportSelectedRows(BusinessTripsAPI, rows, "BusinessTrips");
+        $toastSuccess("Xuất excel công tác thành công");
+    } catch (error) {
+        $toastError("Xuất excel công tác thất bại");
+        console.error(error);
+    }
+}
+
 onMounted(() => {
     loadDataForAPI();
 });
@@ -187,6 +199,7 @@ onMounted(() => {
             <ms-table
                 :columns="columns"
                 :rows="rows"
+                row-actions-name="Thao tác"
                 :pagination-data="payload"
                 @update:pagination="onPaginationUpdate"
                 @update:search="onSearchChange"
@@ -194,6 +207,7 @@ onMounted(() => {
                 @delete-row="handleDelete"
                 @edit-row="handleEdit"
                 @batch-delete="handleBatchDelete"
+                @batch-export="handleBatchExport"
                 @duplicate="handleDuplicate"
                 :loading="loading"
                 ref="businessTripTableRef"

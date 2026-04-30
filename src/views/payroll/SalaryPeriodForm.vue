@@ -3,8 +3,6 @@ import {
     ref,
     defineModel,
     watch,
-    nextTick,
-    reactive,
     onMounted,
     onBeforeUnmount,
     computed,
@@ -14,6 +12,8 @@ import MsDatePicker from "@/components/ms-date-picker/MsDatePicker.vue";
 import { createSalaryPeriod } from "@/common/model/salaryPeriodModel";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
 import { Modal } from "ant-design-vue";
+import { getCurrentUserGuid } from "@/utils/currentUser";
+import { useFormValidation } from "@/composables/useFormValidation";
 
 //#region constants
 /**
@@ -53,47 +53,24 @@ const isFormOpen = defineModel("open", {
     default: false,
 });
 
-/**
- * Lưu chuỗi lỗi nếu có
- * createdBy: TMHieu (25/04/2026)
- */
-const errorMessage = ref("");
-
-/**
- * Ref tới các input component
- * createdBy: TMHieu
- */
-const inputRefs = reactive({
-    startDate: null,
-    endDate: null,
-});
-
-/**
- * Trạng thái đóng mở alert xác nhận lỗi
- * createdBy: TMHieu (25/04/2026)
- */
-const showConfirm = ref(false);
-
-/**
- * Trạng thái hợp lệ của các trường trong form
- * createdBy: TMHieu (25/04/2026)
- */
-const fieldValid = reactive({
-    startDate: "",
-    endDate: "",
-});
-
-/**
- * ref đến focus cuối cùng để khi mở form có thể focus vào đó
- * created by: TMHieu (25/04/2026)
- */
-const lastFocusField = ref(null);
-
-/**
- * Trạng thái đã submit form
- * createdBy: TMHieu (25/04/2026)
- */
 const isSubmit = ref(false);
+
+const {
+    showConfirm,
+    errorMessage,
+    errors,
+    inputRefs,
+    initValidation,
+    handleBlur,
+    validateForm,
+    focusFirstInvalidInput,
+    modelClose,
+    resetErrors,
+} = useFormValidation();
+
+const fieldOrder = ["startDate", "endDate"];
+
+initValidation(validateField, fieldOrder);
 
 /**
  * Dữ liệu kỳ lương trong form
@@ -144,16 +121,6 @@ watch(
 );
 
 /**
- * Hàm hiển thị alert lỗi
- * createdBy: TMHieu (25/04/2026)
- * @param {string} message - Nội dung lỗi cần hiển thị
- */
-function showAlert(message) {
-    errorMessage.value = message;
-    showConfirm.value = true;
-}
-
-/**
  * Validate ngày kết thúc phải sau ngày bắt đầu
  * createdBy: TMHieu (25/04/2026)
  */
@@ -164,9 +131,9 @@ watch(
             const startDate = new Date(start);
             const endDate = new Date(end);
             if (endDate <= startDate) {
-                fieldValid.endDate = "Ngày kết thúc phải sau ngày bắt đầu";
+                errors.value.endDate = "Ngày kết thúc phải sau ngày bắt đầu";
             } else {
-                fieldValid.endDate = "";
+                errors.value.endDate = "";
             }
         }
     },
@@ -176,73 +143,39 @@ watch(
 
 //#region Methods
 
-/**
- * Focus vào input lỗi đầu tiên
- * createdBy: TMHieu
- */
-const focusFirstInvalidInput = async () => {
-    await nextTick();
-
-    const fieldOrder = ["startDate", "endDate"];
-
-    for (const field of fieldOrder) {
-        if (fieldValid[field] && inputRefs[field]) {
-            // alert lỗi đầu tiên
-            showAlert(fieldValid[field]);
-            lastFocusField.value = field;
-            break;
-        }
-    }
-};
-
 function validateField(field) {
     switch (field) {
         case "startDate":
-            fieldValid.startDate = salaryPeriod.value.startDate
+            errors.value.startDate = salaryPeriod.value.startDate
                 ? ""
                 : "Ngày bắt đầu không được để trống";
             break;
 
         case "endDate":
-            fieldValid.endDate = salaryPeriod.value.endDate
+            errors.value.endDate = salaryPeriod.value.endDate
                 ? ""
                 : "Ngày kết thúc không được để trống";
+            if (salaryPeriod.value.startDate && salaryPeriod.value.endDate) {
+                const startDate = new Date(salaryPeriod.value.startDate);
+                const endDate = new Date(salaryPeriod.value.endDate);
+                if (endDate <= startDate) {
+                    errors.value.endDate = "Ngày kết thúc phải sau ngày bắt đầu";
+                }
+            }
             break;
     }
 }
-
-function validateForm() {
-    fieldValid.startDate = "";
-    fieldValid.endDate = "";
-    validateField("startDate");
-    validateField("endDate");
-
-    // Validate ngày kết thúc phải sau ngày bắt đầu
-    if (salaryPeriod.value.startDate && salaryPeriod.value.endDate) {
-        const startDate = new Date(salaryPeriod.value.startDate);
-        const endDate = new Date(salaryPeriod.value.endDate);
-        if (endDate <= startDate) {
-            fieldValid.endDate = "Ngày kết thúc phải sau ngày bắt đầu";
-        }
-    }
-
-    return !Object.values(fieldValid).some(Boolean);
-}
-
-const handleBlur = (field) => {
-    validateField(field);
-};
 
 /**
  * Hàm xử lý sự kiện submit form
  * createdBy: TMHieu (25/04/2026)
  */
-const handleSubmit = (isSubmitAndAdd) => {
+const handleSubmit = async (isSubmitAndAdd) => {
     isSubmit.value = true;
     const allValid = validateForm();
     if (!allValid) {
         // Focus vào input lỗi đầu tiên
-        focusFirstInvalidInput();
+        await focusFirstInvalidInput();
         return;
     }
 
@@ -259,12 +192,9 @@ const handleSubmit = (isSubmitAndAdd) => {
 const handleCloseForm = () => {
     isFormOpen.value = false;
     isSubmit.value = false;
-    fieldValid.startDate = "";
-    fieldValid.endDate = "";
+    resetErrors();
     salaryPeriod.value = createSalaryPeriod();
 };
-
-const currentUser = "b8373a59-3be2-11f1-97ac-d0c5d346d1a4";
 
 /**
  * Hàm xử lý trước khi sự kiện submit form
@@ -274,6 +204,7 @@ const currentUser = "b8373a59-3be2-11f1-97ac-d0c5d346d1a4";
  * @returns dữ liệu cơ bản trên form
  */
 function buildPayload(periodData, isUpdate = false) {
+    const currentUser = getCurrentUserGuid();
     const { ...rest } = periodData;
 
     const basePayload = {
@@ -339,13 +270,6 @@ const getStatusText = (status) => {
     return status || "Không xác định";
 };
 
-const modelClose = () => {
-    showConfirm.value = false;
-    isSubmit.value = false;
-    errorMessage.value = "";
-    inputRefs[lastFocusField.value]?.focusInput();
-};
-
 const handleKeydown = (e) => {
     if (!isFormOpen.value) return;
 
@@ -405,8 +329,11 @@ onBeforeUnmount(() => {
                         :label="'Ngày bắt đầu'"
                         :ref="(el) => (inputRefs.startDate = el)"
                         v-model="salaryPeriod.startDate"
+                        value-format="YYYY-MM-DD"
+                        format="DD/MM/YYYY"
+                        placeholder="DD/MM/YYYY"
                         :width="300"
-                        :error="fieldValid.startDate"
+                        :error="errors.startDate"
                         @blurInput="handleBlur('startDate')"
                         required
                     ></ms-date-picker>
@@ -420,8 +347,11 @@ onBeforeUnmount(() => {
                         :label="'Ngày kết thúc'"
                         :ref="(el) => (inputRefs.endDate = el)"
                         v-model="salaryPeriod.endDate"
+                        value-format="YYYY-MM-DD"
+                        format="DD/MM/YYYY"
+                        placeholder="DD/MM/YYYY"
                         :width="300"
-                        :error="fieldValid.endDate"
+                        :error="errors.endDate"
                         @blurInput="handleBlur('endDate')"
                         required
                     ></ms-date-picker>

@@ -7,6 +7,7 @@ import shiftForm from "./ShiftForm.vue";
 import ShiftsAPI from "@/apis/components/shifts/shiftsAPI";
 import { $toastSuccess, $toastError } from "@/utils/toastService";
 import { usePagingTable } from "@/composables/usePagingTable";
+import { exportSelectedRows } from "@/utils/exportService";
 
 // #region Constants
 
@@ -390,6 +391,16 @@ function handleBatchActive(ids, isActive) {
     });
 }
 
+async function handleBatchExport(rows) {
+    try {
+        await exportSelectedRows(ShiftsAPI, rows, "Shifts");
+        $toastSuccess("Xuất excel ca làm việc thành công");
+    } catch (error) {
+        $toastError("Xuất excel ca làm việc thất bại");
+        console.error(error);
+    }
+}
+
 // #endregion edit
 /**
  * Hàm xử lý sự kiện mở form thêm ca làm việc
@@ -452,8 +463,11 @@ onMounted(() => {
                 @edit-active="handleChangeActive"
                 @batch-is-active="handleBatchActive"
                 @batch-delete="handleBatchDelete"
+                @batch-export="handleBatchExport"
                 @duplicate="handleDuplicate"
+                row-actions-name="Thao tác"
                 :loading="loading"
+                :show-active-actions="true"
                 ref="shiftTableRef"
             >
                 <template #isActive="{ value }">
