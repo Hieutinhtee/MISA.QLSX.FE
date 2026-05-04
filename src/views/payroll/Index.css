@@ -50,3 +50,12 @@
     height: 30px;
     padding: 4px 12px;
 }
+
+.icon-formula {
+    -webkit-mask-image: url(/src/assets/icon/svg/Icon_QLSX.svg);
+    -webkit-mask-position: -279px -14px; /* Dùng tạm icon help/info */
+    background-color: #4b5563;
+    width: 16px;
+    height: 16px;
+}
+

@@ -1,5 +1,5 @@
 <template>
-    <div class="ms-select" :class="{ 'ms-select--error': displayError, 'ms-select--focus': isFocus }">
+    <div class="ms-select" :class="{ 'ms-select--error': displayError, 'ms-select--focus': isFocus, 'ms-select--disabled': disabled }">
         <tooltip placement="bottom" :align="{ offset: [0, -4] }">
             <template v-if="displayError" #title>
                 <span class="tooltip-error">{{ displayError }}</span>
@@ -9,6 +9,7 @@
                 v-model="searchValue"
                 class="ms-select__input"
                 :placeholder="placeholder"
+                :disabled="disabled"
                 @focus="handleFocus"
                 @blur="handleBlur"
                 @input="handleInput"
@@ -95,6 +96,10 @@ const props = defineProps({
     error: {
         type: String,
         default: "",
+    },
+    disabled: {
+        type: Boolean,
+        default: false,
     },
 });
 
@@ -246,6 +251,7 @@ watch(isOpen, (val) => {
  * createdBy: TMHieu
  */
 function handleFocus() {
+    if (props.disabled) return;
     isFocus.value = true;
     isOpen.value = true;
     isTyping.value = false;
@@ -321,6 +327,7 @@ function selectOption(item) {
  * createdBy: TMHieu
  */
 function selectAll() {
+    if (props.disabled) return;
     if (inputRef.value) {
         inputRef.value.select();
     }
@@ -335,6 +342,7 @@ function selectAll() {
  * createdBy: TMHieu
  */
 function toggleDropdown() {
+    if (props.disabled) return;
     isOpen.value = !isOpen.value;
 
     if (isOpen.value) {
@@ -365,6 +373,18 @@ function toggleDropdown() {
 
 .ms-select--error .ms-select__input {
     border-color: red !important;
+}
+
+.ms-select--disabled .ms-select__input {
+    background-color: #f5f5f5;
+    border-color: #d9d9d9;
+    cursor: not-allowed;
+    /* color: rgba(0, 0, 0, 0.59); */
+}
+
+.ms-select--disabled .ms-select__icon {
+    cursor: not-allowed;
+    opacity: 0.5;
 }
 
 .ms-select__icon {

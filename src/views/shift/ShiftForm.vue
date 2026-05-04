@@ -8,7 +8,8 @@ import MsTextarea from "@/components/ms-textarea/MsTextarea.vue";
 import { formatTime } from "@/utils/common";
 import { getCurrentUserGuid } from "@/utils/currentUser";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
-import { Tooltip, Modal } from "ant-design-vue";
+import { Tooltip } from "ant-design-vue";
+import MsForm from "@/components/ms-form/MsForm.vue";
 import { useFormValidation } from "@/composables/useFormValidation";
 
 //#region constants
@@ -451,159 +452,128 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <!-- Alert error -->
-    <ms-alert v-model="showConfirm" title="Cảnh báo" @close="modelClose">
-        {{ errorMessage }}
-    </ms-alert>
-
-    <!-- Form thêm ca làm việc  -->
-    <Modal
+    <ms-form
         v-model:open="isFormOpen"
         :title="props.typeForm === 'edit' ? TITLE_SHIFT_FORM_EDIT : TITLE_SHIFT_FORM_ADD"
         width="760px"
-        centered
-        :footer="null"
-        :mask-closable="false"
-        :destroy-on-close="true"
+        :show-error-alert="showConfirm"
+        :error-message="errorMessage"
+        @close-alert="modelClose"
+        @submit="handleSubmit(false)"
+        @submit-and-add="handleSubmit(true)"
         @cancel="handleCloseForm"
     >
-        <div class="form-shift d-flex flex-column">
-            <!-- {{ props.data }} -->
-            <div class="form-shift__body d-flex flex-column">
-                <div class="form-shift__item d-flex justify-content-between">
-                    <div class="form-shift__label form-shift__label--required">Mã ca</div>
+        <div class="form-shift-content d-flex flex-column gap-16">
+            <div class="form-shift__item d-flex justify-content-between">
+                <div class="form-shift__label form-shift__label--required">Mã ca</div>
+                <ms-input
+                    :ref="(el) => (inputRefs.shiftCode = el)"
+                    v-model="shift.shiftCode"
+                    :width="474"
+                    :maxLength="20"
+                    :firstFocus="true"
+                    :error="errors.shiftCode"
+                    @blurInput="handleBlur('shiftCode')"
+                    required
+                ></ms-input>
+            </div>
+            <div class="form-shift__item d-flex justify-content-between">
+                <div class="form-shift__label form-shift__label--required">Tên ca</div>
+                <ms-input
+                    v-model="shift.shiftName"
+                    :ref="(el) => (inputRefs.shiftName = el)"
+                    :width="474"
+                    :maxLength="100"
+                    :error="errors.shiftName"
+                    @blurInput="handleBlur('shiftName')"
+                    required
+                ></ms-input>
+            </div>
+            <div class="form-shift__wrapper-item d-flex justify-content-between">
+                <div class="form-shift__item d-flex flex-1">
+                    <div class="form-shift__label form-shift__label--required">Giờ vào ca</div>
                     <ms-input
-                        :label="'Mã ca'"
-                        :ref="(el) => (inputRefs.shiftCode = el)"
-                        v-model="shift.shiftCode"
-                        :width="474"
-                        :maxLength="20"
-                        :firstFocus="true"
-                        :error="errors.shiftCode"
-                        @blurInput="handleBlur('shiftCode')"
+                        v-model="shift.startTime"
+                        :ref="(el) => (inputRefs.startTime = el)"
+                        :width="122"
+                        :type="'HH:MM'"
+                        :error="errors.startTime"
+                        @blurInput="handleBlur('startTime')"
                         required
                     ></ms-input>
                 </div>
-                <div class="form-shift__item d-flex justify-content-between">
-                    <div class="form-shift__label form-shift__label--required">Tên ca</div>
+                <div class="form-shift__item d-flex flex-1 justify-content-between">
+                    <div class="form-shift__label flex-1 form-shift__label--required">
+                        Giờ hết ca
+                    </div>
                     <ms-input
-                        v-model="shift.shiftName"
-                        :ref="(el) => (inputRefs.shiftName = el)"
-                        :label="'Tên ca'"
-                        :width="474"
-                        :maxLength="100"
-                        :error="errors.shiftName"
-                        @blurInput="handleBlur('shiftName')"
+                        :ref="(el) => (inputRefs.endTime = el)"
+                        v-model="shift.endTime"
+                        :width="122"
+                        :type="'HH:MM'"
+                        :error="errors.endTime"
+                        @blurInput="handleBlur('endTime')"
                         required
                     ></ms-input>
                 </div>
-                <div class="form-shift__wrapper-item d-flex justify-content-between">
-                    <div class="form-shift__item d-flex flex-1">
-                        <div class="form-shift__label form-shift__label--required">Giờ vào ca</div>
-                        <ms-input
-                            :label="'Giờ vào ca'"
-                            v-model="shift.startTime"
-                            :ref="(el) => (inputRefs.startTime = el)"
-                            :width="122"
-                            :type="'HH:MM'"
-                            :error="errors.startTime"
-                            @blurInput="handleBlur('startTime')"
-                            required
-                        ></ms-input>
-                    </div>
-                    <div class="form-shift__item d-flex flex-1 justify-content-between">
-                        <div class="form-shift__label flex-1 form-shift__label--required">
-                            Giờ hết ca
-                        </div>
-
-                        <ms-input
-                            :label="'Giờ hết ca'"
-                            :ref="(el) => (inputRefs.endTime = el)"
-                            v-model="shift.endTime"
-                            :width="122"
-                            :type="'HH:MM'"
-                            :error="errors.endTime"
-                            @blurInput="handleBlur('endTime')"
-                            required
-                        ></ms-input>
-                    </div>
-                </div>
-                <div class="form-shift__wrapper-item d-flex justify-content-between">
-                    <div class="form-shift__item d-flex flex-1">
-                        <div class="form-shift__label">Bắt đầu nghỉ giữa ca</div>
-                        <ms-input
-                            :type="'HH:MM'"
-                            v-model="shift.breakStartTime"
-                            :placeholder="'HH:MM'"
-                            :ref="(el) => (inputRefs.breakStartTime = el)"
-                            :error="errors.breakStartTime"
-                            :width="122"
-                            @blurInput="handleBlur('breakStartTime')"
-                        ></ms-input>
-                    </div>
-
-                    <div class="form-shift__item d-flex justify-content-between flex-1">
-                        <div class="form-shift__label flex-1">Kết thúc nghỉ giữa ca</div>
-                        <ms-input
-                            :type="'HH:MM'"
-                            v-model="shift.breakEndTime"
-                            :placeholder="'HH:MM'"
-                            :ref="(el) => (inputRefs.breakEndTime = el)"
-                            :error="errors.breakEndTime"
-                            :width="122"
-                            @blurInput="handleBlur('breakEndTime')"
-                        ></ms-input>
-                    </div>
+            </div>
+            <div class="form-shift__wrapper-item d-flex justify-content-between">
+                <div class="form-shift__item d-flex flex-1">
+                    <div class="form-shift__label">Bắt đầu nghỉ giữa ca</div>
+                    <ms-input
+                        :type="'HH:MM'"
+                        v-model="shift.breakStartTime"
+                        :placeholder="'HH:MM'"
+                        :ref="(el) => (inputRefs.breakStartTime = el)"
+                        :error="errors.breakStartTime"
+                        :width="122"
+                        @blurInput="handleBlur('breakStartTime')"
+                    ></ms-input>
                 </div>
 
-                <div class="form-shift__wrapper-item d-flex justify-content-between">
-                    <div class="form-shift__item d-flex flex-1">
-                        <div class="form-shift__label">Thời gian làm việc (giờ)</div>
-                        <ms-input v-model="shift.workingHours" :width="122" disabled></ms-input>
-                    </div>
-
-                    <div class="form-shift__item d-flex justify-content-between flex-1">
-                        <div class="form-shift__label">Thời gian nghỉ giữa ca (giờ)</div>
-                        <ms-input v-model="shift.breakHours" :width="122" disabled></ms-input>
-                    </div>
-                </div>
-
-                <div class="form-shift__item d-flex justify-content-between">
-                    <div class="form-shift__label">Mô tả</div>
-                    <ms-textarea v-model="shift.description"></ms-textarea>
-                </div>
-                <div v-if="props.typeForm === 'edit'" class="form-shift__item">
-                    <div class="form-shift__item d-flex">
-                        <div class="form-shift__label">Trạng thái</div>
-                        <ms-radio-button v-model="shift.isActive" :value="true" name="status"
-                            >Đang sử dụng</ms-radio-button
-                        >
-                        <ms-radio-button v-model="shift.isActive" :value="false" name="status"
-                            >Ngưng sử dụng</ms-radio-button
-                        >
-                    </div>
+                <div class="form-shift__item d-flex justify-content-between flex-1">
+                    <div class="form-shift__label flex-1">Kết thúc nghỉ giữa ca</div>
+                    <ms-input
+                        :type="'HH:MM'"
+                        v-model="shift.breakEndTime"
+                        :placeholder="'HH:MM'"
+                        :ref="(el) => (inputRefs.breakEndTime = el)"
+                        :error="errors.breakEndTime"
+                        :width="122"
+                        @blurInput="handleBlur('breakEndTime')"
+                    ></ms-input>
                 </div>
             </div>
 
-            <div class="form-shift__footer d-flex align-items-center justify-content-end">
-                <div class="form-shift__footer-buttons d-flex align-items-center">
-                    <ms-button :tooltip="'Crtl + S'" @click="handleSubmit(false)" tabindex="0"
-                        >Lưu</ms-button
+            <div class="form-shift__wrapper-item d-flex justify-content-between">
+                <div class="form-shift__item d-flex flex-1">
+                    <div class="form-shift__label">Thời gian làm việc (giờ)</div>
+                    <ms-input v-model="shift.workingHours" :width="122" disabled></ms-input>
+                </div>
+
+                <div class="form-shift__item d-flex justify-content-between flex-1">
+                    <div class="form-shift__label">Thời gian nghỉ giữa ca (giờ)</div>
+                    <ms-input v-model="shift.breakHours" :width="122" disabled></ms-input>
+                </div>
+            </div>
+
+            <div class="form-shift__item d-flex justify-content-between">
+                <div class="form-shift__label">Mô tả</div>
+                <ms-textarea v-model="shift.description"></ms-textarea>
+            </div>
+            <div v-if="props.typeForm === 'edit'" class="form-shift__item">
+                <div class="form-shift__item d-flex">
+                    <div class="form-shift__label">Trạng thái</div>
+                    <ms-radio-button v-model="shift.isActive" :value="true" name="status"
+                        >Đang sử dụng</ms-radio-button
                     >
-                    <ms-button
-                        :tooltip="'Crtl + Shift + S'"
-                        :type="'outline'"
-                        tabindex="0"
-                        @click="handleSubmit(true)"
-                        >Lưu và thêm</ms-button
-                    >
-                    <ms-button :type="'outline'" @click="handleCloseForm" tabindex="0"
-                        >Hủy</ms-button
+                    <ms-radio-button v-model="shift.isActive" :value="false" name="status"
+                        >Ngưng sử dụng</ms-radio-button
                     >
                 </div>
             </div>
         </div>
-    </Modal>
+    </ms-form>
 </template>
 
 <style scoped>

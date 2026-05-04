@@ -21,6 +21,7 @@ export const createContract = () => ({
     attachmentLink: "",
     isSigned: false,
     signedAt: null,
+    shiftId: null,
     createdAt: null,
     createdBy: "",
     updatedBy: "",

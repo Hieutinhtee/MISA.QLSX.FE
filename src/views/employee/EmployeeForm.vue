@@ -13,6 +13,7 @@ import ShiftsAPI from "@/apis/components/shifts/shiftsAPI";
 import { $toastError, $toastSuccess } from "@/utils/toastService";
 import { getCurrentUserGuid } from "@/utils/currentUser";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
+import MsForm from "@/components/ms-form/MsForm.vue";
 import { useFormValidation } from "@/composables/useFormValidation";
 
 const UploadDragger = Upload.Dragger;
@@ -543,349 +544,229 @@ watch(
         form.value = {
             ...createEmployee(),
             gender: "Nam",
-            avatarUrl: "profile.jpg",
-            degreeId: null,
-            departmentId: null,
-            shiftId: null,
-            positionId: null,
-            accountId: null,
-            contractId: null,
         };
     },
 );
 </script>
 
 <template>
-    <ms-alert v-model="showConfirm" title="Cảnh báo" @close="modelClose">
-        {{ errorMessage }}
-    </ms-alert>
-
-    <Modal
+    <ms-form
         v-model:open="isFormOpen"
         :title="props.typeForm === 'edit' ? 'Sửa nhân viên' : 'Thêm nhân viên'"
         width="960px"
-        centered
-        :footer="null"
-        :mask-closable="false"
-        :destroy-on-close="true"
+        :show-save-and-add="false"
+        :show-error-alert="showConfirm"
+        :error-message="errorMessage"
+        @close-alert="modelClose"
+        @submit="handleSubmit"
         @cancel="handleCloseForm"
     >
-        <div class="form-modal d-flex flex-column">
-            <div class="form-modal__body d-flex flex-column gap-12">
-                <div v-if="props.typeForm === 'add'" class="cv-parser d-flex flex-column">
-                    <div class="form-section__title">Tự động điền từ CV</div>
-                    <upload-dragger
-                        :multiple="false"
-                        :show-upload-list="false"
-                        :disabled="isParsingCv"
-                        accept=".pdf,.docx,.rtf,image/*"
-                        :before-upload="handleBeforeUpload"
-                        class="cv-drop-zone"
-                    >
-                        <div class="cv-drop-zone__title">
-                            Kéo thả CV vào đây (PDF, DOCX, RTF, ảnh) hoặc bấm để chọn file
-                        </div>
-
-                        <div v-if="cvFile" class="cv-drop-zone__file">File: {{ cvFile.name }}</div>
-                        <div
-                            v-if="isParsingCv"
-                            class="cv-drop-zone__status d-flex align-items-center"
-                        >
-                            <spin size="small" />
-                            <span>{{ cvParseStatus }}</span>
-                        </div>
-                    </upload-dragger>
-                </div>
-
-                <collapse v-model:activeKey="activeCollapseKeys" class="employee-collapse">
-                    <collapse-panel key="basic" header="Thông tin cơ bản">
-                        <div class="form-grid">
-                            <div class="form-item">
-                                <div class="form-label form-label--required">Mã nhân viên</div>
-                                <ms-input
-                                    v-model="form.employeeCode"
-                                    :error="errors.employeeCode"
-                                    :ref="(el) => (inputRefs.employeeCode = el)"
-                                    @blurInput="handleBlur('employeeCode')"
-                                />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label form-label--required">Họ tên</div>
-                                <ms-input
-                                    v-model="form.fullName"
-                                    :error="errors.fullName"
-                                    :ref="(el) => (inputRefs.fullName = el)"
-                                    @blurInput="handleBlur('fullName')"
-                                />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label form-label--required">Giới tính</div>
-                                <ms-select
-                                    v-model="form.gender"
-                                    :options="genderOptions"
-                                    placeholder="Chọn giới tính"
-                                    :ref="(el) => (inputRefs.gender = el)"
-                                    :error="errors.gender"
-                                    @blurInput="handleBlur('gender')"
-                                />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label form-label--required">Ngày sinh</div>
-                                <ms-date-picker
-                                    v-model="form.dateOfBirth"
-                                    value-format="YYYY-MM-DD"
-                                    format="DD/MM/YYYY"
-                                    class="ant-control"
-                                    :ref="(el) => (inputRefs.dateOfBirth = el)"
-                                    :error="errors.dateOfBirth"
-                                    @blurInput="handleBlur('dateOfBirth')"
-                                />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label form-label--required">CCCD/CMND</div>
-                                <ms-input
-                                    v-model="form.nationalId"
-                                    :error="errors.nationalId"
-                                    :ref="(el) => (inputRefs.nationalId = el)"
-                                    @blurInput="handleBlur('nationalId')"
-                                />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label form-label--required">Bằng cấp</div>
-                                <ms-select
-                                    v-model="form.degreeId"
-                                    :options="degreeOptions"
-                                    placeholder="Chọn bằng cấp"
-                                    dropdown-position="top"
-                                    :max-height="220"
-                                    :ref="(el) => (inputRefs.degreeId = el)"
-                                    :error="errors.degreeId"
-                                    @blurInput="handleBlur('degreeId')"
-                                />
-                            </div>
-                        </div>
-                    </collapse-panel>
-
-                    <collapse-panel key="work" header="Thông tin công việc">
-                        <div class="form-grid">
-                            <div class="form-item">
-                                <div class="form-label">Ngày vào làm</div>
-                                <ms-date-picker
-                                    v-model="form.joinDate"
-                                    value-format="YYYY-MM-DD"
-                                    format="DD/MM/YYYY"
-                                    class="ant-control"
-                                />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Phòng ban</div>
-                                <ms-select
-                                    v-model="form.departmentId"
-                                    :options="departmentOptions"
-                                    placeholder="Chọn phòng ban"
-                                    dropdown-position="top"
-                                    :max-height="220"
-                                />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Vị trí</div>
-                                <ms-select
-                                    v-model="form.positionId"
-                                    :options="positionOptions"
-                                    placeholder="Chọn vị trí"
-                                    dropdown-position="top"
-                                    :max-height="220"
-                                />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Ca làm</div>
-                                <ms-select
-                                    v-model="form.shiftId"
-                                    :options="shiftOptions"
-                                    placeholder="Chọn ca làm"
-                                    dropdown-position="top"
-                                    :max-height="220"
-                                />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Tài khoản (accountId)</div>
-                                <ms-input v-model="form.accountId" />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Hợp đồng (contractId)</div>
-                                <ms-input v-model="form.contractId" />
-                            </div>
-                        </div>
-                    </collapse-panel>
-
-                    <collapse-panel key="contact" header="Thông tin liên lạc">
-                        <div class="form-grid">
-                            <div class="form-item form-item--full">
-                                <div class="form-label">Địa chỉ</div>
-                                <ms-input v-model="form.address" />
-                            </div>
-
-                            <div class="form-item form-item--full">
-                                <div class="form-label">Địa chỉ tạm trú</div>
-                                <ms-input v-model="form.temporaryAddress" />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Số điện thoại</div>
-                                <ms-input v-model="form.phoneNumber" />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Email công việc</div>
-                                <ms-input
-                                    v-model="form.email"
-                                    :error="errors.email"
-                                    :ref="(el) => (inputRefs.email = el)"
-                                    @blurInput="handleBlur('email')"
-                                />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Email cá nhân</div>
-                                <ms-input
-                                    v-model="form.personalEmail"
-                                    :error="errors.personalEmail"
-                                    :ref="(el) => (inputRefs.personalEmail = el)"
-                                    @blurInput="handleBlur('personalEmail')"
-                                />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Zalo</div>
-                                <ms-input v-model="form.zaloNumber" />
-                            </div>
-
-                            <div class="form-item form-item--full">
-                                <div class="form-label">Facebook URL</div>
-                                <ms-input v-model="form.facebookUrl" />
-                            </div>
-                        </div>
-                    </collapse-panel>
-
-                    <collapse-panel key="personal" header="Thông tin cá nhân mở rộng">
-                        <div class="form-grid">
-                            <div class="form-item">
-                                <div class="form-label">Nơi sinh</div>
-                                <ms-input v-model="form.placeOfBirth" />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Quê quán</div>
-                                <ms-input v-model="form.hometown" />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Dân tộc</div>
-                                <ms-input v-model="form.ethnic" />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Tôn giáo</div>
-                                <ms-input v-model="form.religion" />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Quốc tịch</div>
-                                <ms-input v-model="form.nationality" />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Tình trạng hôn nhân</div>
-                                <ms-input v-model="form.maritalStatus" />
-                            </div>
-                        </div>
-                    </collapse-panel>
-
-                    <collapse-panel key="bank" header="Ngân hàng">
-                        <div class="form-grid">
-                            <div class="form-item">
-                                <div class="form-label">Số tài khoản</div>
-                                <ms-input v-model="form.bankAccountNumber" />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Tên ngân hàng</div>
-                                <ms-input v-model="form.bankName" />
-                            </div>
-
-                            <div class="form-item form-item--full">
-                                <div class="form-label">Chi nhánh</div>
-                                <ms-input v-model="form.bankBranch" />
-                            </div>
-                        </div>
-                    </collapse-panel>
-
-                    <collapse-panel key="emergency" header="Liên hệ khẩn cấp">
-                        <div class="form-grid">
-                            <div class="form-item">
-                                <div class="form-label">Họ tên người liên hệ</div>
-                                <ms-input v-model="form.emergencyContactName" />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Số điện thoại</div>
-                                <ms-input v-model="form.emergencyContactPhone" />
-                            </div>
-
-                            <div class="form-item form-item--full">
-                                <div class="form-label">Mối quan hệ</div>
-                                <ms-input v-model="form.emergencyContactRelationship" />
-                            </div>
-                        </div>
-                    </collapse-panel>
-
-                    <collapse-panel key="health" header="Sức khỏe &amp; Bảo hiểm">
-                        <div class="form-grid">
-                            <div class="form-item">
-                                <div class="form-label">Chiều cao</div>
-                                <ms-input v-model="form.height" />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Cân nặng</div>
-                                <ms-input v-model="form.weight" />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Nhóm máu</div>
-                                <ms-input v-model="form.bloodGroup" />
-                            </div>
-
-                            <div class="form-item">
-                                <div class="form-label">Tình trạng sức khỏe</div>
-                                <ms-input v-model="form.healthStatus" />
-                            </div>
-
-                            <div class="form-item form-item--full">
-                                <div class="form-label">Số BHXH</div>
-                                <ms-input v-model="form.socialInsuranceNumber" />
-                            </div>
-                        </div>
-                    </collapse-panel>
-                </collapse>
+        <div class="form-employee-content d-flex flex-column gap-12">
+            <!-- CV Parser (Chỉ hiện khi thêm mới) -->
+            <div v-if="props.typeForm === 'add'" class="cv-parser d-flex flex-column">
+                <div class="form-section__title">Tự động điền từ CV</div>
+                <upload-dragger
+                    :multiple="false"
+                    :show-upload-list="false"
+                    :disabled="isParsingCv"
+                    accept=".pdf,.docx,.rtf,image/*"
+                    :before-upload="handleBeforeUpload"
+                    class="cv-drop-zone"
+                >
+                    <div class="cv-drop-zone__title">
+                        Kéo thả CV vào đây (PDF, DOCX, RTF, ảnh) hoặc bấm để chọn file
+                    </div>
+                    <div v-if="cvFile" class="cv-drop-zone__file">File: {{ cvFile.name }}</div>
+                    <div v-if="isParsingCv" class="cv-drop-zone__status d-flex align-items-center">
+                        <spin size="small" />
+                        <span>{{ cvParseStatus }}</span>
+                    </div>
+                </upload-dragger>
             </div>
 
-            <div class="form-modal__footer d-flex justify-content-end gap-12">
-                <ms-button @click="handleSubmit">Lưu</ms-button>
-                <ms-button :type="'outline'" @click="handleCloseForm">Hủy</ms-button>
-            </div>
+            <!-- Employee Info Sections -->
+            <collapse v-model:activeKey="activeCollapseKeys" class="employee-collapse">
+                <collapse-panel key="basic" header="Thông tin cơ bản">
+                    <div class="form-grid">
+                        <div class="form-item">
+                            <div class="form-label form-label--required">Mã nhân viên</div>
+                            <ms-input v-model="form.employeeCode" :error="errors.employeeCode" :ref="(el) => (inputRefs.employeeCode = el)" @blurInput="handleBlur('employeeCode')" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label form-label--required">Họ tên</div>
+                            <ms-input v-model="form.fullName" :error="errors.fullName" :ref="(el) => (inputRefs.fullName = el)" @blurInput="handleBlur('fullName')" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label form-label--required">Giới tính</div>
+                            <ms-select v-model="form.gender" :options="genderOptions" placeholder="Chọn giới tính" :ref="(el) => (inputRefs.gender = el)" :error="errors.gender" @blurInput="handleBlur('gender')" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label form-label--required">Ngày sinh</div>
+                            <ms-date-picker v-model="form.dateOfBirth" value-format="YYYY-MM-DD" format="DD/MM/YYYY" class="ant-control" :ref="(el) => (inputRefs.dateOfBirth = el)" :error="errors.dateOfBirth" @blurInput="handleBlur('dateOfBirth')" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label form-label--required">CCCD/CMND</div>
+                            <ms-input v-model="form.nationalId" :error="errors.nationalId" :ref="(el) => (inputRefs.nationalId = el)" @blurInput="handleBlur('nationalId')" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label form-label--required">Bằng cấp</div>
+                            <ms-select v-model="form.degreeId" :options="degreeOptions" placeholder="Chọn bằng cấp" dropdown-position="top" :max-height="220" :ref="(el) => (inputRefs.degreeId = el)" :error="errors.degreeId" @blurInput="handleBlur('degreeId')" />
+                        </div>
+                    </div>
+                </collapse-panel>
+
+                <collapse-panel key="work" header="Thông tin công việc">
+                    <div class="form-grid">
+                        <div class="form-item">
+                            <div class="form-label">Ngày vào làm</div>
+                            <ms-date-picker v-model="form.joinDate" value-format="YYYY-MM-DD" format="DD/MM/YYYY" class="ant-control" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Phòng ban</div>
+                            <ms-select v-model="form.departmentId" :options="departmentOptions" placeholder="Chọn phòng ban" dropdown-position="top" :max-height="220" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Vị trí</div>
+                            <ms-select v-model="form.positionId" :options="positionOptions" placeholder="Chọn vị trí" dropdown-position="top" :max-height="220" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Ca làm</div>
+                            <ms-select v-model="form.shiftId" :options="shiftOptions" placeholder="Chọn ca làm" dropdown-position="top" :max-height="220" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Tài khoản</div>
+                            <ms-input v-model="form.accountId" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Hợp đồng</div>
+                            <ms-input v-model="form.contractId" />
+                        </div>
+                    </div>
+                </collapse-panel>
+
+                <collapse-panel key="contact" header="Thông tin liên lạc">
+                    <div class="form-grid">
+                        <div class="form-item form-item--full">
+                            <div class="form-label">Địa chỉ</div>
+                            <ms-input v-model="form.address" />
+                        </div>
+                        <div class="form-item form-item--full">
+                            <div class="form-label">Địa chỉ tạm trú</div>
+                            <ms-input v-model="form.temporaryAddress" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Số điện thoại</div>
+                            <ms-input v-model="form.phoneNumber" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Email công việc</div>
+                            <ms-input v-model="form.email" :error="errors.email" :ref="(el) => (inputRefs.email = el)" @blurInput="handleBlur('email')" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Email cá nhân</div>
+                            <ms-input v-model="form.personalEmail" :error="errors.personalEmail" :ref="(el) => (inputRefs.personalEmail = el)" @blurInput="handleBlur('personalEmail')" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Zalo</div>
+                            <ms-input v-model="form.zaloNumber" />
+                        </div>
+                        <div class="form-item form-item--full">
+                            <div class="form-label">Facebook URL</div>
+                            <ms-input v-model="form.facebookUrl" />
+                        </div>
+                    </div>
+                </collapse-panel>
+
+                <collapse-panel key="personal" header="Thông tin cá nhân mở rộng">
+                    <div class="form-grid">
+                        <div class="form-item">
+                            <div class="form-label">Nơi sinh</div>
+                            <ms-input v-model="form.placeOfBirth" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Quê quán</div>
+                            <ms-input v-model="form.hometown" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Dân tộc</div>
+                            <ms-input v-model="form.ethnic" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Tôn giáo</div>
+                            <ms-input v-model="form.religion" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Quốc tịch</div>
+                            <ms-input v-model="form.nationality" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Tình trạng hôn nhân</div>
+                            <ms-input v-model="form.maritalStatus" />
+                        </div>
+                    </div>
+                </collapse-panel>
+
+                <collapse-panel key="bank" header="Ngân hàng">
+                    <div class="form-grid">
+                        <div class="form-item">
+                            <div class="form-label">Số tài khoản</div>
+                            <ms-input v-model="form.bankAccountNumber" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Tên ngân hàng</div>
+                            <ms-input v-model="form.bankName" />
+                        </div>
+                        <div class="form-item form-item--full">
+                            <div class="form-label">Chi nhánh</div>
+                            <ms-input v-model="form.bankBranch" />
+                        </div>
+                    </div>
+                </collapse-panel>
+
+                <collapse-panel key="emergency" header="Liên hệ khẩn cấp">
+                    <div class="form-grid">
+                        <div class="form-item">
+                            <div class="form-label">Họ tên người liên hệ</div>
+                            <ms-input v-model="form.emergencyContactName" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Số điện thoại</div>
+                            <ms-input v-model="form.emergencyContactPhone" />
+                        </div>
+                        <div class="form-item form-item--full">
+                            <div class="form-label">Mối quan hệ</div>
+                            <ms-input v-model="form.emergencyContactRelationship" />
+                        </div>
+                    </div>
+                </collapse-panel>
+
+                <collapse-panel key="health" header="Sức khỏe & Bảo hiểm">
+                    <div class="form-grid">
+                        <div class="form-item">
+                            <div class="form-label">Chiều cao</div>
+                            <ms-input v-model="form.height" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Cân nặng</div>
+                            <ms-input v-model="form.weight" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Nhóm máu</div>
+                            <ms-input v-model="form.bloodGroup" />
+                        </div>
+                        <div class="form-item">
+                            <div class="form-label">Tình trạng sức khỏe</div>
+                            <ms-input v-model="form.healthStatus" />
+                        </div>
+                        <div class="form-item form-item--full">
+                            <div class="form-label">Số BHXH</div>
+                            <ms-input v-model="form.socialInsuranceNumber" />
+                        </div>
+                    </div>
+                </collapse-panel>
+            </collapse>
         </div>
-    </Modal>
+    </ms-form>
 </template>
 
 <style scoped>

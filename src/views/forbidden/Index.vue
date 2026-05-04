@@ -3,10 +3,23 @@
         <div class="forbidden-card">
             <h1>403</h1>
             <p>Bạn không có quyền truy cập trang này.</p>
-            <RouterLink to="/shifts" class="back-link">Quay về trang chủ</RouterLink>
+            <button @click="handleBackHome" class="back-link-btn">Quay về trang đăng nhập</button>
         </div>
     </div>
 </template>
+
+<script setup>
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const handleBackHome = () => {
+    // Xóa session để thoát khỏi vòng lặp redirect vô tận
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    router.push('/login');
+};
+</script>
 
 <style scoped>
 .forbidden-page {
@@ -37,9 +50,18 @@ p {
     color: #334155;
 }
 
-.back-link {
-    color: #009b71;
+.back-link-btn {
+    background: #009b71;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
     font-weight: 700;
-    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.back-link-btn:hover {
+    background: #007d5c;
 }
 </style>

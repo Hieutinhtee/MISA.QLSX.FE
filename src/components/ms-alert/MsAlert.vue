@@ -24,7 +24,7 @@
                         <!-- Chế độ confirm: hiển thị 2 button -->
                         <template v-if="showConfirm">
                             <MsButton type="outline" @click="onClose">Hủy</MsButton>
-                            <MsButton type="danger" @click="onConfirm">Xóa</MsButton>
+                            <MsButton :type="confirmType" @click="onConfirm">{{ confirmText }}</MsButton>
                         </template>
                         <!-- Chế độ thông báo thường: chỉ 1 button -->
                         <template v-else>
@@ -54,6 +54,14 @@ const props = defineProps({
     showConfirm: {
         type: Boolean,
         default: false,
+    },
+    confirmText: {
+        type: String,
+        default: "Đồng ý",
+    },
+    confirmType: {
+        type: String,
+        default: "danger",
     },
 });
 

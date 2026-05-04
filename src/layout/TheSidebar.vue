@@ -1,6 +1,23 @@
 <script setup>
 import { computed, inject, ref, onMounted, watch } from "vue";
+import {
+    DashboardOutlined,
+    TeamOutlined,
+    FileTextOutlined,
+    DollarOutlined,
+    GiftOutlined,
+    GlobalOutlined,
+    SolutionOutlined,
+    ScheduleOutlined,
+    SettingOutlined,
+    AuditOutlined,
+    DownOutlined,
+    MenuFoldOutlined,
+    MenuUnfoldOutlined,
+    EnterOutlined,
+} from "@ant-design/icons-vue";
 import { useRoute, useRouter } from "vue-router";
+import { markRaw } from "vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -28,7 +45,7 @@ const menu = ref([
     {
         name: "home",
         title: "Tổng quan",
-        iconClass: "sidebar__home-icon",
+        icon: markRaw(DashboardOutlined),
         roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
     },
     // { name: "order", title: "Đơn đặt hàng", active: false },
@@ -105,7 +122,7 @@ const menu = ref([
     {
         name: "production",
         title: "Nhân viên",
-        iconClass: "sidebar__production-icon",
+        icon: markRaw(TeamOutlined),
         active: false,
         roles: ["ADMIN", "HR", "MANAGER"],
         children: [
@@ -120,6 +137,16 @@ const menu = ref([
                 roles: ["ADMIN", "HR"],
             },
             {
+                title: "Phòng ban",
+                path: "/departments",
+                roles: ["ADMIN", "HR"],
+            },
+            {
+                title: "Chức vụ",
+                path: "/positions",
+                roles: ["ADMIN", "HR"],
+            },
+            {
                 title: "Nhân viên chưa có HĐ",
                 path: "/employees-without-contract",
                 roles: ["ADMIN", "HR"],
@@ -129,7 +156,7 @@ const menu = ref([
     {
         name: "contract",
         title: "Hợp đồng",
-        iconClass: "sidebar__process-icon",
+        icon: markRaw(FileTextOutlined),
         active: false,
         roles: ["ADMIN", "HR", "MANAGER"],
         children: [
@@ -148,39 +175,70 @@ const menu = ref([
     {
         name: "payroll",
         title: "Bảng lương",
-        iconClass: "sidebar__cost-icon",
+        icon: markRaw(DollarOutlined),
         active: false,
         roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
     },
     {
         name: "allowance",
         title: "Phụ cấp",
-        iconClass: "sidebar__category-icon",
+        icon: markRaw(GiftOutlined),
         active: false,
         roles: ["ADMIN", "HR"],
     },
     {
         name: "businessTrip",
         title: "Công tác",
-        iconClass: "sidebar__category-icon",
+        icon: markRaw(GlobalOutlined),
         active: false,
         roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
     },
     {
         name: "evaluation",
         title: "Đánh giá",
-        iconClass: "sidebar__category-icon",
+        icon: markRaw(SolutionOutlined),
         active: false,
         roles: ["ADMIN", "HR", "MANAGER"],
     },
     {
+        name: "attendance",
+        title: "Chấm công",
+        icon: markRaw(ScheduleOutlined),
+        active: false,
+        roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
+        children: [
+            {
+                title: "Tổng quan",
+                path: "/attendance/dashboard",
+                roles: ["ADMIN", "HR", "MANAGER"],
+            },
+            {
+                title: "Lịch sử của tôi",
+                path: "/attendance/my-calendar",
+                roles: ["EMPLOYEE", "ADMIN", "HR", "MANAGER"],
+            },
+            {
+                title: "Bảng chấm công",
+                path: "/attendances",
+                roles: ["ADMIN", "HR", "MANAGER"],
+            },
+        ],
+    },
+    {
         name: "category",
         title: "Ca làm việc",
-        iconClass: "sidebar__category-icon",
+        icon: markRaw(ScheduleOutlined),
         active: true,
-        roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
+        roles: ["ADMIN", "HR", "MANAGER"],
     },
-    { name: "system", title: "Thiết lập", iconClass: "sidebar__system-icon", active: false },
+    {
+        name: "approval",
+        title: "Phê duyệt",
+        icon: markRaw(AuditOutlined),
+        active: false,
+        roles: ["ADMIN", "HR", "MANAGER"],
+    },
+    { name: "system", title: "Thiết lập", icon: markRaw(SettingOutlined), active: false },
 ]);
 
 // Trạng thái toggle sidebar
@@ -226,6 +284,14 @@ const currentEmployeeSubmenu = computed(() => {
         return "/degrees";
     }
 
+    if (route.path.startsWith("/departments")) {
+        return "/departments";
+    }
+
+    if (route.path.startsWith("/positions")) {
+        return "/positions";
+    }
+
     if (route.path.startsWith("/employees")) {
         return "/employees";
     }
@@ -245,14 +311,33 @@ const currentContractSubmenu = computed(() => {
     return "";
 });
 
+const currentAttendanceSubmenu = computed(() => {
+    if (route.path.startsWith("/attendance/dashboard")) {
+        return "/attendance/dashboard";
+    }
+
+    if (route.path.startsWith("/attendance/my-calendar")) {
+        return "/attendance/my-calendar";
+    }
+
+    if (route.path.startsWith("/attendances")) {
+        return "/attendances";
+    }
+
+    return "";
+});
+
 watch(
     () => route.path,
     (path) => {
         // Chỉ set activeMenu khi path thay đổi, không reset
-        if (path.startsWith("/employees") || path.startsWith("/degrees")) {
+        if (path.startsWith("/employees") || path.startsWith("/degrees")
+            || path.startsWith("/departments") || path.startsWith("/positions")) {
             activeMenu.value = "production";
         } else if (path.startsWith("/contracts") || path.startsWith("/contract-templates")) {
             activeMenu.value = "contract";
+        } else if (path.startsWith("/attendance") || path.startsWith("/attendances")) {
+            activeMenu.value = "attendance";
         } else {
             // Khi navigate đến trang không thuộc nhóm nào, đóng submenu
             activeMenu.value = null;
@@ -292,12 +377,22 @@ const openDev = (nameItem) => {
         return;
     }
 
+    if (nameItem === "approval") {
+        router.push("/approvals");
+        return;
+    }
+
     window.$dev();
 };
 
 const currentMenu = computed(() => {
     if (route.path.startsWith("/dashboard")) return "home";
-    if (route.path.startsWith("/employees") || route.path.startsWith("/degrees")) {
+    if (
+        route.path.startsWith("/employees") ||
+        route.path.startsWith("/degrees") ||
+        route.path.startsWith("/departments") ||
+        route.path.startsWith("/positions")
+    ) {
         return "production";
     }
     if (route.path.startsWith("/shifts")) return "category";
@@ -308,6 +403,8 @@ const currentMenu = computed(() => {
     if (route.path.startsWith("/allowances")) return "allowance";
     if (route.path.startsWith("/business-trips")) return "businessTrip";
     if (route.path.startsWith("/evaluations")) return "evaluation";
+    if (route.path.startsWith("/approvals")) return "approval";
+    if (route.path.startsWith("/attendance") || route.path.startsWith("/attendances")) return "attendance";
     return "";
 });
 
@@ -323,10 +420,13 @@ const handleMenuClick = (item) => {
         // Đang mở → đóng
         activeMenu.value = null;
     } else {
-        // Đang đóng → mở + navigate đến trang đầu tiên
+        // Đang đóng → mở + navigate đến trang đầu tiên CÓ QUYỀN TRUY CẬP
         activeMenu.value = item.name;
-        if (item.children && item.children[0]?.path) {
-            router.push(item.children[0].path);
+        if (item.children) {
+            const accessibleChild = item.children.find(child => canAccessRoles(child.roles));
+            if (accessibleChild?.path) {
+                router.push(accessibleChild.path);
+            }
         }
     }
 };
@@ -349,12 +449,9 @@ const handleMenuClick = (item) => {
                         ]"
                         @click="handleMenuClick(item)"
                     >
-                        <div
-                            :class="[
-                                item.iconClass || 'sidebar__' + item.name + '-icon',
-                                'sidebar__icon',
-                            ]"
-                        ></div>
+                        <div class="sidebar__icon d-flex align-items-center justify-content-center">
+                            <component :is="item.icon" :style="{ fontSize: '16px' }" />
+                        </div>
                         <div
                             :class="['sidebar__title', toggleState === 'collapsed' ? 'hidden' : '']"
                         >
@@ -384,9 +481,10 @@ const handleMenuClick = (item) => {
                                     'd-flex',
                                     'align-items-center',
                                     currentEmployeeSubmenu === child.path ||
-                                    currentContractSubmenu === child.path
-                                        ? 'sidebar__submenu-item--active'
-                                        : '',
+                                    currentContractSubmenu === child.path ||
+                                    currentAttendanceSubmenu === child.path
+                                         ? 'sidebar__submenu-item--active'
+                                         : '',
                                 ]"
                             >
                                 <RouterLink
@@ -395,13 +493,13 @@ const handleMenuClick = (item) => {
                                     class="sidebar__submenu-link d-flex align-items-center"
                                     @click.stop
                                 >
-                                    <div :class="['sidebar__enter-icon', 'sidebar__icon']"></div>
+                                    <div class="sidebar__icon sidebar__enter-icon"></div>
                                     <div :class="['sidebar__title']">
                                         {{ child.title }}
                                     </div>
                                 </RouterLink>
                                 <template v-else>
-                                    <div :class="['sidebar__enter-icon', 'sidebar__icon']"></div>
+                                    <div class="sidebar__icon sidebar__enter-icon"></div>
                                     <div :class="['sidebar__title']">
                                         {{ child.title }}
                                     </div>
@@ -444,6 +542,11 @@ const handleMenuClick = (item) => {
     flex-direction: column;
     row-gap: 4px;
     overflow: hidden; /* quan trọng để cắt nội dung khi thu chiều cao */
+}
+
+.sidebar__submenu-link {
+    text-decoration: none;
+    width: 100%;
 }
 
 /* Transition submenu: mở bằng tăng chiều cao, đóng bằng giảm chiều cao */
@@ -519,7 +622,7 @@ const handleMenuClick = (item) => {
 }
 
 .sidebar__menu-item--active .sidebar__icon {
-    background-color: white;
+    color: white;
 }
 
 .sidebar__menu-item--active .sidebar__title {
@@ -535,11 +638,43 @@ const handleMenuClick = (item) => {
 }
 
 .sidebar__menu-item:not(.sidebar__menu-item--active):hover .sidebar__icon {
-    background-color: white;
+    color: white;
+}
+
+.sidebar__icon {
+    background-color: #9ca3af; /* Khôi phục lại màu nền cho các icon mask */
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Riêng các icon Ant Design thì không dùng background-color */
+.sidebar__icon:has(span) {
+    background-color: transparent !important;
+}
+
+.sidebar__menu-item--active .sidebar__icon {
+    color: white !important;
+    background-color: white !important;
+}
+
+.sidebar__menu-item--active .sidebar__icon:has(span) {
+    background-color: transparent !important;
+}
+
+.sidebar__menu-item:hover .sidebar__icon {
+    color: white !important;
+    background-color: white !important;
+}
+
+.sidebar__menu-item:hover .sidebar__icon:has(span) {
+    background-color: transparent !important;
 }
 
 .sidebar__title {
     color: #9ca3af;
+    margin-left: 4px;
 }
 
 .sidebar__menu-line {

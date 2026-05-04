@@ -72,15 +72,27 @@ export function useFormValidation() {
         if (lastFocusField.value) {
             const component = inputRefs[lastFocusField.value];
             if (component) {
+                let targetEl = null;
+
                 if (typeof component.focusInput === "function") {
                     component.focusInput();
+                    targetEl = component.$el;
                 } else if (typeof component.focus === "function") {
                     component.focus();
+                    targetEl = component.$el;
                 } else if (component.$el && typeof component.$el.focus === "function") {
                     component.$el.focus();
+                    targetEl = component.$el;
                 } else if (component.focusPicker && typeof component.focusPicker === "function") {
-                    // Xử lý riêng cho các component của Ant Design Vue nếu cần
                     component.focusPicker();
+                    targetEl = component.$el;
+                }
+
+                // Thực hiện scroll nếu tìm thấy phần tử
+                if (targetEl) {
+                    setTimeout(() => {
+                        targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }, 100);
                 }
             }
         }

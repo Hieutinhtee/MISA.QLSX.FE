@@ -4,7 +4,8 @@ import MsTable from "@/components/ms-table/MsTable.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import PayrollsAPI from "@/apis/components/payrolls/payrollsAPI";
 import { $toastError } from "@/utils/toastService";
-import { Modal } from "ant-design-vue";
+import PayrollFormulaModal from "./PayrollFormulaModal.vue";
+import MsForm from "@/components/ms-form/MsForm.vue";
 
 //#region Props
 const props = defineProps({
@@ -37,6 +38,9 @@ const payload = ref({
     sorts: [],
     totalRows: 0,
 });
+
+const formulaModalOpen = ref(false);
+const selectedPayroll = ref(null);
 
 const columns = ref([
     { key: "payrollCode", name: "Mã bảng lương", width: 150 },
@@ -147,6 +151,11 @@ const getStatusText = (status) => {
 
     return status || "Không xác định";
 };
+
+const handleViewFormula = (row) => {
+    selectedPayroll.value = row;
+    formulaModalOpen.value = true;
+};
 //#endregion
 
 //#region Watch
@@ -162,92 +171,91 @@ watch(
 </script>
 
 <template>
-    <Modal
+    <ms-form
         v-model:open="modalOpen"
         :title="modalTitle"
-        width="80vw"
-        centered
-        :footer="null"
-        :destroy-on-close="true"
-        :mask-closable="true"
+        width="90vw"
+        :show-save-and-add="false"
         @cancel="handleClose"
     >
-        <div class="payroll-detail__content d-flex flex-1 flex-column">
-            <div class="payroll-detail__body flex-1">
-                <ms-table
-                    :columns="columns"
-                    :rows="payrolls"
-                    :pagination-data="payload"
-                    :loading="loading"
-                    storage-key="payroll-detail-table"
-                    row-actions-name="Thao tác"
-                    @update:pagination="onPaginationUpdate"
-                    @update:search="onSearchChange"
-                >
-                    <template #grossSalary="{ value }">
-                        {{ formatCurrency(value) }}
-                    </template>
+        <div class="payroll-detail__body">
+            <ms-table
+                :columns="columns"
+                :rows="payrolls"
+                :pagination-data="payload"
+                :loading="loading"
+                storage-key="payroll-detail-table"
+                row-actions-name="Thao tác"
+                @update:pagination="onPaginationUpdate"
+                @update:search="onSearchChange"
+            >
+                <template #grossSalary="{ value }">
+                    {{ formatCurrency(value) }}
+                </template>
 
-                    <template #taxableSalary="{ value }">
-                        {{ formatCurrency(value) }}
-                    </template>
+                <template #taxableSalary="{ value }">
+                    {{ formatCurrency(value) }}
+                </template>
 
-                    <template #pitTaxAmount="{ value }">
-                        {{ formatCurrency(value) }}
-                    </template>
+                <template #pitTaxAmount="{ value }">
+                    {{ formatCurrency(value) }}
+                </template>
 
-                    <template #insuranceDeduction="{ value }">
-                        {{ formatCurrency(value) }}
-                    </template>
+                <template #insuranceDeduction="{ value }">
+                    {{ formatCurrency(value) }}
+                </template>
 
-                    <template #totalAllowance="{ value }">
-                        {{ formatCurrency(value) }}
-                    </template>
+                <template #totalAllowance="{ value }">
+                    {{ formatCurrency(value) }}
+                </template>
 
-                    <template #totalAddition="{ value }">
-                        {{ formatCurrency(value) }}
-                    </template>
+                <template #totalAddition="{ value }">
+                    {{ formatCurrency(value) }}
+                </template>
 
-                    <template #totalDeduction="{ value }">
-                        {{ formatCurrency(value) }}
-                    </template>
+                <template #totalDeduction="{ value }">
+                    {{ formatCurrency(value) }}
+                </template>
 
-                    <template #netSalary="{ value }">
-                        <strong>{{ formatCurrency(value) }}</strong>
-                    </template>
+                <template #netSalary="{ value }">
+                    <strong>{{ formatCurrency(value) }}</strong>
+                </template>
 
-                    <template #status="{ value }">
-                        <span :class="getStatusClass(value)">{{ getStatusText(value) }}</span>
-                    </template>
-                </ms-table>
-            </div>
+                <template #status="{ value }">
+                    <span :class="getStatusClass(value)">{{ getStatusText(value) }}</span>
+                </template>
 
-            <div class="payroll-detail__footer d-flex align-items-center justify-content-end">
+                <template #row-actions="{ row }">
+                    <div class="btn-modify-wrapper" @click="handleViewFormula(row)">
+                        <div
+                            class="content__table-btn-modify icon-formula"
+                            title="Xem công thức tính lương"
+                        ></div>
+                    </div>
+                </template>
+            </ms-table>
+        </div>
+
+        <payroll-formula-modal
+            v-model:open="formulaModalOpen"
+            :payroll="selectedPayroll"
+        />
+
+        <template #footer>
+            <div class="d-flex justify-content-end w-100">
                 <ms-button type="outline" @click="handleClose">Đóng</ms-button>
             </div>
-        </div>
-    </Modal>
+        </template>
+    </ms-form>
 </template>
 
 <style scoped>
-.payroll-detail__content {
-    height: 100%;
-    overflow: hidden;
-}
+@import "./Index.css";
 
 .payroll-detail__body {
-    padding: 0 10px 0 10px;
-    overflow: hidden;
+    height: 70vh;
     display: flex;
     flex-direction: column;
-    border-radius: var(--border-radius);
-}
-
-.payroll-detail__footer {
-    height: 56px;
-    width: 100%;
-    border-top: 1px solid #e0e0e0;
-    padding: 12px 20px;
 }
 
 .payroll-detail__footer-buttons {

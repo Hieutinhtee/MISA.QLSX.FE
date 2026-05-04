@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed } from "vue";
 import { Spin, Empty } from "ant-design-vue";
 import DashboardAPI from "@/apis/components/dashboard/dashboardAPI";
 
@@ -16,6 +16,14 @@ const periodOptions = [
 
 // Tab đang mở trong phần danh sách
 const activeTab = ref("expiringContracts");
+// Current user (from localStorage) and role check
+const currentUser = ref(null);
+const isEmployee = computed(() => {
+    if (!currentUser.value) return false;
+    let role = currentUser.value.Role || currentUser.value.role || null;
+    if (typeof role === "string" && role.startsWith("ROLE_")) role = role.substring(5);
+    return role === "EMPLOYEE";
+});
 // #endregion State
 
 // #region Methods
@@ -55,6 +63,12 @@ watch(period, () => {
 
 // #region Lifecycle
 onMounted(() => {
+    // load user and dashboard
+    try {
+        currentUser.value = JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+        currentUser.value = null;
+    }
     fetchDashboard();
 });
 // #endregion Lifecycle
@@ -64,7 +78,7 @@ onMounted(() => {
     <div class="dashboard">
         <!-- Header -->
         <div class="dashboard__header">
-            <h1 class="dashboard__title">Tổng quan</h1>
+            <h1 class="dashboard__title">{{ isEmployee ? "Tổng quan của tôi" : "Tổng quan" }}</h1>
             <div class="dashboard__period-selector">
                 <button
                     v-for="opt in periodOptions"
@@ -81,7 +95,7 @@ onMounted(() => {
         </div>
 
         <Spin :spinning="loading" size="large">
-            <template v-if="dashboard">
+            <template v-if="!isEmployee && dashboard">
                 <!-- Stats Cards -->
                 <div class="dashboard__stats">
                     <div class="dashboard__card dashboard__card--employees">
@@ -489,6 +503,119 @@ onMounted(() => {
                             </tbody>
                         </table>
                         <Empty v-else description="Không có nhân viên đang đi công tác" />
+                    </div>
+                </div>
+            </template>
+
+            <!-- Employee-specific overview: show personal summaries and quick links -->
+            <template v-else>
+                <div class="dashboard__employee">
+                    <div class="dashboard__stats">
+                        <div class="dashboard__card dashboard__card--employees">
+                            <div class="dashboard__card-icon">
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    width="28"
+                                    height="28"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <circle cx="12" cy="8" r="3" />
+                                    <path d="M5 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2" />
+                                </svg>
+                            </div>
+                            <div class="dashboard__card-body">
+                                <div class="dashboard__card-value">
+                                    {{
+                                        (currentUser &&
+                                            (currentUser.full_name || currentUser.FullName)) ||
+                                        "Tôi"
+                                    }}
+                                </div>
+                                <div class="dashboard__card-label">Nhân viên</div>
+                            </div>
+                            <div class="dashboard__card-badge dashboard__card-badge--green">
+                                <RouterLink to="/attendance/my-calendar">Xem lịch</RouterLink>
+                            </div>
+                        </div>
+
+                        <div class="dashboard__card dashboard__card--salary">
+                            <div class="dashboard__card-icon">
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    width="28"
+                                    height="28"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <line x1="12" y1="1" x2="12" y2="23" />
+                                </svg>
+                            </div>
+                            <div class="dashboard__card-body">
+                                <div class="dashboard__card-value dashboard__card-value--small">
+                                    —
+                                </div>
+                                <div class="dashboard__card-label">Lương gần nhất</div>
+                            </div>
+                            <div class="dashboard__card-badge">
+                                <RouterLink to="/payrolls">Xem bảng lương</RouterLink>
+                            </div>
+                        </div>
+
+                        <div class="dashboard__card dashboard__card--trip">
+                            <div class="dashboard__card-icon">
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    width="28"
+                                    height="28"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                                </svg>
+                            </div>
+                            <div class="dashboard__card-body">
+                                <div class="dashboard__card-value">—</div>
+                                <div class="dashboard__card-label">Lịch công tác</div>
+                            </div>
+                            <div class="dashboard__card-badge">
+                                <RouterLink to="/business-trips">Chi tiết</RouterLink>
+                            </div>
+                        </div>
+
+                        <div class="dashboard__card dashboard__card--expiring">
+                            <div class="dashboard__card-icon">
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    width="28"
+                                    height="28"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <circle cx="12" cy="12" r="10" />
+                                </svg>
+                            </div>
+                            <div class="dashboard__card-body">
+                                <div class="dashboard__card-value">—</div>
+                                <div class="dashboard__card-label">Hợp đồng</div>
+                            </div>
+                            <div class="dashboard__card-badge">
+                                <RouterLink to="/payrolls">Xem</RouterLink>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard__details">
+                        <div class="dashboard__table-wrap">
+                            <p style="padding: 16px">
+                                Các thông tin chi tiết cá nhân hiển thị ở đây. Nhấn vào các liên kết
+                                để xem chi tiết.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </template>

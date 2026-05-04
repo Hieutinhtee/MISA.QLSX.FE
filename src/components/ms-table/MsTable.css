@@ -57,7 +57,8 @@ tbody tr:hover td {
     background-color: var(--bg-hover);
 }
 
-tbody tr:focus td {
+tbody tr:focus td,
+tbody tr.row-active td {
     background-color: #a4f6d3;
 }
 
@@ -75,25 +76,69 @@ tbody .content__table-checkbox {
     z-index: 1;
 }
 
+tbody tr.row-active .content__table-checkbox {
+    background-color: #a4f6d3;
+}
+
 .col-delete {
     position: sticky;
     right: 0;
     border: none;
     height: 32px;
     column-gap: 8px;
-    background-color: #fff;
     z-index: 1;
     overflow: visible;
+    background-color: transparent; /* Mặc định trong suốt để không che nội dung */
+    pointer-events: none; /* Cho phép click xuyên qua lớp trong suốt */
+    padding-right: 16px;
+}
+
+.content__table-header .col-delete {
+    background-color: transparent;
+    border-bottom: 1px solid transparent;
+}
+
+/* Ẩn các nút hành động mặc định */
+tbody tr .col-delete > * {
+    visibility: hidden;
+}
+
+/* Khi hover hoặc dòng được chọn: Hiện nền trùng với màu dòng để che nội dung bên dưới và hiện nút */
+tbody tr:hover .col-delete {
+    background-color: var(--bg-hover);
+    pointer-events: auto;
+}
+
+tbody tr.row-active .col-delete {
+    background-color: #a4f6d3; /* Trùng với màu focus/active của dòng */
+    pointer-events: auto;
+}
+
+/* Hiển thị các nút action khi hover hoặc dòng được chọn */
+tbody tr:hover .col-delete > *,
+tbody tr.row-active .col-delete > * {
+    visibility: visible;
 }
 
 .btn-modify-wrapper {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background-color: white;
+    width: 26px;
+    height: 26px;
+    background-color: #fff;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+    cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: box-shadow 0.2s ease;
+}
+
+.btn-modify-wrapper:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.btn-modify-wrapper:active {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* sticky header */
@@ -333,7 +378,8 @@ tbody tr:hover .pinned-column {
     background-color: var(--bg-hover);
 }
 
-tbody tr:focus .pinned-column {
+tbody tr:focus .pinned-column,
+tbody tr.row-active .pinned-column {
     background-color: #a4f6d3;
 }
 

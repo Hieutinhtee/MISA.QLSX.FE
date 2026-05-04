@@ -11,6 +11,7 @@ import MsInputNumber from "@/components/ms-input-number/MsInputNumber.vue";
 import { createContract } from "@/common/model/contractModel";
 import EmployeesAPI from "@/apis/components/employees/employeesAPI";
 import ContractTemplatesAPI from "@/apis/components/contract-templates/contractTemplatesAPI";
+import ShiftsAPI from "@/apis/components/shifts/shiftsAPI";
 import { getCurrentUserGuid } from "@/utils/currentUser";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
 import { useFormValidation } from "@/composables/useFormValidation";
@@ -37,6 +38,8 @@ const isFormOpen = defineModel({
 const form = ref(createContract());
 const templateOptions = ref([]);
 const employeeOptions = ref([]);
+const representativeOptions = ref([]);
+const shiftOptions = ref([]);
 
 const {
     showConfirm,
@@ -81,17 +84,22 @@ function toDateInputValue(value) {
 }
 
 async function loadSelectData() {
-    const [employeeRes, templateRes] = await Promise.all([
+    const [employeeRes, templateRes, shiftRes, repRes] = await Promise.all([
         EmployeesAPI.getAll(),
         ContractTemplatesAPI.getAll(),
+        ShiftsAPI.getAll(),
+        EmployeesAPI.getRepresentatives(),
     ]);
 
     const employees = employeeRes?.data?.data || [];
     const templates = templateRes?.data?.data || [];
+    const shifts = shiftRes?.data?.data || [];
 
     employeeOptions.value = employees.map((item) => ({
         value: item.employeeId,
         label: `${item.employeeCode || ""} - ${item.fullName || ""}`.trim(),
+        positionName: item.positionName,
+        departmentCode: item.departmentCode,
     }));
 
     templateOptions.value = templates
@@ -101,6 +109,18 @@ async function loadSelectData() {
             label: `${item.templateCode || ""} - ${item.templateName || ""}`.trim(),
             contractType: item.contractType,
         }));
+
+    shiftOptions.value = shifts.map((item) => ({
+        value: item.shiftId,
+        label: `${item.shiftName} (${item.startTime?.substring(0, 5)} - ${item.endTime?.substring(0, 5)})`,
+    }));
+
+    const representatives = repRes?.data?.data || [];
+    representativeOptions.value = representatives.map((item) => ({
+        value: item.employeeId,
+        label: `${item.employeeCode || ""} - ${item.fullName || ""}`.trim(),
+        positionName: item.positionName,
+    }));
 }
 
 watch(
@@ -109,6 +129,16 @@ watch(
         const selected = templateOptions.value.find((item) => item.value === templateId);
         if (selected) {
             form.value.contractType = selected.contractType;
+        }
+    },
+);
+
+watch(
+    () => form.value.companyRepresentativeId,
+    (repId) => {
+        const selected = representativeOptions.value.find((item) => item.value === repId);
+        if (selected && selected.positionName) {
+            form.value.companySignerTitle = selected.positionName;
         }
     },
 );
@@ -136,6 +166,7 @@ watch(
             ...createContract(),
             salaryRatio: 100,
             isSigned: false,
+            employeeId: props.data?.employeeId || null,
         };
     },
 );
@@ -325,6 +356,7 @@ async function handleSubmit() {
                             :ref="(el) => (inputRefs.employeeId = el)"
                             :error="errors.employeeId"
                             @blurInput="handleBlur('employeeId')"
+                            :disabled="!!props.data?.employeeId"
                         />
                     </div>
                 </div>
@@ -334,7 +366,7 @@ async function handleSubmit() {
                     <div class="w-430">
                         <ms-select
                             v-model="form.companyRepresentativeId"
-                            :options="employeeFilterOptions"
+                            :options="representativeOptions"
                             placeholder="Chọn đại diện công ty"
                             :max-height="260"
                             :ref="(el) => (inputRefs.companyRepresentativeId = el)"
@@ -352,6 +384,7 @@ async function handleSubmit() {
                         :error="errors.companySignerTitle"
                         :ref="(el) => (inputRefs.companySignerTitle = el)"
                         @blurInput="handleBlur('companySignerTitle')"
+                        disabled
                     />
                 </div>
 
@@ -377,6 +410,18 @@ async function handleSubmit() {
                             v-model:value="form.termMonths"
                             :min="0"
                             class="ant-control"
+                        />
+                    </div>
+                </div>
+
+                <div class="form-row d-flex justify-content-between align-items-center">
+                    <div class="form-label">Ca làm việc</div>
+                    <div class="w-430">
+                        <ms-select
+                            v-model="form.shiftId"
+                            :options="shiftOptions"
+                            placeholder="Chọn ca làm việc"
+                            :max-height="200"
                         />
                     </div>
                 </div>

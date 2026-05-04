@@ -15,10 +15,8 @@ const columns = ref([
     { key: "calculationType", name: "Kiểu tính", typeFilter: "text", width: 120 },
     { key: "amount", name: "Số tiền", typeFilter: "number", width: 150 },
     { key: "percent", name: "Phần trăm", typeFilter: "number", width: 120 },
-    { key: "version", name: "Phiên bản", typeFilter: "number", width: 100 },
     { key: "createdAt", name: "Ngày tạo", width: 150, type: "date" },
     { key: "updatedAt", name: "Ngày sửa", width: 150, type: "date" },
-    { key: "actions", name: "Thao tác", width: 120 },
 ]);
 
 const allowanceFormRef = ref(null);

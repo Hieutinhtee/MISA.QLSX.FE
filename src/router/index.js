@@ -11,6 +11,10 @@ import AllowanceView from "@/views/allowance/Index.vue";
 import BusinessTripView from "@/views/business-trip/Index.vue";
 import EvaluationView from "@/views/evaluation/Index.vue";
 import DegreeView from "@/views/degree/Index.vue";
+import DepartmentView from "@/views/department/Index.vue";
+import DepartmentDetailView from "@/views/department/DepartmentDetail.vue";
+import PositionView from "@/views/position/Index.vue";
+import ApprovalView from "@/views/approval/Index.vue";
 import LoginView from "@/views/login/LoginView.vue";
 import ForbiddenView from "@/views/forbidden/Index.vue";
 
@@ -105,6 +109,55 @@ const router = createRouter({
             component: DegreeView,
             meta: { requiresAuth: true, roles: ["ADMIN", "HR"] },
         },
+        {
+            path: "/departments",
+            name: "departments",
+            component: DepartmentView,
+            meta: { requiresAuth: true, roles: ["ADMIN", "HR"] },
+        },
+        {
+            path: "/departments/:id",
+            name: "department-detail",
+            component: DepartmentDetailView,
+            meta: { requiresAuth: true, roles: ["ADMIN", "HR"] },
+        },
+        {
+            path: "/positions",
+            name: "positions",
+            component: PositionView,
+            meta: { requiresAuth: true, roles: ["ADMIN", "HR"] },
+        },
+        {
+            path: "/approvals",
+            name: "approvals",
+            component: ApprovalView,
+            meta: { requiresAuth: true, roles: ["ADMIN", "HR", "MANAGER", "EMP"] },
+        },
+        {
+            path: "/attendance/dashboard",
+            name: "attendance-dashboard",
+            component: () => import("@/views/attendance/AttendanceDashboard.vue"),
+            meta: { requiresAuth: true, roles: ["ADMIN", "HR", "MANAGER"] },
+        },
+        {
+            path: "/attendance/my-calendar",
+            name: "my-calendar",
+            component: () => import("@/views/attendance/AttendanceEmployeeCalendar.vue"),
+            meta: { requiresAuth: true, roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"] },
+            props: (route) => {
+                const user = JSON.parse(localStorage.getItem("user") || "{}");
+                return { 
+                    employeeId: route.query.employeeId || user.employee_id || user.EmployeeId, 
+                    employeeName: route.query.employeeName || user.full_name || user.FullName || "Của tôi" 
+                };
+            }
+        },
+        {
+            path: "/attendances",
+            name: "attendances",
+            component: () => import("@/views/attendance/AttendanceList.vue"),
+            meta: { requiresAuth: true, roles: ["ADMIN", "HR", "MANAGER"] },
+        },
     ],
 });
 
@@ -118,16 +171,22 @@ router.beforeEach((to, from, next) => {
         localStorage.removeItem("user");
     }
 
-    // Normalize role: remove "ROLE_" prefix if present
-    let role = user?.role;
-    if (role?.startsWith("ROLE_")) {
-        role = role.substring(5); // Remove "ROLE_" prefix
+    // Normalize role: Backend trả về Role (PascalCase), JS quen dùng role (camelCase)
+    // Ta lấy cả 2 trường hợp để đảm bảo an toàn
+    let role = user?.Role || user?.role;
+    
+    if (role && typeof role === 'string' && role.startsWith("ROLE_")) {
+        role = role.substring(5);
     }
 
     const requiresAuth = to.meta.requiresAuth !== false;
     const allowedRoles = to.meta.roles || [];
 
+    // Nếu cố vào trang login khi đã đăng nhập
     if (to.path === "/login" && user) {
+        // Kiểm tra xem có quyền vào dashboard không, nếu không thì cứ để ở dashboard 
+        // nhưng logic bên dưới sẽ đẩy về 403 nếu dashboard cấm.
+        // Để tránh loop, ta chỉ chuyển hướng nếu trang đích không phải là nơi ta vừa bị đẩy ra.
         next("/dashboard");
         return;
     }
@@ -137,9 +196,17 @@ router.beforeEach((to, from, next) => {
         return;
     }
 
-    if (requiresAuth && allowedRoles.length > 0 && !allowedRoles.includes(role)) {
-        next("/403");
-        return;
+    if (requiresAuth && allowedRoles.length > 0) {
+        if (!role || !allowedRoles.includes(role)) {
+            // Nếu bị chặn ở chính trang dashboard thì đẩy về 403
+            // Nhưng nếu đang ở 403 rồi thì không next nữa để tránh loop
+            if (to.path === "/403") {
+                next();
+            } else {
+                next("/403");
+            }
+            return;
+        }
     }
 
     next();

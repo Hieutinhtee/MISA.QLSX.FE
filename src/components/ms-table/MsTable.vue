@@ -60,6 +60,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    showPagination: {
+        type: Boolean,
+        default: true,
+    },
     showExportSelected: {
         type: Boolean,
         default: true,
@@ -246,6 +250,7 @@ const searchInput = ref("");
  * createdBy: TMHieu (29/01/2026)
  */
 const showMoreRowId = ref(null);
+const clickedRowId = ref(null);
 
 /**
  * Trạng thái mở popup sắp xếp
@@ -1447,7 +1452,6 @@ defineExpose({
                         :style="{ width: props.rowColumnWidth + 'px' }"
                     >
                         <slot name="header-actions">
-                            {{ props.rowActionsName }}
                         </slot>
                     </th>
                 </tr>
@@ -1475,6 +1479,8 @@ defineExpose({
                         v-for="row in rows"
                         :key="getRowId(row)"
                         tabindex="0"
+                        :class="{ 'row-active': clickedRowId === getRowId(row) || isRowChecked(getRowId(row)) }"
+                        @click="clickedRowId = getRowId(row)"
                         @dblclick="props.showRowActions ? handleEdit(row) : null"
                     >
                         <td v-if="props.showSelection" class="content__table-checkbox col-checkbox">
@@ -1522,7 +1528,7 @@ defineExpose({
                         <!-- Hành động sửa xóa trên bảng -->
                         <td
                             v-if="props.showRowActions"
-                            class="col-delete d-flex justify-content-between align-items-center"
+                            class="col-delete d-flex justify-content-end align-items-center gap-8"
                             :style="{ width: props.rowColumnWidth + 'px' }"
                         >
                             <slot
@@ -1531,18 +1537,20 @@ defineExpose({
                                 :handleEdit="handleEdit"
                                 :handleMore="handleMore"
                             >
-                                <div class="btn-modify-wrapper" @click="handleEdit(row)">
-                                    <div
-                                        class="content__table-btn-modify content__table-btn-edit"
-                                        title="Chỉnh sửa"
-                                    ></div>
-                                </div>
-                                <div class="btn-modify-wrapper" @click.stop="handleMore(row, $event)">
-                                    <div
-                                        class="content__table-btn-modify content__table-btn-showmore"
-                                        title="Xem thêm"
-                                    ></div>
-                                </div>
+                                <tooltip placement="top" title="Chỉnh sửa">
+                                    <div class="btn-modify-wrapper" @click="handleEdit(row)">
+                                        <div
+                                            class="content__table-btn-modify content__table-btn-edit"
+                                        ></div>
+                                    </div>
+                                </tooltip>
+                                <tooltip placement="top" title="Xem thêm">
+                                    <div class="btn-modify-wrapper" @click.stop="handleMore(row, $event)">
+                                        <div
+                                            class="content__table-btn-modify content__table-btn-showmore"
+                                        ></div>
+                                    </div>
+                                </tooltip>
                             </slot>
 
                             <!--  Popup xem thêm (sửa, xóa, nhân bản, thay đổi trạng thái) -->
@@ -1562,11 +1570,22 @@ defineExpose({
                                 >
                                     <div
                                         class="content__table-popup-item d-flex"
+                                        @click="handleEdit(currentRow)"
+                                    >
+                                        <div class="content__table-btn-edit"></div>
+                                        <div class="content__table-popup-text">Sửa</div>
+                                    </div>
+                                    <div
+                                        class="content__table-popup-item d-flex"
                                         @click="handleDuplicate(currentRow)"
                                     >
                                         <div class="content__table-duplicate-icon"></div>
                                         <div class="content__table-popup-text">Nhân bản</div>
                                     </div>
+                                    
+                                    <!-- Slot cho các action tùy chỉnh từ component cha -->
+                                    <slot name="more-actions" :row="currentRow"></slot>
+
                                     <div
                                         v-if="props.showActiveActions && currentRow?.isActive"
                                         class="content__table-popup-item d-flex"
@@ -1583,7 +1602,6 @@ defineExpose({
                                         <div class="content__table-active-icon"></div>
                                         <div class="content__table-popup-text">Sử dụng</div>
                                     </div>
-                                    <!-- Cần biết row hiện tại để check isActive, xem bên dưới -->
                                     <div
                                         class="content__table-popup-item d-flex"
                                         @click="handleDelete(currentRow)"

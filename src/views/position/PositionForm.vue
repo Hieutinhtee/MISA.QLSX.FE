@@ -3,7 +3,7 @@ import { defineEmits, defineModel, defineProps, ref, watch } from "vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import MsInput from "@/components/ms-input/MsInput.vue";
 import MsTextarea from "@/components/ms-textarea/MsTextarea.vue";
-import { createDegree } from "@/common/model/degreeModel";
+import { createPosition } from "@/common/model/positionModel";
 import { getCurrentUserGuid } from "@/utils/currentUser";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
 import MsForm from "@/components/ms-form/MsForm.vue";
@@ -28,7 +28,7 @@ const isFormOpen = defineModel({
     default: false,
 });
 
-const degree = ref(createDegree());
+const position = ref(createPosition());
 
 const {
     showConfirm,
@@ -43,21 +43,21 @@ const {
     resetErrors,
 } = useFormValidation();
 
-const fieldOrder = ["degreeCode", "degreeName"];
+const fieldOrder = ["positionCode", "positionName"];
 
 initValidation(validateField, fieldOrder);
 
 function validateField(field) {
     switch (field) {
-        case "degreeCode":
-            errors.value.degreeCode = degree.value.degreeCode?.trim()
+        case "positionCode":
+            errors.value.positionCode = position.value.positionCode?.trim()
                 ? ""
-                : "Mã bằng cấp không được để trống";
+                : "Mã chức vụ không được để trống";
             break;
-        case "degreeName":
-            errors.value.degreeName = degree.value.degreeName?.trim()
+        case "positionName":
+            errors.value.positionName = position.value.positionName?.trim()
                 ? ""
-                : "Tên bằng cấp không được để trống";
+                : "Tên chức vụ không được để trống";
             break;
     }
 }
@@ -67,14 +67,15 @@ function buildPayload() {
     const isUpdate = props.typeForm === "edit";
 
     const payload = {
-        ...degree.value,
-        degreeCode: degree.value.degreeCode?.trim() || "",
-        degreeName: degree.value.degreeName?.trim() || "",
-        description: degree.value.description?.trim() || "",
+        ...position.value,
+        positionCode: position.value.positionCode?.trim() || "",
+        positionName: position.value.positionName?.trim() || "",
+        description: position.value.description?.trim() || "",
+        allowance: Number(position.value.allowance) || 0,
     };
 
     if (!isUpdate) {
-        delete payload.degreeId;
+        delete payload.positionId;
 
         return {
             ...payload,
@@ -112,14 +113,14 @@ watch(
         resetErrors();
 
         if (props.typeForm === "edit" && props.data) {
-            degree.value = {
-                ...createDegree(),
+            position.value = {
+                ...createPosition(),
                 ...props.data,
             };
             return;
         }
 
-        degree.value = createDegree();
+        position.value = createPosition();
     },
 );
 </script>
@@ -127,7 +128,7 @@ watch(
 <template>
     <ms-form
         v-model:open="isFormOpen"
-        :title="props.typeForm === 'edit' ? 'Sửa bằng cấp' : 'Thêm bằng cấp'"
+        :title="props.typeForm === 'edit' ? 'Sửa chức vụ' : 'Thêm chức vụ'"
         width="700px"
         :show-save-and-add="false"
         :show-error-alert="showConfirm"
@@ -136,33 +137,43 @@ watch(
         @submit="handleSubmit"
         @cancel="handleCloseForm"
     >
-        <div class="form-degree-content d-flex flex-column gap-12">
+        <div class="form-position-content d-flex flex-column gap-12">
             <div class="form-row d-flex justify-content-between align-items-center">
-                <div class="form-label form-label--required">Mã bằng cấp</div>
+                <div class="form-label form-label--required">Mã chức vụ</div>
                 <ms-input
-                    v-model="degree.degreeCode"
+                    v-model="position.positionCode"
                     :width="430"
-                    :error="errors.degreeCode"
-                    :ref="(el) => (inputRefs.degreeCode = el)"
-                    @blurInput="handleBlur('degreeCode')"
+                    :error="errors.positionCode"
+                    :ref="(el) => (inputRefs.positionCode = el)"
+                    @blurInput="handleBlur('positionCode')"
                 />
             </div>
 
             <div class="form-row d-flex justify-content-between align-items-center">
-                <div class="form-label form-label--required">Tên bằng cấp</div>
+                <div class="form-label form-label--required">Tên chức vụ</div>
                 <ms-input
-                    v-model="degree.degreeName"
+                    v-model="position.positionName"
                     :width="430"
-                    :error="errors.degreeName"
-                    :ref="(el) => (inputRefs.degreeName = el)"
-                    @blurInput="handleBlur('degreeName')"
+                    :error="errors.positionName"
+                    :ref="(el) => (inputRefs.positionName = el)"
+                    @blurInput="handleBlur('positionName')"
+                />
+            </div>
+
+            <div class="form-row d-flex justify-content-between align-items-center">
+                <div class="form-label">Phụ cấp (VNĐ)</div>
+                <ms-input
+                    v-model="position.allowance"
+                    :width="430"
+                    type="number"
+                    :min="0"
                 />
             </div>
 
             <div class="form-row d-flex justify-content-between align-items-start">
                 <div class="form-label">Mô tả</div>
                 <div class="form-textarea w-430">
-                    <ms-textarea v-model="degree.description" />
+                    <ms-textarea v-model="position.description" />
                 </div>
             </div>
         </div>
@@ -170,18 +181,6 @@ watch(
 </template>
 
 <style scoped>
-.form-modal {
-    width: 100%;
-}
-
-.form-modal__footer {
-    padding: 16px 20px;
-}
-
-.form-modal__body {
-    padding: 0 20px 16px;
-}
-
 .form-row {
     gap: 12px;
 }

@@ -283,6 +283,13 @@ input {
     border: 0.5px solid #d1d5db;
 }
 
+input:disabled {
+    background-color: #f5f5f5;
+    border-color: #d9d9d9;
+    cursor: not-allowed;
+    color: rgba(0, 0, 0, 0.25);
+}
+
 input::placeholder {
     color: #9e9e9e;
     font-size: 14px;

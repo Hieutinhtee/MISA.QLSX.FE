@@ -13,6 +13,13 @@ class EmployeesAPI extends BaseAPI {
     getEmployeesWithoutContract() {
         return api.get(`${this.controller}/without-contract`);
     }
+
+    /**
+     * Lấy danh sách cán bộ đại diện ký hợp đồng (Phòng HR)
+     */
+    getRepresentatives() {
+        return api.get(`${this.controller}/representatives`);
+    }
 }
 
 export default new EmployeesAPI();

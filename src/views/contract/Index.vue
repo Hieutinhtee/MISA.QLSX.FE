@@ -91,7 +91,6 @@ onMounted(() => {
     <div class="content d-flex flex-1 flex-column">
         <div class="content__header d-flex">
             <div class="content__title">Hợp đồng nhân viên</div>
-            <ms-button icon-left="icon-add" @click="handleFormAddOpen">Thêm</ms-button>
         </div>
 
         <div class="content__body d-flex flex-1">

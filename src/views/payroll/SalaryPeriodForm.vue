@@ -11,9 +11,9 @@ import MsButton from "@/components/ms-button/MsButton.vue";
 import MsDatePicker from "@/components/ms-date-picker/MsDatePicker.vue";
 import { createSalaryPeriod } from "@/common/model/salaryPeriodModel";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
-import { Modal } from "ant-design-vue";
-import { getCurrentUserGuid } from "@/utils/currentUser";
+import MsForm from "@/components/ms-form/MsForm.vue";
 import { useFormValidation } from "@/composables/useFormValidation";
+import { getCurrentUserGuid } from "@/utils/currentUser";
 
 //#region constants
 /**
@@ -270,124 +270,67 @@ const getStatusText = (status) => {
     return status || "Không xác định";
 };
 
-const handleKeydown = (e) => {
-    if (!isFormOpen.value) return;
 
-    // Ctrl + Shift + S
-    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "s") {
-        e.preventDefault();
-        handleSubmit(true);
-        return;
-    }
-
-    // Ctrl + S
-    if (e.ctrlKey && e.key.toLowerCase() === "s") {
-        e.preventDefault();
-        handleSubmit(false);
-        return;
-    }
-
-    // Esc
-    if (e.key === "Escape") {
-        handleCloseForm();
-    }
-};
-
-onMounted(() => {
-    window.addEventListener("keydown", handleKeydown);
-});
-
-onBeforeUnmount(() => {
-    window.removeEventListener("keydown", handleKeydown);
-});
 </script>
 
 <template>
-    <!-- Alert error -->
-    <ms-alert v-model="showConfirm" title="Cảnh báo" @close="modelClose">
-        {{ errorMessage }}
-    </ms-alert>
-
-    <!-- Form thêm kỳ lương -->
-    <Modal
-        v-model:open="modalOpen"
+    <ms-form
+        v-model:open="isFormOpen"
         :title="modalTitle"
         width="560px"
-        centered
-        :footer="null"
-        :mask-closable="false"
-        :destroy-on-close="true"
+        :show-error-alert="showConfirm"
+        :error-message="errorMessage"
+        @close-alert="modelClose"
+        @submit="handleSubmit(false)"
+        @submit-and-add="handleSubmit(true)"
         @cancel="handleCloseForm"
     >
-        <div class="form-salary-period d-flex flex-column">
-            <div class="form-salary-period__body d-flex flex-column">
-                <div class="form-salary-period__item d-flex justify-content-between">
-                    <div class="form-salary-period__label form-salary-period__label--required">
-                        Ngày bắt đầu
-                    </div>
-                    <ms-date-picker
-                        :label="'Ngày bắt đầu'"
-                        :ref="(el) => (inputRefs.startDate = el)"
-                        v-model="salaryPeriod.startDate"
-                        value-format="YYYY-MM-DD"
-                        format="DD/MM/YYYY"
-                        placeholder="DD/MM/YYYY"
-                        :width="300"
-                        :error="errors.startDate"
-                        @blurInput="handleBlur('startDate')"
-                        required
-                    ></ms-date-picker>
+        <div class="form-salary-period-content d-flex flex-column gap-16">
+            <div class="form-salary-period__item d-flex justify-content-between">
+                <div class="form-salary-period__label form-salary-period__label--required">
+                    Ngày bắt đầu
                 </div>
-
-                <div class="form-salary-period__item d-flex justify-content-between">
-                    <div class="form-salary-period__label form-salary-period__label--required">
-                        Ngày kết thúc
-                    </div>
-                    <ms-date-picker
-                        :label="'Ngày kết thúc'"
-                        :ref="(el) => (inputRefs.endDate = el)"
-                        v-model="salaryPeriod.endDate"
-                        value-format="YYYY-MM-DD"
-                        format="DD/MM/YYYY"
-                        placeholder="DD/MM/YYYY"
-                        :width="300"
-                        :error="errors.endDate"
-                        @blurInput="handleBlur('endDate')"
-                        required
-                    ></ms-date-picker>
-                </div>
-
-                <div v-if="props.typeForm === 'edit'" class="form-salary-period__item">
-                    <div class="form-salary-period__label">Trạng thái</div>
-                    <div class="form-salary-period__status">
-                        <span :class="getStatusClass(salaryPeriod.status)">
-                            {{ getStatusText(salaryPeriod.status) }}
-                        </span>
-                    </div>
-                </div>
+                <ms-date-picker
+                    :ref="(el) => (inputRefs.startDate = el)"
+                    v-model="salaryPeriod.startDate"
+                    value-format="YYYY-MM-DD"
+                    format="DD/MM/YYYY"
+                    placeholder="DD/MM/YYYY"
+                    :width="300"
+                    :error="errors.startDate"
+                    @blurInput="handleBlur('startDate')"
+                    required
+                ></ms-date-picker>
             </div>
 
-            <div class="form-salary-period__footer d-flex align-items-center justify-content-end">
-                <div class="form-salary-period__footer-buttons d-flex align-items-center">
-                    <ms-button :tooltip="'Crtl + S'" @click="handleSubmit(false)" tabindex="0"
-                        >Lưu</ms-button
-                    >
-                    <ms-button
-                        :tooltip="'Crtl + Shift + S'"
-                        :type="'outline'"
-                        tabindex="0"
-                        @click="handleSubmit(true)"
-                        >Lưu và thêm</ms-button
-                    >
-                    <ms-button :type="'outline'" @click="handleCloseForm" tabindex="0"
-                        >Hủy</ms-button
-                    >
+            <div class="form-salary-period__item d-flex justify-content-between">
+                <div class="form-salary-period__label form-salary-period__label--required">
+                    Ngày kết thúc
+                </div>
+                <ms-date-picker
+                    :ref="(el) => (inputRefs.endDate = el)"
+                    v-model="salaryPeriod.endDate"
+                    value-format="YYYY-MM-DD"
+                    format="DD/MM/YYYY"
+                    placeholder="DD/MM/YYYY"
+                    :width="300"
+                    :error="errors.endDate"
+                    @blurInput="handleBlur('endDate')"
+                    required
+                ></ms-date-picker>
+            </div>
+
+            <div v-if="props.typeForm === 'edit'" class="form-salary-period__item">
+                <div class="form-salary-period__label">Trạng thái</div>
+                <div class="form-salary-period__status">
+                    <span :class="getStatusClass(salaryPeriod.status)">
+                        {{ getStatusText(salaryPeriod.status) }}
+                    </span>
                 </div>
             </div>
         </div>
-    </Modal>
+    </ms-form>
 </template>
-
 <style scoped>
 /* Style phần form thêm kỳ lương  */
 .form-salary-period {
