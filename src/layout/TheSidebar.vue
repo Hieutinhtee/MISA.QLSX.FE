@@ -23,13 +23,21 @@ const route = useRoute();
 const router = useRouter();
 const { authState } = inject("auth");
 
-const currentRole = computed(() => {
-    let role = authState?.user?.role || null;
-    // Normalize: remove "ROLE_" prefix if present
-    if (role?.startsWith("ROLE_")) {
-        role = role.substring(5);
+function normalizeRole(user) {
+    const role = user?.role || user?.Role || "";
+
+    if (typeof role !== "string") {
+        return "";
     }
-    return role;
+
+    return role
+        .trim()
+        .toUpperCase()
+        .replace(/^ROLE_/, "");
+}
+
+const currentRole = computed(() => {
+    return normalizeRole(authState?.user);
 });
 
 const canAccessRoles = (roles) => {
@@ -218,6 +226,11 @@ const menu = ref([
                 roles: ["EMPLOYEE", "ADMIN", "HR", "MANAGER"],
             },
             {
+                title: "Đơn nghỉ phép",
+                path: "/leave-requests",
+                roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
+            },
+            {
                 title: "Bảng chấm công",
                 path: "/attendances",
                 roles: ["ADMIN", "HR", "MANAGER"],
@@ -320,6 +333,10 @@ const currentAttendanceSubmenu = computed(() => {
         return "/attendance/my-calendar";
     }
 
+    if (route.path.startsWith("/leave-requests")) {
+        return "/leave-requests";
+    }
+
     if (route.path.startsWith("/attendances")) {
         return "/attendances";
     }
@@ -331,8 +348,12 @@ watch(
     () => route.path,
     (path) => {
         // Chỉ set activeMenu khi path thay đổi, không reset
-        if (path.startsWith("/employees") || path.startsWith("/degrees")
-            || path.startsWith("/departments") || path.startsWith("/positions")) {
+        if (
+            path.startsWith("/employees") ||
+            path.startsWith("/degrees") ||
+            path.startsWith("/departments") ||
+            path.startsWith("/positions")
+        ) {
             activeMenu.value = "production";
         } else if (path.startsWith("/contracts") || path.startsWith("/contract-templates")) {
             activeMenu.value = "contract";
@@ -404,7 +425,12 @@ const currentMenu = computed(() => {
     if (route.path.startsWith("/business-trips")) return "businessTrip";
     if (route.path.startsWith("/evaluations")) return "evaluation";
     if (route.path.startsWith("/approvals")) return "approval";
-    if (route.path.startsWith("/attendance") || route.path.startsWith("/attendances")) return "attendance";
+    if (
+        route.path.startsWith("/attendance") ||
+        route.path.startsWith("/attendances") ||
+        route.path.startsWith("/leave-requests")
+    )
+        return "attendance";
     return "";
 });
 
@@ -423,7 +449,7 @@ const handleMenuClick = (item) => {
         // Đang đóng → mở + navigate đến trang đầu tiên CÓ QUYỀN TRUY CẬP
         activeMenu.value = item.name;
         if (item.children) {
-            const accessibleChild = item.children.find(child => canAccessRoles(child.roles));
+            const accessibleChild = item.children.find((child) => canAccessRoles(child.roles));
             if (accessibleChild?.path) {
                 router.push(accessibleChild.path);
             }
@@ -483,8 +509,8 @@ const handleMenuClick = (item) => {
                                     currentEmployeeSubmenu === child.path ||
                                     currentContractSubmenu === child.path ||
                                     currentAttendanceSubmenu === child.path
-                                         ? 'sidebar__submenu-item--active'
-                                         : '',
+                                        ? 'sidebar__submenu-item--active'
+                                        : '',
                                 ]"
                             >
                                 <RouterLink
