@@ -94,13 +94,13 @@ const router = createRouter({
             path: "/contracts",
             name: "contracts",
             component: ContractView,
-            meta: { requiresAuth: true, roles: ["ADMIN", "HR", "MANAGER"] },
+            meta: { requiresAuth: true, roles: ["ADMIN", "HR"] },
         },
         {
             path: "/contracts/:id",
             name: "contract-detail",
             component: ContractDetailView,
-            meta: { requiresAuth: true, roles: ["ADMIN", "HR", "MANAGER"] },
+            meta: { requiresAuth: true, roles: ["ADMIN", "HR"] },
         },
         {
             path: "/employees-without-contract",

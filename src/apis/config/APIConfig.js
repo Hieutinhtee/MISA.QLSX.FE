@@ -68,19 +68,24 @@ api.interceptors.response.use(
             return Promise.reject(error);
         }
 
-        //  Xử lý Lỗi Custom từ Middleware BE (Ví dụ: 400, 409, 500)
-        // Backend trả về: { error: { userMsg, devMsg, traceId } }
-        if (res.data?.error) {
-            const userMsg = res.data.error.userMsg || "Có lỗi xảy ra, vui lòng thử lại";
+        // Ưu tiên hiển thị message từ API trả về (nếu có)
+        const apiMessage = 
+            res.data?.userMsg || 
+            res.data?.message || 
+            res.data?.error?.userMsg || 
+            res.data?.error?.message || 
+            res.data?.title || 
+            (typeof res.data === "string" ? res.data : null);
 
-            // Log lỗi devMsg/traceId cho quá trình debug
-            console.error("Lỗi API Custom:", res.data.error);
-
-            $alert(userMsg);
+        if (apiMessage) {
+            if (res.data?.error) {
+                console.error("Lỗi API Custom:", res.data.error);
+            }
+            $alert(apiMessage);
             return Promise.reject(error);
         }
 
-        //  Xử lý Lỗi 404 - NotFound
+        // Fallback xử lý theo mã trạng thái HTTP nếu API không trả về message rõ ràng
         if (res.status === 404) {
             $alert("Không tìm thấy tài nguyên yêu cầu (404)");
             return Promise.reject(error);
@@ -93,7 +98,12 @@ api.interceptors.response.use(
         }
 
         if (res.status === 401) {
-            $alert("Bạn không có quyền thực hiện chức năng này.");
+            $alert("Phiên đăng nhập đã hết hạn hoặc bạn không có quyền thực hiện chức năng này.");
+            return Promise.reject(error);
+        }
+
+        if (res.status === 403) {
+            $alert("Từ chối truy cập (403). Bạn không có quyền thực hiện thao tác này.");
             return Promise.reject(error);
         }
 

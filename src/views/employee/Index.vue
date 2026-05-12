@@ -19,7 +19,7 @@ const columns = ref([
     { key: "email", name: "Email", typeFilter: "text", width: 220 },
     { key: "joinDate", name: "Ngày vào làm", type: "date", width: 140 },
     { key: "nationalId", name: "CCCD/CMND", typeFilter: "text", width: 160 },
-    // { key: "avatarUrl", name: "Ảnh đại diện", typeFilter: "text", width: 200 },
+    { key: "avatarUrl", name: "Ảnh đại diện", typeFilter: "text", width: 120 },
     { key: "departmentName", name: "Phòng ban", typeFilter: "text", width: 220 },
     { key: "shiftName", name: "Ca làm", typeFilter: "text", width: 180 },
     { key: "degreeName", name: "Bằng cấp", typeFilter: "text", width: 180 },
@@ -159,7 +159,23 @@ onMounted(() => {
                 @batch-export="handleBatchExport"
                 row-actions-name="Thao tác"
                 ref="employeeTableRef"
-            />
+            >
+                <!-- Avatar Cell -->
+                <template #avatarUrl="{ row }">
+                    <div class="d-flex justify-content-center w-100">
+                        <img 
+                            v-if="row.avatarUrl && row.avatarUrl !== 'profile.jpg'" 
+                            :src="`https://localhost:7124/api/v1/Files/${row.avatarUrl}/download`" 
+                            alt="Avatar"
+                            class="table-avatar"
+                            @error="(e) => e.target.src = '/favicon.ico'"
+                        />
+                        <div v-else class="table-avatar table-avatar--placeholder">
+                            👤
+                        </div>
+                    </div>
+                </template>
+            </ms-table>
 
             <employee-form
                 v-model="isFormOpen"
@@ -173,4 +189,20 @@ onMounted(() => {
 
 <style scoped>
 @import "../shift/Index.css";
+
+.table-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #e8e8e8;
+}
+
+.table-avatar--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f5f5f5;
+    font-size: 16px;
+}
 </style>

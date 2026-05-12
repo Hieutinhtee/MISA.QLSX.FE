@@ -16,6 +16,8 @@ const currentRole = computed(() => {
     return role;
 });
 
+const currentEmployeeId = computed(() => authState?.user?.employeeId || null);
+
 const columns = ref([
     { key: "requestCode", name: "Mã yêu cầu", typeFilter: "text", width: 140 },
     { key: "requestType", name: "Loại yêu cầu", typeFilter: "text", width: 220 },
@@ -86,6 +88,13 @@ function findCurrentPendingStep() {
 function canApproveCurrentStep() {
     const step = findCurrentPendingStep();
     if (!step || selectedRow.value?.status !== "pending") return false;
+    
+    // Nếu bước duyệt có quy định đích danh ID người duyệt
+    if (step.approverId) {
+        return step.approverId === currentEmployeeId.value;
+    }
+    
+    // Nếu không thì kiểm tra theo Role
     return step.approverRole === currentRole.value;
 }
 

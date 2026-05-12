@@ -1,5 +1,5 @@
 <script setup>
-import { defineEmits, defineModel, defineProps, ref, watch } from "vue";
+import { defineEmits, defineModel, defineProps, ref, watch, computed } from "vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import MsInput from "@/components/ms-input/MsInput.vue";
 import MsSelect from "@/components/ms-select/MsSelect.vue";
@@ -15,6 +15,7 @@ import { getCurrentUserGuid } from "@/utils/currentUser";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
 import MsForm from "@/components/ms-form/MsForm.vue";
 import { useFormValidation } from "@/composables/useFormValidation";
+import FilesAPI from "@/apis/components/files/filesAPI";
 
 const UploadDragger = Upload.Dragger;
 const CollapsePanel = Collapse.Panel;
@@ -40,15 +41,37 @@ const isFormOpen = defineModel({
 
 const form = ref(createEmployee());
 const cvFile = ref(null);
-const isParsingCv = ref(false);
-const cvParseStatus = ref("");
-const cvParseApiKey = ref("");
+const pendingCvFile = ref(null);
+const blobUrl = ref("");
+const cvZoom = ref(100);
+const isUploadingCv = ref(false);
+const isImageCv = computed(() => cvFile.value?.type?.startsWith("image/"));
+const cvPreviewUrl = computed(() => {
+    if (!blobUrl.value) return "";
+    if (cvFile.value?.type === "application/pdf") {
+        return `${blobUrl.value}#toolbar=1`;
+    }
+    return blobUrl.value;
+});
+
+const cvPreviewBody = ref(null);
+const isDraggingCv = ref(false);
+const dragStart = { x: 0, y: 0 };
+const posX = ref(0);
+const posY = ref(0);
+const CV_BASE_WIDTH = 850;
+const CV_BASE_HEIGHT = 1200;
 const degreeOptions = ref([]);
 const departmentOptions = ref([]);
 const positionOptions = ref([]);
 const shiftOptions = ref([]);
 const defaultExpandedSections = ["basic", "work", "contact"];
 const activeCollapseKeys = ref([...defaultExpandedSections]);
+
+const avatarPreview = ref("");
+const isUploadingAvatar = ref(false);
+const avatarInput = ref(null);
+const pendingAvatarFile = ref(null);
 
 const POLL_INTERVAL_MS = 1500;
 const MAX_POLL_ATTEMPTS = 40;
@@ -265,175 +288,7 @@ function isAllowedFile(file) {
     );
 }
 
-function flattenEntries(data, parentPath = "", output = []) {
-    if (data === null || data === undefined) return output;
-
-    if (Array.isArray(data)) {
-        data.forEach((item, index) => {
-            const nextPath = parentPath ? `${parentPath}[${index}]` : `[${index}]`;
-            flattenEntries(item, nextPath, output);
-        });
-        return output;
-    }
-
-    if (typeof data === "object") {
-        Object.entries(data).forEach(([key, value]) => {
-            const nextPath = parentPath ? `${parentPath}.${key}` : key;
-            flattenEntries(value, nextPath, output);
-        });
-        return output;
-    }
-
-    if (typeof data === "string" || typeof data === "number") {
-        output.push({ path: parentPath.toLowerCase(), value: String(data).trim() });
-    }
-
-    return output;
-}
-
-function pickByPath(entries, patterns) {
-    const found = entries.find(
-        (item) => item.value && patterns.some((pattern) => pattern.test(item.path)),
-    );
-    return found?.value || "";
-}
-
-function applyCvResultToForm(payload) {
-    const sourceData = payload?.data || payload?.result || payload;
-    const entries = flattenEntries(sourceData);
-
-    const parsedFullName = pickByPath(entries, [
-        /full.?name/,
-        /candidate.?name/,
-        /basics\.name/,
-        /name/,
-    ]);
-    const parsedEmail = pickByPath(entries, [/email/, /mail/]);
-    const parsedPhone = pickByPath(entries, [/phone/, /mobile/, /tel/]);
-    const parsedAddress = pickByPath(entries, [/address/, /location/, /city/, /residence/]);
-    const parsedGender = pickByPath(entries, [/gender/, /sex/]);
-    const parsedDob = pickByPath(entries, [/date.?of.?birth/, /dob/, /birth/]);
-    const parsedNationalId = pickByPath(entries, [
-        /national.?id/,
-        /id.?number/,
-        /citizen/,
-        /cccd/,
-        /cmnd/,
-    ]);
-
-    const parsedJoinDate = pickByPath(entries, [
-        /join.?date/,
-        /employment.?date/,
-        /work.?start/,
-        /start.?date/,
-    ]);
-
-    if (parsedFullName) form.value.fullName = parsedFullName;
-    if (parsedEmail) form.value.email = parsedEmail;
-    if (parsedPhone) form.value.phoneNumber = parsedPhone;
-    if (parsedAddress) form.value.address = parsedAddress;
-    if (parsedNationalId) form.value.nationalId = parsedNationalId;
-
-    const normalizedGender = mapGender(parsedGender);
-    if (normalizedGender) form.value.gender = normalizedGender;
-
-    const normalizedDob = toDateInputValue(parsedDob);
-    if (normalizedDob) form.value.dateOfBirth = normalizedDob;
-
-    const normalizedJoinDate = toDateInputValue(parsedJoinDate);
-    if (normalizedJoinDate) form.value.joinDate = normalizedJoinDate;
-}
-
-async function parseCvFile(file) {
-    const apiKey = cvParseApiKey.value?.trim() || import.meta.env.VITE_CV_PARSE_API_KEY?.trim();
-    if (!apiKey) {
-        $toastError("Thiếu API key parse CV. Nhập tại form hoặc cấu hình VITE_CV_PARSE_API_KEY.");
-        return;
-    }
-
-    isParsingCv.value = true;
-    cvParseStatus.value = "Đang tải file CV lên hệ thống parse...";
-    try {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const response = await fetch("/api/cvparse/api/v1/parse", {
-            method: "POST",
-            headers: {
-                "X-API-Key": apiKey,
-            },
-            body: formData,
-        });
-
-        if (!response.ok) {
-            const errorMessage = await response.text();
-            throw new Error(errorMessage || "Parse CV thất bại");
-        }
-
-        const parseJob = await response.json();
-        const status = String(parseJob?.status || "").toLowerCase();
-        const jobId = parseJob?.job_id || parseJob?.jobId;
-
-        let result = parseJob?.result || null;
-
-        if (!result && status !== "completed") {
-            if (!jobId) {
-                throw new Error("Không nhận được job_id từ API parse CV");
-            }
-
-            cvParseStatus.value = "Đang phân tích CV, vui lòng chờ...";
-            result = await pollCvParseResult(jobId, apiKey);
-        }
-
-        if (!result) {
-            throw new Error("Không nhận được dữ liệu parsed result");
-        }
-
-        applyCvResultToForm(result);
-        $toastSuccess("Đã parse CV và tự động điền dữ liệu");
-    } catch (error) {
-        console.error(error);
-        $toastError("Không thể parse CV. Vui lòng kiểm tra file, API key hoặc CORS.");
-    } finally {
-        isParsingCv.value = false;
-        cvParseStatus.value = "";
-    }
-}
-
-async function pollCvParseResult(jobId, apiKey) {
-    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
-        const response = await fetch(`/api/cvparse/api/v1/jobs/${jobId}`, {
-            method: "GET",
-            headers: {
-                "X-API-Key": apiKey,
-            },
-        });
-
-        if (!response.ok) {
-            const errorMessage = await response.text();
-            throw new Error(errorMessage || "Không lấy được trạng thái parse CV");
-        }
-
-        const jobData = await response.json();
-        const status = String(jobData?.status || "").toLowerCase();
-
-        if (status === "completed") {
-            return jobData?.result || null;
-        }
-
-        if (status === "failed" || status === "error" || status === "cancelled") {
-            throw new Error(jobData?.message || "Parse CV thất bại");
-        }
-
-        await wait(POLL_INTERVAL_MS);
-    }
-
-    throw new Error("Hết thời gian chờ parse CV");
-}
-
-function wait(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
+// Các hàm liên quan đến parse CV đã được loại bỏ
 
 function handlePickedFile(file) {
     if (!isAllowedFile(file)) {
@@ -442,12 +297,76 @@ function handlePickedFile(file) {
     }
 
     cvFile.value = file;
-    parseCvFile(file);
+    pendingCvFile.value = file;
+    if (blobUrl.value) {
+        URL.revokeObjectURL(blobUrl.value);
+    }
+    blobUrl.value = URL.createObjectURL(file);
+    cvZoom.value = 100;
+    posX.value = 0;
+    posY.value = 0;
+}
+
+function handleRemoveCv() {
+    cvFile.value = null;
+    if (blobUrl.value) {
+        URL.revokeObjectURL(blobUrl.value);
+        blobUrl.value = "";
+    }
+}
+
+function zoomCv(delta) {
+    cvZoom.value = Math.max(10, Math.min(500, cvZoom.value + delta));
+}
+
+function handleWheel(e) {
+    e.preventDefault();
+    const zoomSpeed = 5;
+    const delta = e.deltaY > 0 ? -1 : 1;
+    cvZoom.value = Math.max(10, Math.min(500, cvZoom.value + delta * zoomSpeed));
+}
+
+function startDragging(e) {
+    if (!cvPreviewBody.value) return;
+    isDraggingCv.value = true;
+    dragStart.x = e.clientX - posX.value;
+    dragStart.y = e.clientY - posY.value;
+    
+    window.addEventListener("mousemove", doDragging);
+    window.addEventListener("mouseup", stopDragging);
+}
+
+function doDragging(e) {
+    if (!isDraggingCv.value) return;
+    posX.value = e.clientX - dragStart.x;
+    posY.value = e.clientY - dragStart.y;
+}
+
+function stopDragging() {
+    isDraggingCv.value = false;
+    window.removeEventListener("mousemove", doDragging);
+    window.removeEventListener("mouseup", stopDragging);
 }
 
 function handleBeforeUpload(file) {
     handlePickedFile(file);
     return false;
+}
+
+function handleAvatarUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+        $toastError("Vui lòng chọn file hình ảnh hợp lệ");
+        return;
+    }
+
+    pendingAvatarFile.value = file;
+    avatarPreview.value = URL.createObjectURL(file);
+    if (avatarInput.value) {
+        avatarInput.value.value = "";
+    }
 }
 
 function normalizeGuid(value) {
@@ -475,6 +394,7 @@ function buildPayload() {
         joinDate: form.value.joinDate || null,
         nationalId: form.value.nationalId?.trim() || "",
         avatarUrl: form.value.avatarUrl || "profile.jpg",
+        cvUrl: form.value.cvUrl || "",
         degreeId: form.value.degreeId || null,
         departmentId: normalizeGuid(form.value.departmentId),
         shiftId: normalizeGuid(form.value.shiftId),
@@ -507,6 +427,58 @@ async function handleSubmit() {
         await focusFirstInvalidInput();
         return;
     }
+
+    if (pendingAvatarFile.value) {
+        isUploadingAvatar.value = true;
+        try {
+            const meta = {
+                moduleName: "HR",
+                entityName: "Employee",
+                entityId: form.value.employeeId || null,
+                purpose: "avatar",
+            };
+            const resp = await FilesAPI.upload(pendingAvatarFile.value, meta);
+            const result = resp.data?.data || resp.data;
+            if (result && (result.fileId || result.FileId)) {
+                form.value.avatarUrl = result.fileId || result.FileId;
+            } else {
+                throw new Error("Invalid response");
+            }
+        } catch (e) {
+            console.error(e);
+            $toastError("Lỗi khi tải ảnh lên, không thể lưu nhân viên");
+            isUploadingAvatar.value = false;
+            return;
+        }
+        isUploadingAvatar.value = false;
+    }
+
+    // Upload CV if pending
+    if (pendingCvFile.value) {
+        isUploadingCv.value = true;
+        try {
+            const meta = {
+                moduleName: "HR",
+                entityName: "Employee",
+                entityId: form.value.employeeId || null,
+                purpose: "cv",
+            };
+            const resp = await FilesAPI.upload(pendingCvFile.value, meta);
+            const result = resp.data?.data || resp.data;
+            if (result && (result.fileId || result.FileId)) {
+                form.value.cvUrl = result.fileId || result.FileId;
+            } else {
+                throw new Error("Invalid response");
+            }
+        } catch (e) {
+            console.error(e);
+            $toastError("Lỗi khi tải CV lên, không thể lưu nhân viên");
+            isUploadingCv.value = false;
+            return;
+        }
+        isUploadingCv.value = false;
+    }
+
     emit("submit", buildPayload());
 }
 
@@ -522,7 +494,15 @@ watch(
         resetErrors();
         activeCollapseKeys.value = [...defaultExpandedSections];
         cvFile.value = null;
-        cvParseStatus.value = "";
+        if (blobUrl.value) {
+            URL.revokeObjectURL(blobUrl.value);
+            blobUrl.value = "";
+        }
+        cvZoom.value = 100;
+        posX.value = 0;
+        posY.value = 0;
+        avatarPreview.value = "";
+        pendingAvatarFile.value = null;
         await loadSelectData();
 
         if (props.typeForm === "edit" && props.data) {
@@ -538,6 +518,32 @@ watch(
                 accountId: props.data.accountId || null,
                 contractId: props.data.contractId || null,
             };
+
+            // Load avatar if exists and not default
+            if (form.value.avatarUrl && form.value.avatarUrl !== "profile.jpg") {
+                try {
+                    const resp = await FilesAPI.download(form.value.avatarUrl);
+                    avatarPreview.value = URL.createObjectURL(resp.data);
+                } catch (e) {
+                    console.error("Failed to load avatar", e);
+                }
+            }
+
+            // Load CV if exists
+            if (form.value.cvUrl) {
+                try {
+                    const resp = await FilesAPI.download(form.value.cvUrl);
+                    const blob = resp.data;
+                    cvFile.value = { 
+                        type: blob.type, 
+                        name: "CV_DinhKem" // Tên giả định khi load từ server
+                    };
+                    blobUrl.value = URL.createObjectURL(blob);
+                    pendingCvFile.value = null;
+                } catch (e) {
+                    console.error("Failed to load CV", e);
+                }
+            }
             return;
         }
 
@@ -553,7 +559,7 @@ watch(
     <ms-form
         v-model:open="isFormOpen"
         :title="props.typeForm === 'edit' ? 'Sửa nhân viên' : 'Thêm nhân viên'"
-        width="960px"
+        width="1500px"
         :show-save-and-add="false"
         :show-error-alert="showConfirm"
         :error-message="errorMessage"
@@ -561,33 +567,88 @@ watch(
         @submit="handleSubmit"
         @cancel="handleCloseForm"
     >
-        <div class="form-employee-content d-flex flex-column gap-12">
-            <!-- CV Parser (Chỉ hiện khi thêm mới) -->
-            <div v-if="props.typeForm === 'add'" class="cv-parser d-flex flex-column">
-                <div class="form-section__title">Tự động điền từ CV</div>
+        <div class="form-employee-content d-flex gap-24" style="height: calc(100vh - 230px); min-height: 640px; max-height: 850px; overflow: hidden; align-items: stretch; column-gap: 20px;">
+            <!-- Cột trái: Upload CV -->
+            <div class="form-employee-left d-flex flex-column gap-12" style="width: 650px; flex-shrink: 0; height: 100%;">
+                <div class="form-section__title d-flex align-items-center justify-content-between">
+                    <span>Hồ sơ / CV</span>
+                    <ms-button v-if="cvFile" @click="handleRemoveCv" type="secondary" style="height: 24px; padding: 0 8px; font-size: 12px;">Xóa CV</ms-button>
+                </div>
+                
                 <upload-dragger
+                    v-if="!cvFile"
                     :multiple="false"
                     :show-upload-list="false"
-                    :disabled="isParsingCv"
                     accept=".pdf,.docx,.rtf,image/*"
                     :before-upload="handleBeforeUpload"
                     class="cv-drop-zone"
                 >
-                    <div class="cv-drop-zone__title">
-                        Kéo thả CV vào đây (PDF, DOCX, RTF, ảnh) hoặc bấm để chọn file
-                    </div>
-                    <div v-if="cvFile" class="cv-drop-zone__file">File: {{ cvFile.name }}</div>
-                    <div v-if="isParsingCv" class="cv-drop-zone__status d-flex align-items-center">
-                        <spin size="small" />
-                        <span>{{ cvParseStatus }}</span>
+                    <div class="cv-drop-zone__title p-20 d-flex flex-column align-items-center">
+                        <span style="font-size: 32px; color: #1890ff; margin-bottom: 8px;">📄</span>
+                        <span style="text-align: center;">Kéo thả CV vào đây hoặc bấm để chọn</span>
                     </div>
                 </upload-dragger>
+
+                <div v-else class="cv-preview-container flex-1 d-flex flex-column" style="border: 1px solid #d9d9d9; border-radius: 6px; overflow: hidden; background: #fafafa;">
+                    <div class="p-8 d-flex align-items-center gap-8" style="border-bottom: 1px solid #d9d9d9; background: #fff; position: relative; z-index: 2;">
+                        <span style="font-size: 16px; color: #1890ff;">📄</span>
+                        <div class="text-ellipsis flex-1" :title="cvFile.name" style="font-weight: 500; font-size: 13px;">{{ cvFile.name }}</div>
+                        
+                        <div class="d-flex align-items-center gap-4 ml-8">
+                            <ms-button size="small" @click="zoomCv(-10)" type="secondary" style="height: 24px; padding: 0 8px;">-</ms-button>
+                            <span style="font-size: 11px; min-width: 35px; text-align: center;">{{ cvZoom }}%</span>
+                            <ms-button size="small" @click="zoomCv(10)" type="secondary" style="height: 24px; padding: 0 8px;">+</ms-button>
+                        </div>
+                    </div>
+                    
+                    <div 
+                        ref="cvPreviewBody"
+                        class="flex-1 overflow-hidden bg-gray-600" 
+                        style="background: #525659; position: relative; user-select: none; cursor: grab;"
+                        :style="{ cursor: isDraggingCv ? 'grabbing' : 'grab' }"
+                        @mousedown.prevent="startDragging"
+                        @wheel="handleWheel"
+                    >
+                        <div :style="{ 
+                            transform: `translate(${posX}px, ${posY}px) scale(${cvZoom / 100})`, 
+                            transformOrigin: 'top left',
+                            width: `${CV_BASE_WIDTH}px`,
+                            height: `${CV_BASE_HEIGHT}px`,
+                            position: 'absolute',
+                            top: '40px',
+                            left: '50%',
+                            marginLeft: `-${CV_BASE_WIDTH / 2}px`,
+                            pointerEvents: 'none'
+                        }">
+                            <img v-if="isImageCv" :src="cvPreviewUrl" draggable="false" @dragstart.prevent style="width: 100%; height: 100%; display: block; box-shadow: 0 0 10px rgba(0,0,0,0.5); object-fit: contain; background: white;" />
+                            <iframe v-else :src="cvPreviewUrl" draggable="false" @dragstart.prevent style="width: 100%; height: 100%; border: none; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></iframe>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Employee Info Sections -->
-            <collapse v-model:activeKey="activeCollapseKeys" class="employee-collapse">
+            <!-- Cột phải: Employee Info Sections -->
+            <div class="form-employee-right flex-1" style="min-width: 0; height: 100%; overflow-y: auto; padding-right: 8px;">
+                <collapse v-model:activeKey="activeCollapseKeys" class="employee-collapse">
                 <collapse-panel key="basic" header="Thông tin cơ bản">
-                    <div class="form-grid">
+                    <div class="d-flex gap-20">
+                        <!-- Avatar -->
+                        <div class="avatar-section d-flex flex-column align-items-center">
+                            <div class="avatar-preview" @click="avatarInput?.click()">
+                                <img v-if="avatarPreview" :src="avatarPreview" alt="Avatar" />
+                                <div v-else class="avatar-placeholder d-flex align-items-center justify-content-center">
+                                    <span v-if="isUploadingAvatar">Đang tải...</span>
+                                    <span v-else>Chọn ảnh</span>
+                                </div>
+                                <div class="avatar-overlay">
+                                    <span class="icon-camera">📷</span>
+                                </div>
+                            </div>
+                            <input type="file" ref="avatarInput" accept="image/*" class="d-none" @change="handleAvatarUpload" />
+                        </div>
+
+                        <!-- Form Grid -->
+                        <div class="form-grid flex-1">
                         <div class="form-item">
                             <div class="form-label form-label--required">Mã nhân viên</div>
                             <ms-input v-model="form.employeeCode" :error="errors.employeeCode" :ref="(el) => (inputRefs.employeeCode = el)" @blurInput="handleBlur('employeeCode')" />
@@ -612,6 +673,7 @@ watch(
                             <div class="form-label form-label--required">Bằng cấp</div>
                             <ms-select v-model="form.degreeId" :options="degreeOptions" placeholder="Chọn bằng cấp" dropdown-position="top" :max-height="220" :ref="(el) => (inputRefs.degreeId = el)" :error="errors.degreeId" @blurInput="handleBlur('degreeId')" />
                         </div>
+                        </div>
                     </div>
                 </collapse-panel>
 
@@ -635,11 +697,11 @@ watch(
                         </div>
                         <div class="form-item">
                             <div class="form-label">Tài khoản</div>
-                            <ms-input v-model="form.accountId" />
+                            <ms-input v-model="form.accountName" disabled />
                         </div>
                         <div class="form-item">
                             <div class="form-label">Hợp đồng</div>
-                            <ms-input v-model="form.contractId" />
+                            <ms-input v-model="form.contractCode" disabled />
                         </div>
                     </div>
                 </collapse-panel>
@@ -765,6 +827,7 @@ watch(
                     </div>
                 </collapse-panel>
             </collapse>
+            </div>
         </div>
     </ms-form>
 </template>
@@ -791,6 +854,70 @@ watch(
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px 16px;
+}
+
+.gap-20 {
+    gap: 20px;
+}
+
+.avatar-section {
+    width: 140px;
+    flex-shrink: 0;
+    margin-top: 8px;
+}
+
+.avatar-preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 2px dashed #d9d9d9;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    background-color: #fafafa;
+    transition: border-color 0.3s;
+}
+
+.avatar-preview:hover {
+    border-color: #1890ff;
+}
+
+.avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    color: #999;
+    font-size: 13px;
+    text-align: center;
+}
+
+.avatar-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.avatar-preview:hover .avatar-overlay {
+    opacity: 1;
+}
+
+.icon-camera {
+    font-size: 24px;
+    color: white;
+}
+
+.d-none {
+    display: none;
 }
 
 .form-section__title {

@@ -166,12 +166,12 @@ const menu = ref([
         title: "Hợp đồng",
         icon: markRaw(FileTextOutlined),
         active: false,
-        roles: ["ADMIN", "HR", "MANAGER"],
+        roles: ["ADMIN", "HR"],
         children: [
             {
                 title: "Danh sách hợp đồng",
                 path: "/contracts",
-                roles: ["ADMIN", "HR", "MANAGER"],
+                roles: ["ADMIN", "HR"],
             },
             {
                 title: "Mẫu hợp đồng",

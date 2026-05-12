@@ -12,7 +12,6 @@ const columns = ref([
     { key: "templateCode", name: "Mã mẫu", typeFilter: "text", width: 160 },
     { key: "templateName", name: "Tên mẫu hợp đồng", typeFilter: "text", width: 260 },
     { key: "contractType", name: "Loại hợp đồng", typeFilter: "text", width: 180 },
-    { key: "version", name: "Phiên bản", typeFilter: "number", width: 120 },
     { key: "isActive", name: "Hoạt động", typeFilter: "status", width: 120 },
     { key: "createdAt", name: "Ngày tạo", type: "date", width: 140 },
     { key: "updatedAt", name: "Ngày sửa", type: "date", width: 140 },
@@ -89,7 +88,19 @@ onMounted(() => {
                 @edit-row="handleEdit"
                 @batch-export="handleBatchExport"
                 row-actions-name="Thao tác"
-            />
+            >
+                <!-- Custom cell: isActive -->
+                <template #isActive="{ row }">
+                    <div class="d-flex justify-content-center w-100">
+                        <span
+                            class="status-badge"
+                            :class="row.isActive ? 'status-badge--active' : 'status-badge--inactive'"
+                        >
+                            {{ row.isActive ? "Đang sử dụng" : "Ngừng sử dụng" }}
+                        </span>
+                    </div>
+                </template>
+            </ms-table>
 
             <contract-template-form
                 v-model="isFormOpen"
@@ -103,4 +114,27 @@ onMounted(() => {
 
 <style scoped>
 @import "../shift/Index.css";
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    display: inline-block;
+    text-align: center;
+    min-width: 110px;
+}
+
+.status-badge--active {
+    color: #52c41a;
+    background-color: #f6ffed;
+    border: 1px solid #b7eb8f;
+}
+
+.status-badge--inactive {
+    color: #ff4d4f;
+    background-color: #fff2f0;
+    border: 1px solid #ffccc7;
+}
 </style>

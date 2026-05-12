@@ -15,6 +15,7 @@ export const createEmployee = () => ({
     maritalStatus: "Độc thân",
     nationalId: "",
     avatarUrl: "profile.jpg",
+    cvUrl: "",
 
     // --- Liên lạc ---
     address: "",
