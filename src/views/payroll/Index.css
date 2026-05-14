@@ -21,8 +21,13 @@
 }
 
 .status-chip--draft {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.status-chip--processing {
     background: #e0f2fe;
-    color: #075985;
+    color: #0284c7;
 }
 
 .status-chip--locked {

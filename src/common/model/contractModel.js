@@ -22,6 +22,8 @@ export const createContract = () => ({
     isSigned: false,
     signedAt: null,
     shiftId: null,
+    allowanceIds: [],
+    endDate: null,
     createdAt: null,
     createdBy: "",
     updatedBy: "",

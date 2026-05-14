@@ -10,4 +10,5 @@ export const createContractTemplate = () => ({
     createdBy: "",
     updatedBy: "",
     updatedAt: null,
+    defaultAllowanceIds: [],
 });

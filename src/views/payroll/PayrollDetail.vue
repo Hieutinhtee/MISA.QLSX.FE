@@ -43,6 +43,8 @@ const formulaModalOpen = ref(false);
 const selectedPayroll = ref(null);
 
 const columns = ref([
+    { key: "employeeCode", name: "Mã NV", width: 100 },
+    { key: "fullName", name: "Tên nhân viên", width: 180 },
     { key: "payrollCode", name: "Mã bảng lương", width: 150 },
     { key: "grossSalary", name: "Lương gross", type: "number", width: 150 },
     { key: "taxableSalary", name: "Lương chịu thuế", type: "number", width: 150 },
@@ -88,7 +90,7 @@ const loadPayrolls = async () => {
             filters: [
                 {
                     field: "salaryPeriodId",
-                    operator: "equals",
+                    operator: "eq",
                     value: props.salaryPeriod.salaryPeriodId,
                 },
             ],

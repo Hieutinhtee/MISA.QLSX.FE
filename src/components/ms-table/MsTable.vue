@@ -72,6 +72,10 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    showActionMore: {
+        type: Boolean,
+        default: true,
+    },
     showSearch: {
         type: Boolean,
         default: true,
@@ -793,11 +797,19 @@ function normalizeColumnOrder() {
 
 function initColumnSettings() {
     const defaults = createDefaultColumnSettings();
-
+    const defaultPinnedKeys = props.columns
+        .filter((c) => c && (c.pinned === true || c.pinned === "left"))
+        .map((c) => c.key);
     try {
         const raw = localStorage.getItem(columnStorageKey.value);
         if (!raw) {
             columnSettings.value = defaults;
+            // apply default pinned columns from props if any
+            if (defaultPinnedKeys.length) {
+                // only keep keys that actually exist in defaults
+                const valid = defaults.map((d) => d.key);
+                pinnedColumns.value = defaultPinnedKeys.filter((k) => valid.includes(k));
+            }
             return;
         }
 
@@ -820,8 +832,17 @@ function initColumnSettings() {
 
         columnSettings.value = merged;
         normalizeColumnOrder();
+        // apply default pinned columns if defined and no explicit pins yet
+        if (defaultPinnedKeys.length) {
+            const valid = merged.map((d) => d.key);
+            pinnedColumns.value = defaultPinnedKeys.filter((k) => valid.includes(k));
+        }
     } catch {
         columnSettings.value = defaults;
+        if (defaultPinnedKeys.length) {
+            const valid = defaults.map((d) => d.key);
+            pinnedColumns.value = defaultPinnedKeys.filter((k) => valid.includes(k));
+        }
     }
 }
 
@@ -1544,7 +1565,7 @@ defineExpose({
                                         ></div>
                                     </div>
                                 </tooltip>
-                                <tooltip placement="top" title="Xem thêm">
+                                <tooltip v-if="props.showActionMore" placement="top" title="Xem thêm">
                                     <div class="btn-modify-wrapper" @click.stop="handleMore(row, $event)">
                                         <div
                                             class="content__table-btn-modify content__table-btn-showmore"

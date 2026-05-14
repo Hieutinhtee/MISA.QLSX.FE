@@ -10,6 +10,7 @@ import { $toastSuccess, $toastError } from "@/utils/toastService";
 import SalaryPeriodForm from "./SalaryPeriodForm.vue";
 import PayrollDetail from "./PayrollDetail.vue";
 import PayrollWorkflowModal from "./PayrollWorkflowModal.vue";
+import PayrollsAPI from "@/apis/components/payrolls/payrollsAPI";
 import { exportSelectedRows } from "@/utils/exportService";
 
 const columns = ref([
@@ -55,6 +56,7 @@ const getStatusClass = (status) => {
     const normalized = (status || "").toLowerCase();
 
     if (normalized === "draft") return "status-chip status-chip--draft";
+    if (normalized === "processing") return "status-chip status-chip--processing";
     if (normalized === "locked") return "status-chip status-chip--locked";
     if (normalized === "paid") return "status-chip status-chip--paid";
 
@@ -70,6 +72,7 @@ const getStatusText = (status) => {
     const normalized = (status || "").toLowerCase();
 
     if (normalized === "draft") return "Nháp";
+    if (normalized === "processing") return "Đã tính lương";
     if (normalized === "locked") return "Đã khóa";
     if (normalized === "paid") return "Đã chi trả";
 
@@ -82,13 +85,23 @@ const getStatusText = (status) => {
  */
 const handlePeriodSubmit = async (payload) => {
     try {
-        await SalaryPeriodsAPI.create(payload);
-        $toastSuccess("Thêm kỳ lương thành công");
+        const res = await SalaryPeriodsAPI.create(payload);
+        const newId = res.data?.id;
+        
+        $toastSuccess("Thêm kỳ lương thành công. Đang tự động tính lương...");
+        
+        if (newId) {
+            // Tự động tạo nháp và tính lương ngay khi tạo kỳ
+            await PayrollsAPI.generateByPeriod(newId);
+            await PayrollsAPI.calculateByPeriod(newId);
+            $toastSuccess("Đã tính xong lương cho kỳ mới");
+        }
+        
         showAddPeriodForm.value = false;
         loadDataForAPI();
     } catch (error) {
         console.error(error);
-        $toastError("Thêm kỳ lương thất bại");
+        $toastError("Thêm hoặc tính kỳ lương thất bại");
     }
 };
 
@@ -98,12 +111,22 @@ const handlePeriodSubmit = async (payload) => {
  */
 const handlePeriodSubmitAndAdd = async (payload) => {
     try {
-        await SalaryPeriodsAPI.create(payload);
-        $toastSuccess("Thêm kỳ lương thành công");
+        const res = await SalaryPeriodsAPI.create(payload);
+        const newId = res.data?.id;
+        
+        $toastSuccess("Thêm kỳ lương thành công. Đang tự động tính lương...");
+        
+        if (newId) {
+            // Tự động tạo nháp và tính lương ngay khi tạo kỳ
+            await PayrollsAPI.generateByPeriod(newId);
+            await PayrollsAPI.calculateByPeriod(newId);
+            $toastSuccess("Đã tính xong lương cho kỳ mới");
+        }
+        
         loadDataForAPI();
     } catch (error) {
         console.error(error);
-        $toastError("Thêm kỳ lương thất bại");
+        $toastError("Thêm hoặc tính kỳ lương thất bại");
     }
 };
 

@@ -32,6 +32,7 @@ const modalOpen = computed({
 
 const loading = ref(false);
 const items = ref([]);
+const expandedRowKeys = ref([]);
 
 const formatCurrency = (value) => {
     if (value === null || value === undefined) return "0";
@@ -54,71 +55,101 @@ const loadItems = async () => {
 };
 
 // Phân loại và gán số thứ tự cho các khoản mục
+// childrenMap lưu riêng để không để AntD tự render tree table
+const childrenMap = computed(() => {
+    const map = {};
+    if (!items.value.length) return map;
+
+    map["(2)"] = items.value.filter(i => i.formulaComponent === "allowance");
+    map["(3)"] = items.value.filter(i => i.formulaComponent === "bonus" || (i.itemType === "addition" && !["base_salary", "allowance"].includes(i.formulaComponent)));
+    map["(4)"] = items.value.filter(i => i.formulaComponent === "penalty" || (i.itemType === "deduction" && !["insurance", "tax"].includes(i.formulaComponent)));
+    map["(5)"] = items.value.filter(i => i.formulaComponent === "insurance");
+    map["(6)"] = items.value.filter(i => i.formulaComponent === "tax");
+
+    return map;
+});
+
 const categorizedItems = computed(() => {
     const list = [];
     if (!items.value.length) return list;
 
-    // 1. Lương theo công
+    // 1. Lương theo công (không có children)
     const base = items.value.find(i => i.formulaComponent === "base_salary");
-    if (base) list.push({ ...base, indexLabel: "(1)", group: "income" });
+    if (base) list.push({ ...base, indexLabel: "(1)", group: "income", hasChildren: false });
 
     // 2. Phụ cấp
-    const allowances = items.value.filter(i => i.formulaComponent === "allowance");
-    const totalAlw = allowances.reduce((sum, i) => sum + (i.amount || 0), 0);
+    const totalAlw = (childrenMap.value["(2)"] || []).reduce((sum, i) => sum + (i.amount || 0), 0);
     list.push({
         itemName: "Tổng phụ cấp (từ hợp đồng)",
         amount: totalAlw,
         indexLabel: "(2)",
         group: "income",
-        children: allowances,
+        hasChildren: (childrenMap.value["(2)"] || []).length > 0,
     });
 
     // 3. Các khoản cộng thêm
-    const additions = items.value.filter(i => i.formulaComponent === "bonus" || (i.itemType === "addition" && !["base_salary", "allowance"].includes(i.formulaComponent)));
-    const totalAdd = additions.reduce((sum, i) => sum + (i.amount || 0), 0);
+    const totalAdd = (childrenMap.value["(3)"] || []).reduce((sum, i) => sum + (i.amount || 0), 0);
     list.push({
         itemName: "Các khoản cộng thêm (thưởng, hỗ trợ...)",
         amount: totalAdd,
         indexLabel: "(3)",
         group: "income",
-        children: additions,
+        hasChildren: (childrenMap.value["(3)"] || []).length > 0,
     });
 
     // 4. Các khoản trừ
-    const deductions = items.value.filter(i => i.formulaComponent === "penalty" || (i.itemType === "deduction" && !["insurance", "tax"].includes(i.formulaComponent)));
-    const totalDed = deductions.reduce((sum, i) => sum + (i.amount || 0), 0);
+    const totalDed = (childrenMap.value["(4)"] || []).reduce((sum, i) => sum + (i.amount || 0), 0);
     list.push({
         itemName: "Các khoản khấu trừ (phạt, nghỉ...)",
         amount: totalDed,
         indexLabel: "(4)",
         group: "deduction",
-        children: deductions,
+        hasChildren: (childrenMap.value["(4)"] || []).length > 0,
     });
 
     // 5. Bảo hiểm
-    const insurances = items.value.filter(i => i.formulaComponent === "insurance");
-    const totalIns = insurances.reduce((sum, i) => sum + (i.amount || 0), 0);
+    const totalIns = (childrenMap.value["(5)"] || []).reduce((sum, i) => sum + (i.amount || 0), 0);
     list.push({
         itemName: "Các khoản bảo hiểm (BHXH, BHYT, BHTN)",
         amount: totalIns,
         indexLabel: "(5)",
         group: "tax-ins",
-        children: insurances,
+        hasChildren: (childrenMap.value["(5)"] || []).length > 0,
     });
 
     // 6. Thuế
-    const taxes = items.value.filter(i => i.formulaComponent === "tax");
-    const totalTax = taxes.reduce((sum, i) => sum + (i.amount || 0), 0);
+    const totalTax = (childrenMap.value["(6)"] || []).reduce((sum, i) => sum + (i.amount || 0), 0);
     list.push({
         itemName: "Thuế thu nhập cá nhân (TNCN)",
         amount: totalTax,
         indexLabel: "(6)",
         group: "tax-ins",
-        children: taxes,
+        hasChildren: (childrenMap.value["(6)"] || []).length > 0,
     });
 
     return list;
 });
+
+const dependentCount = computed(() => {
+    const taxItem = items.value.find(i => i.formulaComponent === "tax");
+    if (taxItem && taxItem.note) {
+        const match = taxItem.note.match(/Số NPT: (\d+)/);
+        if (match) return parseInt(match[1]);
+    }
+    return "?";
+});
+
+const expandable = computed(() => ({
+    expandedRowKeys: expandedRowKeys.value,
+    rowExpandable: (record) => record.hasChildren,
+    onExpand: (expanded, record) => {
+        if (expanded) {
+            expandedRowKeys.value = [...expandedRowKeys.value, record.indexLabel];
+        } else {
+            expandedRowKeys.value = expandedRowKeys.value.filter(k => k !== record.indexLabel);
+        }
+    },
+}));
 
 const columns = [
     { title: "STT", dataIndex: "indexLabel", key: "indexLabel", width: 60, align: "center" },
@@ -130,7 +161,10 @@ watch(
     () => modalOpen.value,
     (open) => {
         if (open) {
+            expandedRowKeys.value = [];
             loadItems();
+        } else {
+            expandedRowKeys.value = [];
         }
     }
 );
@@ -224,17 +258,18 @@ const handleClose = () => {
                 :data-source="categorizedItems"
                 :pagination="false"
                 :loading="loading"
+                :expandable="expandable"
                 size="middle"
                 row-key="indexLabel"
                 class="formula-table"
-                :expand-column-width="30"
+                :expand-column-width="36"
             >
                 <template #bodyCell="{ column, record }">
                     <template v-if="column.key === 'indexLabel'">
                         <span class="index-label">{{ record.indexLabel }}</span>
                     </template>
                     <template v-if="column.key === 'itemName'">
-                        <span :class="record.children ? 'font-bold' : ''">{{ record.itemName }}</span>
+                        <span :class="record.hasChildren ? 'font-bold' : ''">{{ record.itemName }}</span>
                     </template>
                     <template v-if="column.key === 'amount'">
                         <span :class="record.group === 'deduction' || record.group === 'tax-ins' ? 'text-danger' : 'text-success'">
@@ -242,40 +277,145 @@ const handleClose = () => {
                         </span>
                     </template>
                 </template>
-                
-                <!-- Hiển thị con nếu có -->
+
+                <!-- Expand: chỉ render khi record.hasChildren = true -->
                 <template #expandedRowRender="{ record }">
-                    <div v-if="record.children && record.children.length" class="expanded-items">
-                        <div v-for="child in record.children" :key="child.payrollItemId" class="expanded-item d-flex justify-content-between">
-                            <span>• {{ child.itemName }} <small v-if="child.note">({{ child.note }})</small></span>
-                            <span>{{ formatCurrency(child.amount) }}</span>
-                        </div>
+                    <div class="expanded-items">
+                        <template v-if="childrenMap[record.indexLabel] && childrenMap[record.indexLabel].length">
+                            <div
+                                v-for="child in childrenMap[record.indexLabel]"
+                                :key="child.payrollItemId"
+                                class="expanded-item d-flex justify-content-between"
+                            >
+                                <span>• {{ child.itemName }} <small v-if="child.note">({{ child.note }})</small></span>
+                                <span :class="record.group === 'deduction' || record.group === 'tax-ins' ? 'text-danger' : ''">
+                                    {{ formatCurrency(child.amount) }}
+                                </span>
+                            </div>
+                        </template>
+                        <div v-else class="text-muted text-center italic">Không có dữ liệu chi tiết</div>
                     </div>
-                    <div v-else class="text-muted text-center italic">Không có dữ liệu chi tiết</div>
                 </template>
             </Table>
 
             <div class="formula-explanation mt-24">
                 <div class="explanation-title">Quy trình tính toán hệ thống:</div>
+
                 <div class="explanation-step">
                     <div class="step-label">Bước 1: Tính lương Gross</div>
                     <div class="step-desc">
-                        Lương Gross = <span class="ref">(1)</span> + <span class="ref">(2)</span> + <span class="ref">(3)</span> - <span class="ref">(4)</span>
+                        Lương Gross = <span class="ref">(1)</span> Lương cơ bản + <span class="ref">(2)</span> Phụ cấp + <span class="ref">(3)</span> Cộng thêm - <span class="ref">(4)</span> Khấu trừ
                     </div>
                     <div class="step-calc">
-                        = {{ formatCurrency(items.find(i => i.formulaComponent === 'base_salary')?.amount || 0) }} + {{ formatCurrency(props.payroll.totalAllowance) }} + {{ formatCurrency(props.payroll.totalAddition) }} - {{ formatCurrency(props.payroll.totalDeduction) }} 
-                        = <span class="font-bold">{{ formatCurrency(props.payroll.grossSalary) }} VNĐ</span>
+                        = {{ formatCurrency(items.find(i => i.formulaComponent === 'base_salary')?.amount || 0) }}
+                        + {{ formatCurrency(props.payroll.totalAllowance) }}
+                        + {{ formatCurrency(props.payroll.totalAddition) }}
+                        - {{ formatCurrency(props.payroll.totalDeduction) }}
+                        = <span class="font-bold">{{ formatCurrency(props.payroll.grossSalary) }} ₫</span>
+                    </div>
+                    <div class="step-note">
+                        Lương cơ bản tính pro-rate theo số ngày công thực tế trong hợp đồng. Phụ cấp từ hợp đồng (cố định hoặc % lương). Cộng thêm/trừ từ chấm công (bonus, OT, phạt).
                     </div>
                 </div>
-                
+
                 <div class="explanation-step mt-16">
-                    <div class="step-label">Bước 2: Tính lương Thực nhận (Net)</div>
+                    <div class="step-label">Bước 2: Khấu trừ bảo hiểm <span class="ref">(5)</span></div>
                     <div class="step-desc">
-                        Thực nhận = Lương Gross - <span class="ref">(5)</span> - <span class="ref">(6)</span>
+                        Bảo hiểm = Lương đóng BH (hợp đồng) × (BHXH 8% + BHYT 1.5% + BHTN 1%) = Lương đóng BH × 10.5%
                     </div>
                     <div class="step-calc">
-                        = {{ formatCurrency(props.payroll.grossSalary) }} - {{ formatCurrency(props.payroll.insuranceDeduction) }} - {{ formatCurrency(props.payroll.pitTaxAmount) }}
-                        = <span class="font-bold text-success" style="font-size: 1.1rem">{{ formatCurrency(props.payroll.netSalary) }} VNĐ</span>
+                        Lương đóng BH ≈ {{ formatCurrency(Math.round(props.payroll.insuranceDeduction / 0.105)) }} ₫<br/>
+                        Bảo hiểm = {{ formatCurrency(Math.round(props.payroll.insuranceDeduction / 0.105)) }} × 10.5%
+                        = <span class="font-bold text-danger">{{ formatCurrency(props.payroll.insuranceDeduction) }} ₫</span>
+                    </div>
+                    <div class="step-note">
+                        Tỷ lệ theo <em>Chính sách giảm trừ</em> hiệu lực tại đầu kỳ. Căn cứ là lương BH trong hợp đồng, không phải lương Gross.
+                    </div>
+                </div>
+
+                <div class="explanation-step mt-16">
+                    <div class="step-label">Bước 3: Giảm trừ gia cảnh</div>
+                    <div class="step-desc">
+                        Tổng giảm trừ = Giảm trừ bản thân + (Số người phụ thuộc × Mức giảm trừ/người)
+                    </div>
+                    <div class="step-calc">
+                        Giảm trừ bản thân: <strong>11.000.000 ₫/tháng</strong><br/>
+                        Giảm trừ gia cảnh: <strong>{{ dependentCount }}</strong> người × <strong>4.400.000 ₫/người</strong>
+                    </div>
+                    <div class="step-note">
+                        Số người phụ thuộc lấy từ <em>Hồ sơ thuế nhân viên</em> hiệu lực tại cuối kỳ.
+                    </div>
+                </div>
+
+                <div class="explanation-step mt-16">
+                    <div class="step-label">Bước 4: Thu nhập chịu thuế</div>
+                    <div class="step-desc">
+                        Thu nhập chịu thuế = Gross - Bảo hiểm - Giảm trừ bản thân - Giảm trừ gia cảnh (≥ 0)
+                    </div>
+                    <div class="step-calc">
+                        = {{ formatCurrency(props.payroll.grossSalary) }}
+                        - {{ formatCurrency(props.payroll.insuranceDeduction) }}
+                        - Giảm trừ
+                        = <span class="font-bold">{{ formatCurrency(props.payroll.taxableSalary) }} ₫</span>
+                    </div>
+                </div>
+
+                <div class="explanation-step mt-16">
+                    <div class="step-label">Bước 5: Thuế TNCN lũy tiến <span class="ref">(6)</span></div>
+                    <div class="step-desc">
+                        Công thức: Thuế = (Thu nhập chịu thuế - Cận dưới bậc) × Thuế suất + Giảm trừ nhanh
+                    </div>
+                    <div class="tax-bracket-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Bậc</th>
+                                    <th>Thu nhập chịu thuế/tháng</th>
+                                    <th>Thuế suất</th>
+                                    <th>Giảm trừ nhanh</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr :class="props.payroll.taxableSalary > 0 && props.payroll.taxableSalary <= 5000000 ? 'active-bracket' : ''">
+                                    <td>1</td><td>≤ 5.000.000 ₫</td><td>5%</td><td>0 ₫</td>
+                                </tr>
+                                <tr :class="props.payroll.taxableSalary > 5000000 && props.payroll.taxableSalary <= 10000000 ? 'active-bracket' : ''">
+                                    <td>2</td><td>5 – 10 triệu</td><td>10%</td><td>250.000 ₫</td>
+                                </tr>
+                                <tr :class="props.payroll.taxableSalary > 10000000 && props.payroll.taxableSalary <= 18000000 ? 'active-bracket' : ''">
+                                    <td>3</td><td>10 – 18 triệu</td><td>15%</td><td>750.000 ₫</td>
+                                </tr>
+                                <tr :class="props.payroll.taxableSalary > 18000000 && props.payroll.taxableSalary <= 32000000 ? 'active-bracket' : ''">
+                                    <td>4</td><td>18 – 32 triệu</td><td>20%</td><td>1.650.000 ₫</td>
+                                </tr>
+                                <tr :class="props.payroll.taxableSalary > 32000000 && props.payroll.taxableSalary <= 52000000 ? 'active-bracket' : ''">
+                                    <td>5</td><td>32 – 52 triệu</td><td>25%</td><td>3.250.000 ₫</td>
+                                </tr>
+                                <tr :class="props.payroll.taxableSalary > 52000000 && props.payroll.taxableSalary <= 80000000 ? 'active-bracket' : ''">
+                                    <td>6</td><td>52 – 80 triệu</td><td>30%</td><td>5.850.000 ₫</td>
+                                </tr>
+                                <tr :class="props.payroll.taxableSalary > 80000000 ? 'active-bracket' : ''">
+                                    <td>7</td><td>> 80 triệu</td><td>35%</td><td>9.850.000 ₫</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="step-calc mt-8">
+                        Thu nhập chịu thuế: <strong>{{ formatCurrency(props.payroll.taxableSalary) }} ₫</strong><br/>
+                        Thuế TNCN = <span class="font-bold text-danger">{{ formatCurrency(props.payroll.pitTaxAmount) }} ₫</span>
+                    </div>
+                </div>
+
+                <div class="explanation-step mt-16">
+                    <div class="step-label">Bước 6: Lương thực nhận (Net)</div>
+                    <div class="step-desc">
+                        Thực nhận = Lương Gross - Bảo hiểm <span class="ref">(5)</span> - Thuế TNCN <span class="ref">(6)</span>
+                    </div>
+                    <div class="step-calc">
+                        = {{ formatCurrency(props.payroll.grossSalary) }}
+                        - {{ formatCurrency(props.payroll.insuranceDeduction) }}
+                        - {{ formatCurrency(props.payroll.pitTaxAmount) }}
+                        = <span class="font-bold text-success" style="font-size: 1.1rem">{{ formatCurrency(props.payroll.netSalary) }} ₫</span>
                     </div>
                 </div>
             </div>
@@ -384,6 +524,50 @@ const handleClose = () => {
 
 .text-success { color: #16a34a; }
 .text-danger { color: #dc2626; }
+
+.step-note {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+.mt-8 { margin-top: 8px; }
+
+.tax-bracket-table {
+    margin-top: 10px;
+    overflow-x: auto;
+}
+
+.tax-bracket-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+}
+
+.tax-bracket-table th,
+.tax-bracket-table td {
+    border: 1px solid #e2e8f0;
+    padding: 5px 10px;
+    text-align: center;
+}
+
+.tax-bracket-table thead tr {
+    background: #f1f5f9;
+    font-weight: 600;
+    color: #475569;
+}
+
+.tax-bracket-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.tax-bracket-table tbody tr.active-bracket {
+    background: #fef9c3;
+    font-weight: 700;
+    color: #92400e;
+    border-left: 3px solid #f59e0b;
+}
 
 .formula-container {
     max-height: 80vh;

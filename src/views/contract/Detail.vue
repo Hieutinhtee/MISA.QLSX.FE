@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import ContractsAPI from "@/apis/components/contracts/contractsAPI";
+import FilesAPI from "@/apis/components/files/filesAPI";
 import { $toastError, $toastSuccess } from "@/utils/toastService";
 
 const route = useRoute();
@@ -10,6 +11,7 @@ const contractId = computed(() => route.params.id);
 
 const loading = ref(false);
 const contract = ref(null);
+const allowances = ref([]);
 
 const contractTypeLabels = {
     "Thử việc": "Thử việc",
@@ -29,6 +31,11 @@ async function loadContractDetail() {
     try {
         const response = await ContractsAPI.getById(contractId.value);
         contract.value = response?.data?.data || null;
+
+        if (contract.value) {
+            const allowanceRes = await ContractsAPI.getAllowances(contractId.value);
+            allowances.value = allowanceRes?.data?.data || [];
+        }
     } catch (error) {
         $toastError("Lỗi khi tải chi tiết hợp đồng");
         console.error(error);
@@ -54,6 +61,34 @@ function formatCurrency(value) {
 
 function handleClose() {
     window.history.back();
+}
+
+async function downloadFile() {
+    const fileId = contract.value.attachmentLink;
+    if (!fileId) return;
+
+    // Kiểm tra xem có phải là GUID không
+    const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (guidRegex.test(fileId)) {
+        try {
+            const resp = await FilesAPI.download(fileId);
+            const blob = resp.data;
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = contract.value.contractCode + "_dinh_kem";
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (e) {
+            console.error(e);
+            $toastError("Không thể tải xuống tệp đính kèm");
+        }
+    } else {
+        // Nếu là URL bình thường
+        window.open(fileId, "_blank");
+    }
 }
 
 onMounted(() => {
@@ -240,6 +275,21 @@ onMounted(() => {
                             </div>
                         </div>
 
+                        <div v-if="allowances.length > 0" class="detail-section">
+                            <div class="section-title">
+                                <i class="icon-money"></i> Phụ cấp kèm theo
+                            </div>
+                            <div class="section-content">
+                                <div v-for="(allowance, index) in allowances" :key="allowance.allowanceId" class="detail-item justify-content-between align-items-center mb-2 pb-2" style="border-bottom: 1px dashed #e0e0e0">
+                                    <div class="detail-label font-medium" style="width: auto">{{ allowance.allowanceName }}</div>
+                                    <div class="detail-value text-right" style="width: auto">
+                                        <span v-if="allowance.calculationType === 'FIXED'" class="text-success font-medium">{{ formatCurrency(allowance.amount) }}</span>
+                                        <span v-else class="text-primary font-medium">{{ allowance.percent }}% Lương CB</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div
                             v-if="contract.summary || contract.attachmentLink"
                             class="detail-section"
@@ -257,10 +307,10 @@ onMounted(() => {
                                 <div v-if="contract.attachmentLink" class="attachment-box">
                                     <div class="attachment-icon">📎</div>
                                     <a
-                                        :href="contract.attachmentLink"
-                                        target="_blank"
+                                        href="javascript:void(0)"
                                         class="attachment-link text-truncate"
                                         :title="contract.attachmentLink"
+                                        @click="downloadFile"
                                     >
                                         Xem tài liệu đính kèm
                                     </a>

@@ -88,6 +88,7 @@ onMounted(() => {
                 @edit-row="handleEdit"
                 @batch-export="handleBatchExport"
                 row-actions-name="Thao tác"
+                :showActionMore="false"
             >
                 <!-- Custom cell: isActive -->
                 <template #isActive="{ row }">
@@ -127,7 +128,7 @@ onMounted(() => {
 }
 
 .status-badge--active {
-    color: #52c41a;
+    color: #09851a;
     background-color: #f6ffed;
     border: 1px solid #b7eb8f;
 }

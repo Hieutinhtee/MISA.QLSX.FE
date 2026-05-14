@@ -1,16 +1,17 @@
 <script setup>
-import { defineModel, defineProps, defineEmits, ref, watch } from "vue";
+import { defineModel, defineProps, defineEmits, ref, watch, onMounted } from "vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import MsInput from "@/components/ms-input/MsInput.vue";
 import MsTextarea from "@/components/ms-textarea/MsTextarea.vue";
 import MsSelect from "@/components/ms-select/MsSelect.vue";
 import MsRadioButton from "@/components/ms-radio-button/MsRadioButton.vue";
-import { Modal } from "ant-design-vue";
+import { Modal, Select } from "ant-design-vue";
 import MsInputNumber from "@/components/ms-input-number/MsInputNumber.vue";
 import { createContractTemplate } from "@/common/model/contractTemplateModel";
 import { getCurrentUserGuid } from "@/utils/currentUser";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
 import { useFormValidation } from "@/composables/useFormValidation";
+import allowancesAPI from "@/apis/components/allowances/allowancesAPI";
 
 const props = defineProps({
     typeForm: {
@@ -55,6 +56,29 @@ const contractTypeOptions = [
     { value: "Không thời hạn", label: "Không thời hạn" },
 ];
 
+const allowanceOptions = ref([]);
+
+onMounted(async () => {
+    try {
+        const res = await allowancesAPI.getAll();
+        const data = res.data?.data || res.data || [];
+        allowanceOptions.value = data.map(item => {
+            let label = item.allowanceName;
+            if (item.calculationType === 'PERCENT') {
+                label += ` - ${item.percent}% Lương cơ bản`;
+            } else {
+                label += ` - ${new Intl.NumberFormat('vi-VN').format(item.amount)}đ`;
+            }
+            return {
+                label: label,
+                value: item.allowanceId
+            };
+        });
+    } catch (error) {
+        console.error("Failed to fetch allowances", error);
+    }
+});
+
 watch(
     () => isFormOpen.value,
     (open) => {
@@ -63,9 +87,21 @@ watch(
         resetErrors();
 
         if (props.typeForm === "edit" && props.data) {
+            let parsedIds = [];
+            if (props.data.defaultAllowanceIds && typeof props.data.defaultAllowanceIds === 'string') {
+                try {
+                    parsedIds = JSON.parse(props.data.defaultAllowanceIds);
+                } catch(e) {
+                    parsedIds = [];
+                }
+            } else if (Array.isArray(props.data.defaultAllowanceIds)) {
+                parsedIds = props.data.defaultAllowanceIds;
+            }
+
             form.value = {
                 ...createContractTemplate(),
                 ...props.data,
+                defaultAllowanceIds: parsedIds,
             };
             return;
         }
@@ -73,6 +109,10 @@ watch(
         form.value = createContractTemplate();
     },
 );
+
+const filterAllowanceOption = (input, option) => {
+    return option.label.toLowerCase().includes(input.toLowerCase());
+};
 
 function validateField(field) {
     switch (field) {
@@ -111,6 +151,7 @@ function buildPayload() {
         content: form.value.content || "",
         version: Number(form.value.version || 1),
         isActive: !!form.value.isActive,
+        defaultAllowanceIds: JSON.stringify(form.value.defaultAllowanceIds || [])
     };
 
     if (!isEdit) {
@@ -194,9 +235,28 @@ async function handleSubmit() {
                     </div>
                 </div>
 
+                
+
                 <div class="form-row d-flex justify-content-between align-items-center">
-                    <div class="form-label">Phiên bản</div>
-                    <ms-input-number v-model:value="form.version" :min="1" class="ant-control" />
+                    <div class="form-label">Phụ cấp mặc định</div>
+                    <div class="w-420">
+                        <Select
+                            v-model:value="form.defaultAllowanceIds"
+                            :options="allowanceOptions"
+                            mode="multiple"
+                            show-search
+                            :filter-option="filterAllowanceOption"
+                            placeholder="Chọn phụ cấp mặc định"
+                            style="width: 100%"
+                        ></Select>
+                    </div>
+                </div>
+
+                <div class="form-row d-flex justify-content-between align-items-start">
+                    <div class="form-label">Nội dung</div>
+                    <div class="w-420 form-textarea">
+                        <ms-textarea v-model="form.content" />
+                    </div>
                 </div>
 
                 <div class="form-row d-flex align-items-center">
@@ -207,13 +267,6 @@ async function handleSubmit() {
                     <ms-radio-button v-model="form.isActive" :value="false" name="template-status"
                         >Ngừng sử dụng</ms-radio-button
                     >
-                </div>
-
-                <div class="form-row d-flex justify-content-between align-items-start">
-                    <div class="form-label">Nội dung</div>
-                    <div class="w-420 form-textarea">
-                        <ms-textarea v-model="form.content" />
-                    </div>
                 </div>
             </div>
 

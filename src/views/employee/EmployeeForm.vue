@@ -16,6 +16,7 @@ import MsAlert from "@/components/ms-alert/MsAlert.vue";
 import MsForm from "@/components/ms-form/MsForm.vue";
 import { useFormValidation } from "@/composables/useFormValidation";
 import FilesAPI from "@/apis/components/files/filesAPI";
+import EmployeeDependent from "./components/EmployeeDependent.vue";
 
 const UploadDragger = Upload.Dragger;
 const CollapsePanel = Collapse.Panel;
@@ -40,6 +41,7 @@ const isFormOpen = defineModel({
 });
 
 const form = ref(createEmployee());
+const pendingNewId = ref(null); // UUID sinh sẵn cho thêm mới
 const cvFile = ref(null);
 const pendingCvFile = ref(null);
 const blobUrl = ref("");
@@ -93,11 +95,17 @@ function validateField(field) {
     switch (field) {
         case "employeeCode":
             errors.value.employeeCode = form.value.employeeCode?.trim()
-                ? ""
+                ? form.value.employeeCode.trim().length > 20
+                    ? "Mã nhân viên tối đa 20 ký tự"
+                    : ""
                 : "Mã nhân viên không được để trống";
             break;
         case "fullName":
-            errors.value.fullName = form.value.fullName?.trim() ? "" : "Họ tên không được để trống";
+            errors.value.fullName = form.value.fullName?.trim()
+                ? form.value.fullName.trim().length > 120
+                    ? "Họ tên tối đa 120 ký tự"
+                    : ""
+                : "Họ tên không được để trống";
             break;
         case "gender":
             errors.value.gender = form.value.gender?.trim() ? "" : "Giới tính không được để trống";
@@ -115,8 +123,21 @@ function validateField(field) {
         case "degreeId":
             errors.value.degreeId = form.value.degreeId ? "" : "Bằng cấp không được để trống";
             break;
+        case "joinDate":
+            errors.value.joinDate = form.value.joinDate ? "" : "Ngày vào làm không được để trống";
+            break;
+        case "address":
+            errors.value.address = form.value.address?.trim() ? "" : "Địa chỉ không được để trống";
+            break;
+        case "phoneNumber":
+            errors.value.phoneNumber = form.value.phoneNumber?.trim()
+                ? ""
+                : "Số điện thoại không được để trống";
+            break;
         case "email":
-            if (form.value.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) {
+            if (!form.value.email?.trim()) {
+                errors.value.email = "Email công việc không được để trống";
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) {
                 errors.value.email = "Email không đúng định dạng";
             } else {
                 errors.value.email = "";
@@ -142,6 +163,9 @@ const fieldOrder = [
     "dateOfBirth",
     "nationalId",
     "degreeId",
+    "joinDate",
+    "address",
+    "phoneNumber",
     "email",
     "personalEmail",
 ];
@@ -154,6 +178,9 @@ const ensureCollapseExpanded = (field) => {
         dateOfBirth: "basic",
         nationalId: "basic",
         degreeId: "basic",
+        joinDate: "work",
+        address: "contact",
+        phoneNumber: "contact",
         email: "contact",
         personalEmail: "contact",
     };
@@ -428,15 +455,13 @@ async function handleSubmit() {
         return;
     }
 
+    // entityId: dùng ID thực nếu edit, hoặc UUID sinh sẵn nếu thêm mới
+    const entityId = form.value.employeeId || pendingNewId.value;
+
     if (pendingAvatarFile.value) {
         isUploadingAvatar.value = true;
         try {
-            const meta = {
-                moduleName: "HR",
-                entityName: "Employee",
-                entityId: form.value.employeeId || null,
-                purpose: "avatar",
-            };
+            const meta = { moduleName: "hr", entityName: "employee", entityId, purpose: "avatar" };
             const resp = await FilesAPI.upload(pendingAvatarFile.value, meta);
             const result = resp.data?.data || resp.data;
             if (result && (result.fileId || result.FileId)) {
@@ -453,16 +478,10 @@ async function handleSubmit() {
         isUploadingAvatar.value = false;
     }
 
-    // Upload CV if pending
     if (pendingCvFile.value) {
         isUploadingCv.value = true;
         try {
-            const meta = {
-                moduleName: "HR",
-                entityName: "Employee",
-                entityId: form.value.employeeId || null,
-                purpose: "cv",
-            };
+            const meta = { moduleName: "hr", entityName: "employee", entityId, purpose: "cv" };
             const resp = await FilesAPI.upload(pendingCvFile.value, meta);
             const result = resp.data?.data || resp.data;
             if (result && (result.fileId || result.FileId)) {
@@ -506,6 +525,7 @@ watch(
         await loadSelectData();
 
         if (props.typeForm === "edit" && props.data) {
+            pendingNewId.value = null;
             form.value = {
                 ...createEmployee(),
                 ...props.data,
@@ -547,8 +567,11 @@ watch(
             return;
         }
 
+        // Thêm mới: sinh sẵn UUID để dùng cho cả upload file và tạo entity
+        pendingNewId.value = crypto.randomUUID();
         form.value = {
             ...createEmployee(),
+            employeeId: pendingNewId.value,
             gender: "Nam",
         };
     },
@@ -680,8 +703,16 @@ watch(
                 <collapse-panel key="work" header="Thông tin công việc">
                     <div class="form-grid">
                         <div class="form-item">
-                            <div class="form-label">Ngày vào làm</div>
-                            <ms-date-picker v-model="form.joinDate" value-format="YYYY-MM-DD" format="DD/MM/YYYY" class="ant-control" />
+                            <div class="form-label form-label--required">Ngày vào làm</div>
+                            <ms-date-picker
+                                v-model="form.joinDate"
+                                value-format="YYYY-MM-DD"
+                                format="DD/MM/YYYY"
+                                class="ant-control"
+                                :ref="(el) => (inputRefs.joinDate = el)"
+                                :error="errors.joinDate"
+                                @blurInput="handleBlur('joinDate')"
+                            />
                         </div>
                         <div class="form-item">
                             <div class="form-label">Phòng ban</div>
@@ -709,19 +740,29 @@ watch(
                 <collapse-panel key="contact" header="Thông tin liên lạc">
                     <div class="form-grid">
                         <div class="form-item form-item--full">
-                            <div class="form-label">Địa chỉ</div>
-                            <ms-input v-model="form.address" />
+                            <div class="form-label form-label--required">Địa chỉ</div>
+                            <ms-input
+                                v-model="form.address"
+                                :ref="(el) => (inputRefs.address = el)"
+                                :error="errors.address"
+                                @blurInput="handleBlur('address')"
+                            />
                         </div>
                         <div class="form-item form-item--full">
                             <div class="form-label">Địa chỉ tạm trú</div>
                             <ms-input v-model="form.temporaryAddress" />
                         </div>
                         <div class="form-item">
-                            <div class="form-label">Số điện thoại</div>
-                            <ms-input v-model="form.phoneNumber" />
+                            <div class="form-label form-label--required">Số điện thoại</div>
+                            <ms-input
+                                v-model="form.phoneNumber"
+                                :ref="(el) => (inputRefs.phoneNumber = el)"
+                                :error="errors.phoneNumber"
+                                @blurInput="handleBlur('phoneNumber')"
+                            />
                         </div>
                         <div class="form-item">
-                            <div class="form-label">Email công việc</div>
+                            <div class="form-label form-label--required">Email công việc</div>
                             <ms-input v-model="form.email" :error="errors.email" :ref="(el) => (inputRefs.email = el)" @blurInput="handleBlur('email')" />
                         </div>
                         <div class="form-item">
@@ -825,6 +866,10 @@ watch(
                             <ms-input v-model="form.socialInsuranceNumber" />
                         </div>
                     </div>
+                </collapse-panel>
+
+                <collapse-panel v-if="props.typeForm === 'edit'" key="dependent" header="Người phụ thuộc">
+                    <employee-dependent :employee-id="form.employeeId" />
                 </collapse-panel>
             </collapse>
             </div>

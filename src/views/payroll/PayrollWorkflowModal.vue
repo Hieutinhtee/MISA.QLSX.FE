@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import {
     Modal,
     Steps,
@@ -43,13 +43,78 @@ const modalOpen = computed({
     set: (value) => emit("update:open", value),
 });
 
-const currentStep = computed(() => {
-    const status = props.salaryPeriod?.status?.toLowerCase() || "";
-    if (status === "paid") return 5;
-    if (status === "locked") return 4;
-    if (status === "draft") return 2;
-    return 1;
-});
+const localStep = ref(1);
+const localStatus = ref("");
+const localDate = ref(null);
+
+watch(
+    () => props.salaryPeriod,
+    async (newVal) => {
+        if (!newVal) return;
+        const status = newVal.status?.toLowerCase() || "";
+        localStatus.value = status;
+        
+        let targetStep = 2; // Khởi tạo kỳ lương (Bước 1) đã xong khi tạo mới. Giờ là lúc tính lương (Bước 2)
+
+        if (status === "paid") {
+            targetStep = 5; // Đã xong toàn bộ
+        } else if (status === "locked") {
+            targetStep = 4; // Đã khóa, chờ chi trả
+        } else if (status === "processing") {
+            targetStep = 3; // Đã tính lương, chờ khóa
+        } else if (status === "draft") {
+            targetStep = 2; // Chờ tính lương (gồm cả tạo nháp)
+            
+            // Gọi API kiểm tra xem đã có payroll nào được tạo chưa
+            try {
+                if (newVal.salaryPeriodId) {
+                    const res = await PayrollsAPI.paging({
+                        page: 1,
+                        pageSize: 50,
+                        filters: [
+                            {
+                                field: "salaryPeriodId",
+                                operator: "eq",
+                                value: newVal.salaryPeriodId,
+                            },
+                        ],
+                    });
+                    const payrolls = res.data?.data || [];
+                    if (payrolls.length > 0) {
+                        // Kiểm tra xem đã tính lương chưa (có lương gross > 0 hoặc đã update)
+                        const hasCalculated = payrolls.some(p => (p.grossSalary || 0) > 0);
+                        if (hasCalculated) {
+                            targetStep = 3; // Đã tính lương, chờ khóa
+                            localStatus.value = "processing"; // Fake trạng thái processing cho UI
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Lỗi khi kiểm tra trạng thái payroll:", error);
+            }
+        }
+        
+        localStep.value = targetStep;
+
+        switch (status) {
+            case "draft":
+                localDate.value = newVal.draftDate || newVal.updatedAt;
+                break;
+            case "locked":
+                localDate.value = newVal.lockedDate || newVal.updatedAt;
+                break;
+            case "paid":
+                localDate.value = newVal.paidDate || newVal.updatedAt;
+                break;
+            default:
+                localDate.value = newVal.updatedAt;
+                break;
+        }
+    },
+    { immediate: true, deep: true }
+);
+
+const currentStep = computed(() => localStep.value);
 
 const steps = [
     {
@@ -58,13 +123,8 @@ const steps = [
         icon: FileTextOutlined,
     },
     {
-        title: "Tạo nháp",
-        description: "Tạo bảng lương nháp từ dữ liệu đầu vào",
-        icon: FileTextOutlined,
-    },
-    {
         title: "Tính lương",
-        description: "Tính toán lương dựa trên công thức",
+        description: "Tạo nháp và tính toán lương",
         icon: CalculatorOutlined,
     },
     {
@@ -94,16 +154,13 @@ const getStepIcon = (index) => {
 };
 
 const canRunAction = (action) => {
-    const status = props.salaryPeriod?.status?.toLowerCase() || "";
     switch (action) {
-        case "generate":
-            return status === "draft";
         case "calculate":
-            return status === "draft";
+            return localStep.value === 2;
         case "lock":
-            return status === "draft";
+            return localStep.value === 3;
         case "pay":
-            return status === "locked";
+            return localStep.value === 4;
         default:
             return false;
     }
@@ -111,10 +168,8 @@ const canRunAction = (action) => {
 
 const getActionConfirmText = (action) => {
     switch (action) {
-        case "generate":
-            return "Tạo bảng lương nháp cho kỳ này?";
         case "calculate":
-            return "Tính lương cho kỳ này?";
+            return "Tạo bảng lương nháp và tính lương cho kỳ này?";
         case "lock":
             return "Khóa kỳ lương này? Sau khi khóa sẽ không thể chỉnh sửa dữ liệu đầu vào.";
         case "pay":
@@ -126,10 +181,8 @@ const getActionConfirmText = (action) => {
 
 const getActionSuccessMessage = (action) => {
     switch (action) {
-        case "generate":
-            return "Tạo bảng lương nháp thành công";
         case "calculate":
-            return "Tính lương kỳ thành công";
+            return "Tạo nháp và tính lương thành công";
         case "lock":
             return "Khóa lương kỳ thành công";
         case "pay":
@@ -141,8 +194,6 @@ const getActionSuccessMessage = (action) => {
 
 const getActionErrorMessage = (action) => {
     switch (action) {
-        case "generate":
-            return "Tạo bảng lương nháp thất bại";
         case "calculate":
             return "Tính lương kỳ thất bại";
         case "lock":
@@ -167,17 +218,25 @@ const runAction = async (action) => {
     try {
         let res;
         switch (action) {
-            case "generate":
-                res = await PayrollsAPI.generateByPeriod(salaryPeriodId);
-                break;
             case "calculate":
+                // Gộp: Gọi generate trước (nếu chưa có hoặc để tạo lại nháp mới nhất)
+                await PayrollsAPI.generateByPeriod(salaryPeriodId);
                 res = await PayrollsAPI.calculateByPeriod(salaryPeriodId);
+                localStep.value = 3;
+                localStatus.value = "processing";
+                localDate.value = new Date().toISOString();
                 break;
             case "lock":
                 res = await PayrollsAPI.lockByPeriod(salaryPeriodId);
+                localStep.value = 4;
+                localStatus.value = "locked";
+                localDate.value = new Date().toISOString();
                 break;
             case "pay":
                 res = await PayrollsAPI.payByPeriod(salaryPeriodId);
+                localStep.value = 5;
+                localStatus.value = "paid";
+                localDate.value = new Date().toISOString();
                 break;
         }
 
@@ -205,11 +264,13 @@ const handleViewPayrollDetail = () => {
     emit("view-detail", props.salaryPeriod);
 };
 
-const getStatusBadge = (status) => {
-    const normalized = (status || "").toLowerCase();
-    switch (normalized) {
+const getStatusBadge = () => {
+    const status = localStatus.value || "";
+    switch (status.toLowerCase()) {
         case "draft":
             return { status: "default", text: "Nháp" };
+        case "processing":
+            return { status: "processing", text: "Đã tính lương" };
         case "locked":
             return { status: "warning", text: "Đã khóa" };
         case "paid":
@@ -237,13 +298,13 @@ const formatDate = (dateStr) => {
 };
 
 const getStatusDateLabel = () => {
-    const status = props.salaryPeriod?.status?.toLowerCase() || "";
-    switch (status) {
-        case "draft":
-            return "Ngày tạo nháp";
-        case "locked":
+    switch (localStep.value) {
+        case 2:
+        case 3:
+            return "Ngày tính lương";
+        case 4:
             return "Ngày khóa lương";
-        case "paid":
+        case 5:
             return "Ngày chi trả";
         default:
             return "Ngày cập nhật";
@@ -251,28 +312,18 @@ const getStatusDateLabel = () => {
 };
 
 const getStatusDateValue = () => {
-    const status = props.salaryPeriod?.status?.toLowerCase() || "";
-    // Ưu tiên dùng các field cụ thể nếu có, nếu không thì dùng updatedAt
-    switch (status) {
-        case "draft":
-            return props.salaryPeriod?.draftDate || props.salaryPeriod?.updatedAt;
-        case "locked":
-            return props.salaryPeriod?.lockedDate || props.salaryPeriod?.updatedAt;
-        case "paid":
-            return props.salaryPeriod?.paidDate || props.salaryPeriod?.updatedAt;
-        default:
-            return props.salaryPeriod?.updatedAt;
-    }
+    return localDate.value;
 };
 
 const getStatusDescription = () => {
-    const status = props.salaryPeriod?.status?.toLowerCase() || "";
-    switch (status) {
-        case "draft":
-            return "Kỳ lương đang ở trạng thái nháp. Bạn có thể tạo nháp, tính lương hoặc khóa lương.";
-        case "locked":
+    switch (localStep.value) {
+        case 2:
+            return "Kỳ lương đang ở trạng thái nháp. Bạn cần khởi tạo và tính lương.";
+        case 3:
+            return "Lương đã được tính. Bạn cần khóa lương để chốt số liệu.";
+        case 4:
             return "Kỳ lương đã được khóa. Bạn có thể chi trả lương.";
-        case "paid":
+        case 5:
             return "Kỳ lương đã được chi trả. Không còn thao tác nào có thể thực hiện.";
         default:
             return "Trạng thái không xác định.";
@@ -280,13 +331,14 @@ const getStatusDescription = () => {
 };
 
 const getNextAction = () => {
-    const status = props.salaryPeriod?.status?.toLowerCase() || "";
-    switch (status) {
-        case "draft":
-            return "Bước tiếp theo: Tính lương hoặc Khóa lương";
-        case "locked":
+    switch (localStep.value) {
+        case 2:
+            return "Bước tiếp theo: Tính lương";
+        case 3:
+            return "Bước tiếp theo: Khóa lương";
+        case 4:
             return "Bước tiếp theo: Chi trả";
-        case "paid":
+        case 5:
             return "Đã hoàn thành";
         default:
             return "";
@@ -312,7 +364,7 @@ const getNextAction = () => {
                         <strong>{{ formatPeriodLabel() }}</strong>
                     </DescriptionsItem>
                     <DescriptionsItem label="Trạng thái">
-                        <Badge v-bind="getStatusBadge(salaryPeriod.status)" />
+                        <Badge v-bind="getStatusBadge()" />
                     </DescriptionsItem>
                     <DescriptionsItem label="Từ ngày">
                         {{ formatDate(salaryPeriod.startDate) }}
@@ -367,90 +419,72 @@ const getNextAction = () => {
 
             <!-- Các action có thể thực hiện -->
             <div class="actions-container">
-                <div class="actions-title">Các thao tác có thể thực hiện:</div>
+                <template v-if="currentStep < 5">
+                    <div class="actions-title">Các thao tác có thể thực hiện:</div>
 
-                <div class="actions-grid">
-                    <!-- Tạo nháp -->
-                    <Popconfirm
-                        :title="getActionConfirmText('generate')"
-                        ok-text="Thực hiện"
-                        cancel-text="Hủy"
-                        :disabled="!canRunAction('generate') || processingAction !== null"
-                        @confirm="runAction('generate')"
-                    >
-                        <Button
-                            type="default"
-                            :loading="processingAction === 'generate'"
-                            :disabled="!canRunAction('generate')"
-                            block
-                            size="large"
+                    <div class="actions-group">
+                        <!-- Tính lương -->
+                        <Popconfirm
+                            v-if="canRunAction('calculate')"
+                            :title="getActionConfirmText('calculate')"
+                            ok-text="Thực hiện"
+                            cancel-text="Hủy"
+                            :disabled="processingAction !== null"
+                            @confirm="runAction('calculate')"
                         >
-                            <FileTextOutlined class="action-icon" />
-                            Tạo nháp
-                        </Button>
-                    </Popconfirm>
+                            <Button
+                                type="primary"
+                                :loading="processingAction === 'calculate'"
+                                size="large"
+                                class="action-btn"
+                            >
+                                <CalculatorOutlined class="action-icon" />
+                                Tính lương
+                            </Button>
+                        </Popconfirm>
 
-                    <!-- Tính lương -->
-                    <Popconfirm
-                        :title="getActionConfirmText('calculate')"
-                        ok-text="Thực hiện"
-                        cancel-text="Hủy"
-                        :disabled="!canRunAction('calculate') || processingAction !== null"
-                        @confirm="runAction('calculate')"
-                    >
-                        <Button
-                            type="primary"
-                            :loading="processingAction === 'calculate'"
-                            :disabled="!canRunAction('calculate')"
-                            block
-                            size="large"
+                        <!-- Khóa lương -->
+                        <Popconfirm
+                            v-if="canRunAction('lock')"
+                            :title="getActionConfirmText('lock')"
+                            ok-text="Thực hiện"
+                            cancel-text="Hủy"
+                            :disabled="processingAction !== null"
+                            @confirm="runAction('lock')"
                         >
-                            <CalculatorOutlined class="action-icon" />
-                            Tính lương
-                        </Button>
-                    </Popconfirm>
+                            <Button
+                                type="primary"
+                                danger
+                                :loading="processingAction === 'lock'"
+                                size="large"
+                                class="action-btn"
+                            >
+                                <LockOutlined class="action-icon" />
+                                Khóa lương
+                            </Button>
+                        </Popconfirm>
 
-                    <!-- Khóa lương -->
-                    <Popconfirm
-                        :title="getActionConfirmText('lock')"
-                        ok-text="Thực hiện"
-                        cancel-text="Hủy"
-                        :disabled="!canRunAction('lock') || processingAction !== null"
-                        @confirm="runAction('lock')"
-                    >
-                        <Button
-                            type="primary"
-                            danger
-                            :loading="processingAction === 'lock'"
-                            :disabled="!canRunAction('lock')"
-                            block
-                            size="large"
+                        <!-- Chi trả -->
+                        <Popconfirm
+                            v-if="canRunAction('pay')"
+                            :title="getActionConfirmText('pay')"
+                            ok-text="Thực hiện"
+                            cancel-text="Hủy"
+                            :disabled="processingAction !== null"
+                            @confirm="runAction('pay')"
                         >
-                            <LockOutlined class="action-icon" />
-                            Khóa lương
-                        </Button>
-                    </Popconfirm>
-
-                    <!-- Chi trả -->
-                    <Popconfirm
-                        :title="getActionConfirmText('pay')"
-                        ok-text="Thực hiện"
-                        cancel-text="Hủy"
-                        :disabled="!canRunAction('pay') || processingAction !== null"
-                        @confirm="runAction('pay')"
-                    >
-                        <Button
-                            type="primary"
-                            :loading="processingAction === 'pay'"
-                            :disabled="!canRunAction('pay')"
-                            block
-                            size="large"
-                        >
-                            <PayCircleOutlined class="action-icon" />
-                            Chi trả
-                        </Button>
-                    </Popconfirm>
-                </div>
+                            <Button
+                                type="primary"
+                                :loading="processingAction === 'pay'"
+                                size="large"
+                                class="action-btn"
+                            >
+                                <PayCircleOutlined class="action-icon" />
+                                Chi trả
+                            </Button>
+                        </Popconfirm>
+                    </div>
+                </template>
 
                 <!-- Nút xem chi tiết bảng lương -->
                 <div class="detail-action">
@@ -512,11 +546,19 @@ const getNextAction = () => {
     color: #374151;
 }
 
-.actions-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+.actions-group {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 16px;
     margin-bottom: 16px;
+}
+
+.action-btn {
+    min-width: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .action-icon {
