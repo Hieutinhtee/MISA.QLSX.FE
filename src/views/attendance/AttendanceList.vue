@@ -3,11 +3,7 @@ defineOptions({ name: "AttendanceList" });
 
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { 
-    CalendarOutlined, 
-    SearchOutlined,
-    UserOutlined
-} from "@ant-design/icons-vue";
+import { CalendarOutlined, SearchOutlined, UserOutlined } from "@ant-design/icons-vue";
 import MsTable from "@/components/ms-table/MsTable.vue";
 import employeesAPI from "@/apis/components/employees/employeesAPI";
 import { usePagingTable } from "@/composables/usePagingTable";
@@ -45,26 +41,19 @@ const columns = ref([
         key: "phoneNumber",
         typeFilter: "text",
         width: 150,
-    }
+    },
 ]);
 
-const { 
-    loading, 
-    rows, 
-    payload, 
-    loadDataForAPI, 
-    reloadData,
-    onPaginationUpdate, 
-    onSearchChange 
-} = usePagingTable(employeesAPI);
+const { loading, rows, payload, loadDataForAPI, reloadData, onPaginationUpdate, onSearchChange } =
+    usePagingTable(employeesAPI);
 
 function handleViewCalendar(row) {
-    router.push({ 
-        name: "my-calendar", 
-        query: { 
-            employeeId: row.employeeId, 
-            employeeName: row.fullName 
-        } 
+    router.push({
+        name: "my-calendar",
+        query: {
+            employeeId: row.employeeId,
+            employeeName: row.fullName,
+        },
     });
 }
 
@@ -96,8 +85,8 @@ onMounted(() => {
             >
                 <template #row-actions="{ row }">
                     <div class="d-flex gap-8">
-                        <button 
-                            class="action-btn action-btn--view" 
+                        <button
+                            class="action-btn action-btn--view"
                             title="Xem chi tiết chấm công"
                             @click.stop="handleViewCalendar(row)"
                         >

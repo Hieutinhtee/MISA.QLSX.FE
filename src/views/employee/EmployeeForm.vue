@@ -358,7 +358,7 @@ function startDragging(e) {
     isDraggingCv.value = true;
     dragStart.x = e.clientX - posX.value;
     dragStart.y = e.clientY - posY.value;
-    
+
     window.addEventListener("mousemove", doDragging);
     window.addEventListener("mouseup", stopDragging);
 }
@@ -554,9 +554,9 @@ watch(
                 try {
                     const resp = await FilesAPI.download(form.value.cvUrl);
                     const blob = resp.data;
-                    cvFile.value = { 
-                        type: blob.type, 
-                        name: "CV_DinhKem" // Tên giả định khi load từ server
+                    cvFile.value = {
+                        type: blob.type,
+                        name: "CV_DinhKem", // Tên giả định khi load từ server
                     };
                     blobUrl.value = URL.createObjectURL(blob);
                     pendingCvFile.value = null;
@@ -590,14 +590,33 @@ watch(
         @submit="handleSubmit"
         @cancel="handleCloseForm"
     >
-        <div class="form-employee-content d-flex gap-24" style="height: calc(100vh - 230px); min-height: 640px; max-height: 850px; overflow: hidden; align-items: stretch; column-gap: 20px;">
+        <div
+            class="form-employee-content d-flex gap-24"
+            style="
+                height: calc(100vh - 230px);
+                min-height: 640px;
+                max-height: 850px;
+                overflow: hidden;
+                align-items: stretch;
+                column-gap: 20px;
+            "
+        >
             <!-- Cột trái: Upload CV -->
-            <div class="form-employee-left d-flex flex-column gap-12" style="width: 650px; flex-shrink: 0; height: 100%;">
+            <div
+                class="form-employee-left d-flex flex-column gap-12"
+                style="width: 650px; flex-shrink: 0; height: 100%"
+            >
                 <div class="form-section__title d-flex align-items-center justify-content-between">
                     <span>Hồ sơ / CV</span>
-                    <ms-button v-if="cvFile" @click="handleRemoveCv" type="secondary" style="height: 24px; padding: 0 8px; font-size: 12px;">Xóa CV</ms-button>
+                    <ms-button
+                        v-if="cvFile"
+                        @click="handleRemoveCv"
+                        type="secondary"
+                        style="height: 24px; padding: 0 8px; font-size: 12px"
+                        >Xóa CV</ms-button
+                    >
                 </div>
-                
+
                 <upload-dragger
                     v-if="!cvFile"
                     :multiple="false"
@@ -607,271 +626,423 @@ watch(
                     class="cv-drop-zone"
                 >
                     <div class="cv-drop-zone__title p-20 d-flex flex-column align-items-center">
-                        <span style="font-size: 32px; color: #1890ff; margin-bottom: 8px;">📄</span>
-                        <span style="text-align: center;">Kéo thả CV vào đây hoặc bấm để chọn</span>
+                        <span style="font-size: 32px; color: #1890ff; margin-bottom: 8px">📄</span>
+                        <span style="text-align: center">Kéo thả CV vào đây hoặc bấm để chọn</span>
                     </div>
                 </upload-dragger>
 
-                <div v-else class="cv-preview-container flex-1 d-flex flex-column" style="border: 1px solid #d9d9d9; border-radius: 6px; overflow: hidden; background: #fafafa;">
-                    <div class="p-8 d-flex align-items-center gap-8" style="border-bottom: 1px solid #d9d9d9; background: #fff; position: relative; z-index: 2;">
-                        <span style="font-size: 16px; color: #1890ff;">📄</span>
-                        <div class="text-ellipsis flex-1" :title="cvFile.name" style="font-weight: 500; font-size: 13px;">{{ cvFile.name }}</div>
-                        
+                <div
+                    v-else
+                    class="cv-preview-container flex-1 d-flex flex-column"
+                    style="
+                        border: 1px solid #d9d9d9;
+                        border-radius: 6px;
+                        overflow: hidden;
+                        background: #fafafa;
+                    "
+                >
+                    <div
+                        class="p-8 d-flex align-items-center gap-8"
+                        style="
+                            border-bottom: 1px solid #d9d9d9;
+                            background: #fff;
+                            position: relative;
+                            z-index: 2;
+                        "
+                    >
+                        <span style="font-size: 16px; color: #1890ff">📄</span>
+                        <div
+                            class="text-ellipsis flex-1"
+                            :title="cvFile.name"
+                            style="font-weight: 500; font-size: 13px"
+                        >
+                            {{ cvFile.name }}
+                        </div>
+
                         <div class="d-flex align-items-center gap-4 ml-8">
-                            <ms-button size="small" @click="zoomCv(-10)" type="secondary" style="height: 24px; padding: 0 8px;">-</ms-button>
-                            <span style="font-size: 11px; min-width: 35px; text-align: center;">{{ cvZoom }}%</span>
-                            <ms-button size="small" @click="zoomCv(10)" type="secondary" style="height: 24px; padding: 0 8px;">+</ms-button>
+                            <ms-button
+                                size="small"
+                                @click="zoomCv(-10)"
+                                type="secondary"
+                                style="height: 24px; padding: 0 8px"
+                                >-</ms-button
+                            >
+                            <span style="font-size: 11px; min-width: 35px; text-align: center"
+                                >{{ cvZoom }}%</span
+                            >
+                            <ms-button
+                                size="small"
+                                @click="zoomCv(10)"
+                                type="secondary"
+                                style="height: 24px; padding: 0 8px"
+                                >+</ms-button
+                            >
                         </div>
                     </div>
-                    
-                    <div 
+
+                    <div
                         ref="cvPreviewBody"
-                        class="flex-1 overflow-hidden bg-gray-600" 
-                        style="background: #525659; position: relative; user-select: none; cursor: grab;"
+                        class="flex-1 overflow-hidden bg-gray-600"
+                        style="
+                            background: #525659;
+                            position: relative;
+                            user-select: none;
+                            cursor: grab;
+                        "
                         :style="{ cursor: isDraggingCv ? 'grabbing' : 'grab' }"
                         @mousedown.prevent="startDragging"
                         @wheel="handleWheel"
                     >
-                        <div :style="{ 
-                            transform: `translate(${posX}px, ${posY}px) scale(${cvZoom / 100})`, 
-                            transformOrigin: 'top left',
-                            width: `${CV_BASE_WIDTH}px`,
-                            height: `${CV_BASE_HEIGHT}px`,
-                            position: 'absolute',
-                            top: '40px',
-                            left: '50%',
-                            marginLeft: `-${CV_BASE_WIDTH / 2}px`,
-                            pointerEvents: 'none'
-                        }">
-                            <img v-if="isImageCv" :src="cvPreviewUrl" draggable="false" @dragstart.prevent style="width: 100%; height: 100%; display: block; box-shadow: 0 0 10px rgba(0,0,0,0.5); object-fit: contain; background: white;" />
-                            <iframe v-else :src="cvPreviewUrl" draggable="false" @dragstart.prevent style="width: 100%; height: 100%; border: none; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></iframe>
+                        <div
+                            :style="{
+                                transform: `translate(${posX}px, ${posY}px) scale(${cvZoom / 100})`,
+                                transformOrigin: 'top left',
+                                width: `${CV_BASE_WIDTH}px`,
+                                height: `${CV_BASE_HEIGHT}px`,
+                                position: 'absolute',
+                                top: '40px',
+                                left: '50%',
+                                marginLeft: `-${CV_BASE_WIDTH / 2}px`,
+                                pointerEvents: 'none',
+                            }"
+                        >
+                            <img
+                                v-if="isImageCv"
+                                :src="cvPreviewUrl"
+                                draggable="false"
+                                @dragstart.prevent
+                                style="
+                                    width: 100%;
+                                    height: 100%;
+                                    display: block;
+                                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+                                    object-fit: contain;
+                                    background: white;
+                                "
+                            />
+                            <iframe
+                                v-else
+                                :src="cvPreviewUrl"
+                                draggable="false"
+                                @dragstart.prevent
+                                style="
+                                    width: 100%;
+                                    height: 100%;
+                                    border: none;
+                                    background: white;
+                                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+                                "
+                            ></iframe>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Cột phải: Employee Info Sections -->
-            <div class="form-employee-right flex-1" style="min-width: 0; height: 100%; overflow-y: auto; padding-right: 8px;">
+            <div
+                class="form-employee-right flex-1"
+                style="min-width: 0; height: 100%; overflow-y: auto; padding-right: 8px"
+            >
                 <collapse v-model:activeKey="activeCollapseKeys" class="employee-collapse">
-                <collapse-panel key="basic" header="Thông tin cơ bản">
-                    <div class="d-flex gap-20">
-                        <!-- Avatar -->
-                        <div class="avatar-section d-flex flex-column align-items-center">
-                            <div class="avatar-preview" @click="avatarInput?.click()">
-                                <img v-if="avatarPreview" :src="avatarPreview" alt="Avatar" />
-                                <div v-else class="avatar-placeholder d-flex align-items-center justify-content-center">
-                                    <span v-if="isUploadingAvatar">Đang tải...</span>
-                                    <span v-else>Chọn ảnh</span>
+                    <collapse-panel key="basic" header="Thông tin cơ bản">
+                        <div class="d-flex gap-20">
+                            <!-- Avatar -->
+                            <div class="avatar-section d-flex flex-column align-items-center">
+                                <div class="avatar-preview" @click="avatarInput?.click()">
+                                    <img v-if="avatarPreview" :src="avatarPreview" alt="Avatar" />
+                                    <div
+                                        v-else
+                                        class="avatar-placeholder d-flex align-items-center justify-content-center"
+                                    >
+                                        <span v-if="isUploadingAvatar">Đang tải...</span>
+                                        <span v-else>Chọn ảnh</span>
+                                    </div>
+                                    <div class="avatar-overlay">
+                                        <span class="icon-camera">📷</span>
+                                    </div>
                                 </div>
-                                <div class="avatar-overlay">
-                                    <span class="icon-camera">📷</span>
+                                <input
+                                    type="file"
+                                    ref="avatarInput"
+                                    accept="image/*"
+                                    class="d-none"
+                                    @change="handleAvatarUpload"
+                                />
+                            </div>
+
+                            <!-- Form Grid -->
+                            <div class="form-grid flex-1">
+                                <div class="form-item">
+                                    <div class="form-label form-label--required">Mã nhân viên</div>
+                                    <ms-input
+                                        v-model="form.employeeCode"
+                                        :error="errors.employeeCode"
+                                        :ref="(el) => (inputRefs.employeeCode = el)"
+                                        @blurInput="handleBlur('employeeCode')"
+                                    />
+                                </div>
+                                <div class="form-item">
+                                    <div class="form-label form-label--required">Họ tên</div>
+                                    <ms-input
+                                        v-model="form.fullName"
+                                        :error="errors.fullName"
+                                        :ref="(el) => (inputRefs.fullName = el)"
+                                        @blurInput="handleBlur('fullName')"
+                                    />
+                                </div>
+                                <div class="form-item">
+                                    <div class="form-label form-label--required">Giới tính</div>
+                                    <ms-select
+                                        v-model="form.gender"
+                                        :options="genderOptions"
+                                        placeholder="Chọn giới tính"
+                                        :ref="(el) => (inputRefs.gender = el)"
+                                        :error="errors.gender"
+                                        @blurInput="handleBlur('gender')"
+                                    />
+                                </div>
+                                <div class="form-item">
+                                    <div class="form-label form-label--required">Ngày sinh</div>
+                                    <ms-date-picker
+                                        v-model="form.dateOfBirth"
+                                        value-format="YYYY-MM-DD"
+                                        format="DD/MM/YYYY"
+                                        class="ant-control"
+                                        :ref="(el) => (inputRefs.dateOfBirth = el)"
+                                        :error="errors.dateOfBirth"
+                                        @blurInput="handleBlur('dateOfBirth')"
+                                    />
+                                </div>
+                                <div class="form-item">
+                                    <div class="form-label form-label--required">CCCD/CMND</div>
+                                    <ms-input
+                                        v-model="form.nationalId"
+                                        :error="errors.nationalId"
+                                        :ref="(el) => (inputRefs.nationalId = el)"
+                                        @blurInput="handleBlur('nationalId')"
+                                    />
+                                </div>
+                                <div class="form-item">
+                                    <div class="form-label form-label--required">Bằng cấp</div>
+                                    <ms-select
+                                        v-model="form.degreeId"
+                                        :options="degreeOptions"
+                                        placeholder="Chọn bằng cấp"
+                                        dropdown-position="top"
+                                        :max-height="220"
+                                        :ref="(el) => (inputRefs.degreeId = el)"
+                                        :error="errors.degreeId"
+                                        @blurInput="handleBlur('degreeId')"
+                                    />
                                 </div>
                             </div>
-                            <input type="file" ref="avatarInput" accept="image/*" class="d-none" @change="handleAvatarUpload" />
                         </div>
+                    </collapse-panel>
 
-                        <!-- Form Grid -->
-                        <div class="form-grid flex-1">
-                        <div class="form-item">
-                            <div class="form-label form-label--required">Mã nhân viên</div>
-                            <ms-input v-model="form.employeeCode" :error="errors.employeeCode" :ref="(el) => (inputRefs.employeeCode = el)" @blurInput="handleBlur('employeeCode')" />
+                    <collapse-panel key="work" header="Thông tin công việc">
+                        <div class="form-grid">
+                            <div class="form-item">
+                                <div class="form-label form-label--required">Ngày vào làm</div>
+                                <ms-date-picker
+                                    v-model="form.joinDate"
+                                    value-format="YYYY-MM-DD"
+                                    format="DD/MM/YYYY"
+                                    class="ant-control"
+                                    :ref="(el) => (inputRefs.joinDate = el)"
+                                    :error="errors.joinDate"
+                                    @blurInput="handleBlur('joinDate')"
+                                />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Phòng ban</div>
+                                <ms-select
+                                    v-model="form.departmentId"
+                                    :options="departmentOptions"
+                                    placeholder="Chọn phòng ban"
+                                    dropdown-position="top"
+                                    :max-height="220"
+                                />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Vị trí</div>
+                                <ms-select
+                                    v-model="form.positionId"
+                                    :options="positionOptions"
+                                    placeholder="Chọn vị trí"
+                                    dropdown-position="top"
+                                    :max-height="220"
+                                />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Ca làm</div>
+                                <ms-select
+                                    v-model="form.shiftId"
+                                    :options="shiftOptions"
+                                    placeholder="Chọn ca làm"
+                                    dropdown-position="top"
+                                    :max-height="220"
+                                />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Tài khoản</div>
+                                <ms-input v-model="form.accountName" disabled />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Hợp đồng</div>
+                                <ms-input v-model="form.contractCode" disabled />
+                            </div>
                         </div>
-                        <div class="form-item">
-                            <div class="form-label form-label--required">Họ tên</div>
-                            <ms-input v-model="form.fullName" :error="errors.fullName" :ref="(el) => (inputRefs.fullName = el)" @blurInput="handleBlur('fullName')" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label form-label--required">Giới tính</div>
-                            <ms-select v-model="form.gender" :options="genderOptions" placeholder="Chọn giới tính" :ref="(el) => (inputRefs.gender = el)" :error="errors.gender" @blurInput="handleBlur('gender')" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label form-label--required">Ngày sinh</div>
-                            <ms-date-picker v-model="form.dateOfBirth" value-format="YYYY-MM-DD" format="DD/MM/YYYY" class="ant-control" :ref="(el) => (inputRefs.dateOfBirth = el)" :error="errors.dateOfBirth" @blurInput="handleBlur('dateOfBirth')" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label form-label--required">CCCD/CMND</div>
-                            <ms-input v-model="form.nationalId" :error="errors.nationalId" :ref="(el) => (inputRefs.nationalId = el)" @blurInput="handleBlur('nationalId')" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label form-label--required">Bằng cấp</div>
-                            <ms-select v-model="form.degreeId" :options="degreeOptions" placeholder="Chọn bằng cấp" dropdown-position="top" :max-height="220" :ref="(el) => (inputRefs.degreeId = el)" :error="errors.degreeId" @blurInput="handleBlur('degreeId')" />
-                        </div>
-                        </div>
-                    </div>
-                </collapse-panel>
+                    </collapse-panel>
 
-                <collapse-panel key="work" header="Thông tin công việc">
-                    <div class="form-grid">
-                        <div class="form-item">
-                            <div class="form-label form-label--required">Ngày vào làm</div>
-                            <ms-date-picker
-                                v-model="form.joinDate"
-                                value-format="YYYY-MM-DD"
-                                format="DD/MM/YYYY"
-                                class="ant-control"
-                                :ref="(el) => (inputRefs.joinDate = el)"
-                                :error="errors.joinDate"
-                                @blurInput="handleBlur('joinDate')"
-                            />
+                    <collapse-panel key="contact" header="Thông tin liên lạc">
+                        <div class="form-grid">
+                            <div class="form-item form-item--full">
+                                <div class="form-label form-label--required">Địa chỉ</div>
+                                <ms-input
+                                    v-model="form.address"
+                                    :ref="(el) => (inputRefs.address = el)"
+                                    :error="errors.address"
+                                    @blurInput="handleBlur('address')"
+                                />
+                            </div>
+                            <div class="form-item form-item--full">
+                                <div class="form-label">Địa chỉ tạm trú</div>
+                                <ms-input v-model="form.temporaryAddress" />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label form-label--required">Số điện thoại</div>
+                                <ms-input
+                                    v-model="form.phoneNumber"
+                                    :ref="(el) => (inputRefs.phoneNumber = el)"
+                                    :error="errors.phoneNumber"
+                                    @blurInput="handleBlur('phoneNumber')"
+                                />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label form-label--required">Email công việc</div>
+                                <ms-input
+                                    v-model="form.email"
+                                    :error="errors.email"
+                                    :ref="(el) => (inputRefs.email = el)"
+                                    @blurInput="handleBlur('email')"
+                                />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Email cá nhân</div>
+                                <ms-input
+                                    v-model="form.personalEmail"
+                                    :error="errors.personalEmail"
+                                    :ref="(el) => (inputRefs.personalEmail = el)"
+                                    @blurInput="handleBlur('personalEmail')"
+                                />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Zalo</div>
+                                <ms-input v-model="form.zaloNumber" />
+                            </div>
+                            <div class="form-item form-item--full">
+                                <div class="form-label">Facebook URL</div>
+                                <ms-input v-model="form.facebookUrl" />
+                            </div>
                         </div>
-                        <div class="form-item">
-                            <div class="form-label">Phòng ban</div>
-                            <ms-select v-model="form.departmentId" :options="departmentOptions" placeholder="Chọn phòng ban" dropdown-position="top" :max-height="220" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label">Vị trí</div>
-                            <ms-select v-model="form.positionId" :options="positionOptions" placeholder="Chọn vị trí" dropdown-position="top" :max-height="220" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label">Ca làm</div>
-                            <ms-select v-model="form.shiftId" :options="shiftOptions" placeholder="Chọn ca làm" dropdown-position="top" :max-height="220" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label">Tài khoản</div>
-                            <ms-input v-model="form.accountName" disabled />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label">Hợp đồng</div>
-                            <ms-input v-model="form.contractCode" disabled />
-                        </div>
-                    </div>
-                </collapse-panel>
+                    </collapse-panel>
 
-                <collapse-panel key="contact" header="Thông tin liên lạc">
-                    <div class="form-grid">
-                        <div class="form-item form-item--full">
-                            <div class="form-label form-label--required">Địa chỉ</div>
-                            <ms-input
-                                v-model="form.address"
-                                :ref="(el) => (inputRefs.address = el)"
-                                :error="errors.address"
-                                @blurInput="handleBlur('address')"
-                            />
+                    <collapse-panel key="personal" header="Thông tin cá nhân mở rộng">
+                        <div class="form-grid">
+                            <div class="form-item">
+                                <div class="form-label">Nơi sinh</div>
+                                <ms-input v-model="form.placeOfBirth" />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Quê quán</div>
+                                <ms-input v-model="form.hometown" />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Dân tộc</div>
+                                <ms-input v-model="form.ethnic" />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Tôn giáo</div>
+                                <ms-input v-model="form.religion" />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Quốc tịch</div>
+                                <ms-input v-model="form.nationality" />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Tình trạng hôn nhân</div>
+                                <ms-input v-model="form.maritalStatus" />
+                            </div>
                         </div>
-                        <div class="form-item form-item--full">
-                            <div class="form-label">Địa chỉ tạm trú</div>
-                            <ms-input v-model="form.temporaryAddress" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label form-label--required">Số điện thoại</div>
-                            <ms-input
-                                v-model="form.phoneNumber"
-                                :ref="(el) => (inputRefs.phoneNumber = el)"
-                                :error="errors.phoneNumber"
-                                @blurInput="handleBlur('phoneNumber')"
-                            />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label form-label--required">Email công việc</div>
-                            <ms-input v-model="form.email" :error="errors.email" :ref="(el) => (inputRefs.email = el)" @blurInput="handleBlur('email')" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label">Email cá nhân</div>
-                            <ms-input v-model="form.personalEmail" :error="errors.personalEmail" :ref="(el) => (inputRefs.personalEmail = el)" @blurInput="handleBlur('personalEmail')" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label">Zalo</div>
-                            <ms-input v-model="form.zaloNumber" />
-                        </div>
-                        <div class="form-item form-item--full">
-                            <div class="form-label">Facebook URL</div>
-                            <ms-input v-model="form.facebookUrl" />
-                        </div>
-                    </div>
-                </collapse-panel>
+                    </collapse-panel>
 
-                <collapse-panel key="personal" header="Thông tin cá nhân mở rộng">
-                    <div class="form-grid">
-                        <div class="form-item">
-                            <div class="form-label">Nơi sinh</div>
-                            <ms-input v-model="form.placeOfBirth" />
+                    <collapse-panel key="bank" header="Ngân hàng">
+                        <div class="form-grid">
+                            <div class="form-item">
+                                <div class="form-label">Số tài khoản</div>
+                                <ms-input v-model="form.bankAccountNumber" />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Tên ngân hàng</div>
+                                <ms-input v-model="form.bankName" />
+                            </div>
+                            <div class="form-item form-item--full">
+                                <div class="form-label">Chi nhánh</div>
+                                <ms-input v-model="form.bankBranch" />
+                            </div>
                         </div>
-                        <div class="form-item">
-                            <div class="form-label">Quê quán</div>
-                            <ms-input v-model="form.hometown" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label">Dân tộc</div>
-                            <ms-input v-model="form.ethnic" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label">Tôn giáo</div>
-                            <ms-input v-model="form.religion" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label">Quốc tịch</div>
-                            <ms-input v-model="form.nationality" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label">Tình trạng hôn nhân</div>
-                            <ms-input v-model="form.maritalStatus" />
-                        </div>
-                    </div>
-                </collapse-panel>
+                    </collapse-panel>
 
-                <collapse-panel key="bank" header="Ngân hàng">
-                    <div class="form-grid">
-                        <div class="form-item">
-                            <div class="form-label">Số tài khoản</div>
-                            <ms-input v-model="form.bankAccountNumber" />
+                    <collapse-panel key="emergency" header="Liên hệ khẩn cấp">
+                        <div class="form-grid">
+                            <div class="form-item">
+                                <div class="form-label">Họ tên người liên hệ</div>
+                                <ms-input v-model="form.emergencyContactName" />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Số điện thoại</div>
+                                <ms-input v-model="form.emergencyContactPhone" />
+                            </div>
+                            <div class="form-item form-item--full">
+                                <div class="form-label">Mối quan hệ</div>
+                                <ms-input v-model="form.emergencyContactRelationship" />
+                            </div>
                         </div>
-                        <div class="form-item">
-                            <div class="form-label">Tên ngân hàng</div>
-                            <ms-input v-model="form.bankName" />
-                        </div>
-                        <div class="form-item form-item--full">
-                            <div class="form-label">Chi nhánh</div>
-                            <ms-input v-model="form.bankBranch" />
-                        </div>
-                    </div>
-                </collapse-panel>
+                    </collapse-panel>
 
-                <collapse-panel key="emergency" header="Liên hệ khẩn cấp">
-                    <div class="form-grid">
-                        <div class="form-item">
-                            <div class="form-label">Họ tên người liên hệ</div>
-                            <ms-input v-model="form.emergencyContactName" />
+                    <collapse-panel key="health" header="Sức khỏe & Bảo hiểm">
+                        <div class="form-grid">
+                            <div class="form-item">
+                                <div class="form-label">Chiều cao</div>
+                                <ms-input v-model="form.height" />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Cân nặng</div>
+                                <ms-input v-model="form.weight" />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Nhóm máu</div>
+                                <ms-input v-model="form.bloodGroup" />
+                            </div>
+                            <div class="form-item">
+                                <div class="form-label">Tình trạng sức khỏe</div>
+                                <ms-input v-model="form.healthStatus" />
+                            </div>
+                            <div class="form-item form-item--full">
+                                <div class="form-label">Số BHXH</div>
+                                <ms-input v-model="form.socialInsuranceNumber" />
+                            </div>
                         </div>
-                        <div class="form-item">
-                            <div class="form-label">Số điện thoại</div>
-                            <ms-input v-model="form.emergencyContactPhone" />
-                        </div>
-                        <div class="form-item form-item--full">
-                            <div class="form-label">Mối quan hệ</div>
-                            <ms-input v-model="form.emergencyContactRelationship" />
-                        </div>
-                    </div>
-                </collapse-panel>
+                    </collapse-panel>
 
-                <collapse-panel key="health" header="Sức khỏe & Bảo hiểm">
-                    <div class="form-grid">
-                        <div class="form-item">
-                            <div class="form-label">Chiều cao</div>
-                            <ms-input v-model="form.height" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label">Cân nặng</div>
-                            <ms-input v-model="form.weight" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label">Nhóm máu</div>
-                            <ms-input v-model="form.bloodGroup" />
-                        </div>
-                        <div class="form-item">
-                            <div class="form-label">Tình trạng sức khỏe</div>
-                            <ms-input v-model="form.healthStatus" />
-                        </div>
-                        <div class="form-item form-item--full">
-                            <div class="form-label">Số BHXH</div>
-                            <ms-input v-model="form.socialInsuranceNumber" />
-                        </div>
-                    </div>
-                </collapse-panel>
-
-                <collapse-panel v-if="props.typeForm === 'edit'" key="dependent" header="Người phụ thuộc">
-                    <employee-dependent :employee-id="form.employeeId" />
-                </collapse-panel>
-            </collapse>
+                    <collapse-panel
+                        v-if="props.typeForm === 'edit'"
+                        key="dependent"
+                        header="Người phụ thuộc"
+                    >
+                        <employee-dependent :employee-id="form.employeeId" />
+                    </collapse-panel>
+                </collapse>
             </div>
         </div>
     </ms-form>

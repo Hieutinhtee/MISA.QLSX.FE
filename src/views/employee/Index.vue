@@ -12,7 +12,17 @@ import { exportSelectedRows } from "@/utils/exportService";
 const columns = ref([
     { key: "employeeCode", name: "Mã nhân viên", typeFilter: "text", width: 140 },
     { key: "fullName", name: "Họ tên", typeFilter: "text", width: 220 },
-    { key: "gender", name: "Giới tính", typeFilter: "text", width: 120 },
+    {
+        key: "gender",
+        name: "Giới tính",
+        typeFilter: "status",
+        width: 120,
+        options: [
+            { value: "Nam", label: "Nam" },
+            { value: "Nữ", label: "Nữ" },
+            { value: "Khác", label: "Khác" },
+        ],
+    },
     { key: "dateOfBirth", name: "Ngày sinh", type: "date", width: 140 },
     { key: "address", name: "Địa chỉ", typeFilter: "text", width: 260 },
     { key: "phoneNumber", name: "Số điện thoại", typeFilter: "text", width: 160 },
@@ -163,16 +173,14 @@ onMounted(() => {
                 <!-- Avatar Cell -->
                 <template #avatarUrl="{ row }">
                     <div class="d-flex justify-content-center w-100">
-                        <img 
-                            v-if="row.avatarUrl && row.avatarUrl !== 'profile.jpg'" 
-                            :src="`https://localhost:7124/api/v1/Files/${row.avatarUrl}/download`" 
+                        <img
+                            v-if="row.avatarUrl && row.avatarUrl !== 'profile.jpg'"
+                            :src="`https://localhost:7124/api/v1/Files/${row.avatarUrl}/download`"
                             alt="Avatar"
                             class="table-avatar"
-                            @error="(e) => e.target.src = '/favicon.ico'"
+                            @error="(e) => (e.target.src = '/favicon.ico')"
                         />
-                        <div v-else class="table-avatar table-avatar--placeholder">
-                            👤
-                        </div>
+                        <div v-else class="table-avatar table-avatar--placeholder">👤</div>
                     </div>
                 </template>
             </ms-table>

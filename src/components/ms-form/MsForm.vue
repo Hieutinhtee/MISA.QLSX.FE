@@ -37,13 +37,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits([
-    "update:open",
-    "submit",
-    "submitAndAdd",
-    "cancel",
-    "closeAlert"
-]);
+const emit = defineEmits(["update:open", "submit", "submitAndAdd", "cancel", "closeAlert"]);
 
 /**
  * Xử lý đóng form
@@ -91,10 +85,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <ms-alert 
-        :model-value="props.showErrorAlert" 
-        title="Cảnh báo" 
-        @update:model-value="val => !val && emit('closeAlert')"
+    <ms-alert
+        :model-value="props.showErrorAlert"
+        title="Cảnh báo"
+        @update:model-value="(val) => !val && emit('closeAlert')"
         @close="emit('closeAlert')"
     >
         {{ props.errorMessage }}
@@ -117,28 +111,19 @@ onBeforeUnmount(() => {
 
             <div class="form-modal__footer">
                 <slot name="footer">
-                    <ms-button 
-                        @click="emit('submit')" 
-                        :loading="props.loading"
-                        tooltip="Ctrl + S"
-                    >
+                    <ms-button @click="emit('submit')" :loading="props.loading" tooltip="Ctrl + S">
                         Lưu
                     </ms-button>
-                    <ms-button 
+                    <ms-button
                         v-if="props.showSaveAndAdd"
-                        type="outline" 
-                        @click="emit('submitAndAdd')" 
+                        type="outline"
+                        @click="emit('submitAndAdd')"
                         :loading="props.loading"
                         tooltip="Ctrl + Shift + S"
                     >
                         Lưu và thêm
                     </ms-button>
-                    <ms-button 
-                        type="outline" 
-                        @click="handleCancel"
-                    >
-                        Hủy
-                    </ms-button>
+                    <ms-button type="outline" @click="handleCancel"> Hủy </ms-button>
                 </slot>
             </div>
         </div>

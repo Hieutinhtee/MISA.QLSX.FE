@@ -62,16 +62,16 @@ onMounted(async () => {
     try {
         const res = await allowancesAPI.getAll();
         const data = res.data?.data || res.data || [];
-        allowanceOptions.value = data.map(item => {
+        allowanceOptions.value = data.map((item) => {
             let label = item.allowanceName;
-            if (item.calculationType === 'PERCENT') {
+            if (item.calculationType === "PERCENT") {
                 label += ` - ${item.percent}% Lương cơ bản`;
             } else {
-                label += ` - ${new Intl.NumberFormat('vi-VN').format(item.amount)}đ`;
+                label += ` - ${new Intl.NumberFormat("vi-VN").format(item.amount)}đ`;
             }
             return {
                 label: label,
-                value: item.allowanceId
+                value: item.allowanceId,
             };
         });
     } catch (error) {
@@ -88,10 +88,13 @@ watch(
 
         if (props.typeForm === "edit" && props.data) {
             let parsedIds = [];
-            if (props.data.defaultAllowanceIds && typeof props.data.defaultAllowanceIds === 'string') {
+            if (
+                props.data.defaultAllowanceIds &&
+                typeof props.data.defaultAllowanceIds === "string"
+            ) {
                 try {
                     parsedIds = JSON.parse(props.data.defaultAllowanceIds);
-                } catch(e) {
+                } catch (e) {
                     parsedIds = [];
                 }
             } else if (Array.isArray(props.data.defaultAllowanceIds)) {
@@ -151,7 +154,7 @@ function buildPayload() {
         content: form.value.content || "",
         version: Number(form.value.version || 1),
         isActive: !!form.value.isActive,
-        defaultAllowanceIds: JSON.stringify(form.value.defaultAllowanceIds || [])
+        defaultAllowanceIds: JSON.stringify(form.value.defaultAllowanceIds || []),
     };
 
     if (!isEdit) {
@@ -234,8 +237,6 @@ async function handleSubmit() {
                         />
                     </div>
                 </div>
-
-                
 
                 <div class="form-row d-flex justify-content-between align-items-center">
                     <div class="form-label">Phụ cấp mặc định</div>

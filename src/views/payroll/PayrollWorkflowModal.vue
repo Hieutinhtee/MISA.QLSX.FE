@@ -53,7 +53,7 @@ watch(
         if (!newVal) return;
         const status = newVal.status?.toLowerCase() || "";
         localStatus.value = status;
-        
+
         let targetStep = 2; // Khởi tạo kỳ lương (Bước 1) đã xong khi tạo mới. Giờ là lúc tính lương (Bước 2)
 
         if (status === "paid") {
@@ -64,7 +64,7 @@ watch(
             targetStep = 3; // Đã tính lương, chờ khóa
         } else if (status === "draft") {
             targetStep = 2; // Chờ tính lương (gồm cả tạo nháp)
-            
+
             // Gọi API kiểm tra xem đã có payroll nào được tạo chưa
             try {
                 if (newVal.salaryPeriodId) {
@@ -82,7 +82,7 @@ watch(
                     const payrolls = res.data?.data || [];
                     if (payrolls.length > 0) {
                         // Kiểm tra xem đã tính lương chưa (có lương gross > 0 hoặc đã update)
-                        const hasCalculated = payrolls.some(p => (p.grossSalary || 0) > 0);
+                        const hasCalculated = payrolls.some((p) => (p.grossSalary || 0) > 0);
                         if (hasCalculated) {
                             targetStep = 3; // Đã tính lương, chờ khóa
                             localStatus.value = "processing"; // Fake trạng thái processing cho UI
@@ -93,7 +93,7 @@ watch(
                 console.error("Lỗi khi kiểm tra trạng thái payroll:", error);
             }
         }
-        
+
         localStep.value = targetStep;
 
         switch (status) {
@@ -111,7 +111,7 @@ watch(
                 break;
         }
     },
-    { immediate: true, deep: true }
+    { immediate: true, deep: true },
 );
 
 const currentStep = computed(() => localStep.value);
@@ -156,7 +156,8 @@ const getStepIcon = (index) => {
 const canRunAction = (action) => {
     switch (action) {
         case "calculate":
-            return localStep.value === 2;
+            // Cho phép tính lại khi đang ở bước 2 (chưa tính) hoặc bước 3 (đã tính, chờ khóa)
+            return localStep.value === 2 || localStep.value === 3;
         case "lock":
             return localStep.value === 3;
         case "pay":
@@ -165,6 +166,10 @@ const canRunAction = (action) => {
             return false;
     }
 };
+
+const calculateButtonLabel = computed(() =>
+    localStep.value === 3 ? "Tính lại lương" : "Tính lương",
+);
 
 const getActionConfirmText = (action) => {
     switch (action) {
@@ -439,7 +444,7 @@ const getNextAction = () => {
                                 class="action-btn"
                             >
                                 <CalculatorOutlined class="action-icon" />
-                                Tính lương
+                                {{ calculateButtonLabel }}
                             </Button>
                         </Popconfirm>
 

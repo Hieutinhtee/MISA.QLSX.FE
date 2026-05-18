@@ -1,5 +1,12 @@
 <template>
-    <div class="ms-select" :class="{ 'ms-select--error': displayError, 'ms-select--focus': isFocus, 'ms-select--disabled': disabled }">
+    <div
+        class="ms-select"
+        :class="{
+            'ms-select--error': displayError,
+            'ms-select--focus': isFocus,
+            'ms-select--disabled': disabled,
+        }"
+    >
         <tooltip placement="bottom" :align="{ offset: [0, -4] }">
             <template v-if="displayError" #title>
                 <span class="tooltip-error">{{ displayError }}</span>
@@ -141,7 +148,6 @@ const isFocus = ref(false);
  */
 const isInvalid = ref(false);
 
-
 //#endregion
 
 //#region Computed
@@ -206,20 +212,19 @@ const selectedValue = ref();
 
 //#region Watchers
 
-/**
- * Theo dõi modelValue từ component cha
- * để đồng bộ label hiển thị trong input
- *
- * createdBy: TMHieu
- */
 watch(
-    () => props.modelValue,
-    (val) => {
+    [() => props.modelValue, () => props.options],
+    ([val]) => {
         const found = optionsByType.value.find((o) => o.value === val);
-        if (found) searchValue.value = found.label;
+        if (found) {
+            searchValue.value = found.label;
+            isInvalid.value = false;
+        } else if (val) {
+            searchValue.value = "";
+        }
         selectedValue.value = val;
     },
-    { immediate: true },
+    { immediate: true, deep: true },
 );
 
 /**
@@ -241,8 +246,6 @@ watch(isOpen, (val) => {
 //#endregion
 
 //#region Methods
-
-
 
 /**
  * Xử lý khi focus vào input

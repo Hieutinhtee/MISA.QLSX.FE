@@ -43,7 +43,7 @@ class FilesAPI extends BaseAPI {
 
     /**
      * Download file (lấy raw blob data)
-     * @param {String} fileId 
+     * @param {String} fileId
      */
     async download(fileId) {
         return await api.get(`${this.controller}/${fileId}/download`, {
@@ -53,7 +53,7 @@ class FilesAPI extends BaseAPI {
 
     /**
      * Xoá file
-     * @param {String} fileId 
+     * @param {String} fileId
      */
     async deleteFile(fileId) {
         return await api.delete(`${this.controller}/${fileId}`);

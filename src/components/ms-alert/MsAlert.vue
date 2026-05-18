@@ -24,7 +24,9 @@
                         <!-- Chế độ confirm: hiển thị 2 button -->
                         <template v-if="showConfirm">
                             <MsButton type="outline" @click="onClose">Hủy</MsButton>
-                            <MsButton :type="confirmType" @click="onConfirm">{{ confirmText }}</MsButton>
+                            <MsButton :type="confirmType" @click="onConfirm">{{
+                                confirmText
+                            }}</MsButton>
                         </template>
                         <!-- Chế độ thông báo thường: chỉ 1 button -->
                         <template v-else>

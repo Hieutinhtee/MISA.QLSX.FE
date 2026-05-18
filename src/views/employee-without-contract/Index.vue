@@ -15,13 +15,22 @@ defineOptions({
 const columns = ref([
     { key: "employeeCode", name: "Mã nhân viên", typeFilter: "text", width: 160 },
     { key: "fullName", name: "Họ và tên", typeFilter: "text", width: 220 },
-    { key: "gender", name: "Giới tính", typeFilter: "text", width: 100 },
+    {
+        key: "gender",
+        name: "Giới tính",
+        typeFilter: "status",
+        width: 100,
+        options: [
+            { value: "Nam", label: "Nam" },
+            { value: "Nữ", label: "Nữ" },
+            { value: "Khác", label: "Khác" },
+        ],
+    },
     { key: "dateOfBirth", name: "Ngày sinh", type: "date", width: 140 },
     { key: "phoneNumber", name: "Số điện thoại", typeFilter: "text", width: 150 },
     { key: "email", name: "Email", typeFilter: "text", width: 220 },
     { key: "departmentName", name: "Phòng ban", typeFilter: "text", width: 180 },
     { key: "positionName", name: "Vị trí", typeFilter: "text", width: 180 },
-    { key: "status", name: "Trạng thái", typeFilter: "status", width: 120 },
 ]);
 
 const getEmployeesWithoutContractPaging = async () => {

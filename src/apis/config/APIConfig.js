@@ -69,12 +69,12 @@ api.interceptors.response.use(
         }
 
         // Ưu tiên hiển thị message từ API trả về (nếu có)
-        const apiMessage = 
-            res.data?.userMsg || 
-            res.data?.message || 
-            res.data?.error?.userMsg || 
-            res.data?.error?.message || 
-            res.data?.title || 
+        const apiMessage =
+            res.data?.userMsg ||
+            res.data?.message ||
+            res.data?.error?.userMsg ||
+            res.data?.error?.message ||
+            res.data?.title ||
             (typeof res.data === "string" ? res.data : null);
 
         if (apiMessage) {

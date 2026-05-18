@@ -27,8 +27,14 @@ const form = ref({
 const employees = ref([]);
 
 const {
-    showConfirm, errorMessage, errors,
-    initValidation, validateForm, focusFirstInvalidInput, modelClose, resetErrors,
+    showConfirm,
+    errorMessage,
+    errors,
+    initValidation,
+    validateForm,
+    focusFirstInvalidInput,
+    modelClose,
+    resetErrors,
 } = useFormValidation();
 
 const fieldOrder = ["newManagerId", "effectiveDate"];
@@ -37,10 +43,14 @@ initValidation(validateField, fieldOrder);
 function validateField(field) {
     switch (field) {
         case "newManagerId":
-            errors.value.newManagerId = form.value.newManagerId ? "" : "Vui lòng chọn trưởng phòng mới";
+            errors.value.newManagerId = form.value.newManagerId
+                ? ""
+                : "Vui lòng chọn trưởng phòng mới";
             break;
         case "effectiveDate":
-            errors.value.effectiveDate = form.value.effectiveDate ? "" : "Vui lòng chọn ngày có hiệu lực";
+            errors.value.effectiveDate = form.value.effectiveDate
+                ? ""
+                : "Vui lòng chọn ngày có hiệu lực";
             break;
     }
 }
@@ -151,10 +161,19 @@ watch(
 </template>
 
 <style scoped>
-.form-row { gap: 12px; }
-.form-label { width: 180px; }
-.form-label--required::after { content: " *"; color: #ff4d4f; }
-.gap-12 { gap: 12px; }
+.form-row {
+    gap: 12px;
+}
+.form-label {
+    width: 180px;
+}
+.form-label--required::after {
+    content: " *";
+    color: #ff4d4f;
+}
+.gap-12 {
+    gap: 12px;
+}
 .form-select {
     height: 36px;
     border: 1px solid #d9d9d9;

@@ -33,8 +33,14 @@ const employees = ref([]);
 const departments = ref([]);
 
 const {
-    showConfirm, errorMessage, errors,
-    initValidation, validateForm, focusFirstInvalidInput, modelClose, resetErrors,
+    showConfirm,
+    errorMessage,
+    errors,
+    initValidation,
+    validateForm,
+    focusFirstInvalidInput,
+    modelClose,
+    resetErrors,
 } = useFormValidation();
 
 const fieldOrder = ["employeeId", "toDepartmentId", "effectiveDate"];
@@ -46,10 +52,14 @@ function validateField(field) {
             errors.value.employeeId = form.value.employeeId ? "" : "Vui lòng chọn nhân viên";
             break;
         case "toDepartmentId":
-            errors.value.toDepartmentId = form.value.toDepartmentId ? "" : "Vui lòng chọn phòng ban đích";
+            errors.value.toDepartmentId = form.value.toDepartmentId
+                ? ""
+                : "Vui lòng chọn phòng ban đích";
             break;
         case "effectiveDate":
-            errors.value.effectiveDate = form.value.effectiveDate ? "" : "Vui lòng chọn ngày có hiệu lực";
+            errors.value.effectiveDate = form.value.effectiveDate
+                ? ""
+                : "Vui lòng chọn ngày có hiệu lực";
             break;
     }
 }
@@ -114,7 +124,14 @@ watch(
     (open) => {
         if (!open) return;
         resetErrors();
-        form.value = { employeeId: "", employeeName: "", toDepartmentId: "", toDepartmentName: "", effectiveDate: null, description: "" };
+        form.value = {
+            employeeId: "",
+            employeeName: "",
+            toDepartmentId: "",
+            toDepartmentName: "",
+            effectiveDate: null,
+            description: "",
+        };
         loadEmployees();
         loadDepartments();
     },
@@ -175,10 +192,19 @@ watch(
 </template>
 
 <style scoped>
-.form-row { gap: 12px; }
-.form-label { width: 180px; }
-.form-label--required::after { content: " *"; color: #ff4d4f; }
-.gap-12 { gap: 12px; }
+.form-row {
+    gap: 12px;
+}
+.form-label {
+    width: 180px;
+}
+.form-label--required::after {
+    content: " *";
+    color: #ff4d4f;
+}
+.gap-12 {
+    gap: 12px;
+}
 .form-select {
     height: 36px;
     border: 1px solid #d9d9d9;

@@ -39,7 +39,8 @@ onMounted(async () => {
     if (props.attendance) {
         Object.assign(formData, props.attendance);
 
-        if (formData.checkIn === "00:00:00" || formData.checkIn === "00:00") formData.checkIn = null;
+        if (formData.checkIn === "00:00:00" || formData.checkIn === "00:00")
+            formData.checkIn = null;
         if (formData.checkOut === "00:00:00" || formData.checkOut === "00:00")
             formData.checkOut = null;
         if (formData.attendanceDate) {

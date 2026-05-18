@@ -280,11 +280,24 @@ onMounted(() => {
                                 <i class="icon-money"></i> Phụ cấp kèm theo
                             </div>
                             <div class="section-content">
-                                <div v-for="(allowance, index) in allowances" :key="allowance.allowanceId" class="detail-item justify-content-between align-items-center mb-2 pb-2" style="border-bottom: 1px dashed #e0e0e0">
-                                    <div class="detail-label font-medium" style="width: auto">{{ allowance.allowanceName }}</div>
+                                <div
+                                    v-for="(allowance, index) in allowances"
+                                    :key="allowance.allowanceId"
+                                    class="detail-item justify-content-between align-items-center mb-2 pb-2"
+                                    style="border-bottom: 1px dashed #e0e0e0"
+                                >
+                                    <div class="detail-label font-medium" style="width: auto">
+                                        {{ allowance.allowanceName }}
+                                    </div>
                                     <div class="detail-value text-right" style="width: auto">
-                                        <span v-if="allowance.calculationType === 'FIXED'" class="text-success font-medium">{{ formatCurrency(allowance.amount) }}</span>
-                                        <span v-else class="text-primary font-medium">{{ allowance.percent }}% Lương CB</span>
+                                        <span
+                                            v-if="allowance.calculationType === 'FIXED'"
+                                            class="text-success font-medium"
+                                            >{{ formatCurrency(allowance.amount) }}</span
+                                        >
+                                        <span v-else class="text-primary font-medium"
+                                            >{{ allowance.percent }}% Lương CB</span
+                                        >
                                     </div>
                                 </div>
                             </div>

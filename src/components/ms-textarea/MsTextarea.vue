@@ -23,8 +23,8 @@ const emit = defineEmits(["blurInput", "update:modelValue"]);
         <template v-if="error" #title>
             <span class="tooltip-error">{{ error }}</span>
         </template>
-        <textarea 
-            v-model="modelValue" 
+        <textarea
+            v-model="modelValue"
             type="textarea"
             :class="{ 'ms-textarea--error': error }"
             @blur="emit('blurInput')"

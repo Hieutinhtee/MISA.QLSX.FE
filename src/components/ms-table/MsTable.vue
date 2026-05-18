@@ -90,7 +90,6 @@ const props = defineProps({
     },
     rowColumnWidth: {
         type: Number,
-
     },
     rowActionsName: {
         type: String,
@@ -142,12 +141,12 @@ const filterOptions = ref([
     {
         value: "eq",
         label: "Bằng",
-        type: ["text", "number"],
+        type: ["text", "number", "status"],
     },
     {
         value: "neq",
         label: "Khác",
-        type: ["text", "number"],
+        type: ["text", "number", "status"],
     },
 
     {
@@ -1440,8 +1439,23 @@ defineExpose({
                                         v-model="filterOperator"
                                     ></ms-select>
 
+                                    <ms-select
+                                        v-if="
+                                            item.typeFilter === 'status' &&
+                                            filterOperator !== 'isnull' &&
+                                            filterOperator !== 'notnull'
+                                        "
+                                        style="width: 318px"
+                                        :options="item.options || item.filterOptions || []"
+                                        placeholder="Chọn giá trị lọc"
+                                        v-model="filterValue"
+                                    ></ms-select>
                                     <ms-input
-                                        v-if="item.typeFilter != 'boolean'"
+                                        v-else-if="
+                                            item.typeFilter !== 'boolean' &&
+                                            filterOperator !== 'isnull' &&
+                                            filterOperator !== 'notnull'
+                                        "
                                         label="Giá trị lọc"
                                         placeholder="Nhập giá trị lọc"
                                         v-model="filterValue"
@@ -1472,8 +1486,7 @@ defineExpose({
                         class="col-delete"
                         :style="{ width: props.rowColumnWidth + 'px' }"
                     >
-                        <slot name="header-actions">
-                        </slot>
+                        <slot name="header-actions"> </slot>
                     </th>
                 </tr>
             </thead>
@@ -1500,7 +1513,10 @@ defineExpose({
                         v-for="row in rows"
                         :key="getRowId(row)"
                         tabindex="0"
-                        :class="{ 'row-active': clickedRowId === getRowId(row) || isRowChecked(getRowId(row)) }"
+                        :class="{
+                            'row-active':
+                                clickedRowId === getRowId(row) || isRowChecked(getRowId(row)),
+                        }"
                         @click="clickedRowId = getRowId(row)"
                         @dblclick="props.showRowActions ? handleEdit(row) : null"
                     >
@@ -1565,8 +1581,15 @@ defineExpose({
                                         ></div>
                                     </div>
                                 </tooltip>
-                                <tooltip v-if="props.showActionMore" placement="top" title="Xem thêm">
-                                    <div class="btn-modify-wrapper" @click.stop="handleMore(row, $event)">
+                                <tooltip
+                                    v-if="props.showActionMore"
+                                    placement="top"
+                                    title="Xem thêm"
+                                >
+                                    <div
+                                        class="btn-modify-wrapper"
+                                        @click.stop="handleMore(row, $event)"
+                                    >
                                         <div
                                             class="content__table-btn-modify content__table-btn-showmore"
                                         ></div>
@@ -1603,7 +1626,7 @@ defineExpose({
                                         <div class="content__table-duplicate-icon"></div>
                                         <div class="content__table-popup-text">Nhân bản</div>
                                     </div>
-                                    
+
                                     <!-- Slot cho các action tùy chỉnh từ component cha -->
                                     <slot name="more-actions" :row="currentRow"></slot>
 

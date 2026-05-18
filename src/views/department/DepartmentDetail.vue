@@ -161,7 +161,10 @@ onMounted(() => {
     <div class="content d-flex flex-1 flex-column">
         <div class="content__header d-flex align-items-center">
             <div class="d-flex align-items-center gap-12">
-                <div class="btn-back pointer d-flex align-items-center justify-content-center" @click="handleClose">
+                <div
+                    class="btn-back pointer d-flex align-items-center justify-content-center"
+                    @click="handleClose"
+                >
                     <div class="icon-back"></div>
                 </div>
                 <div class="content__title">Chi tiết phòng ban</div>
@@ -233,7 +236,11 @@ onMounted(() => {
                                 <div class="info-item">
                                     <div class="info-label">Ngày tạo</div>
                                     <div class="info-value">
-                                        {{ new Date(department.createdAt).toLocaleDateString("vi-VN") }}
+                                        {{
+                                            new Date(department.createdAt).toLocaleDateString(
+                                                "vi-VN",
+                                            )
+                                        }}
                                     </div>
                                 </div>
                                 <div class="info-item" v-if="!department.isActive">
@@ -260,8 +267,12 @@ onMounted(() => {
                     </div>
 
                     <!-- Right Column (8): Employee List -->
-                    <div class="info-section employee-section flex-8 d-flex flex-column overflow-hidden">
-                        <div class="section-title mb-16">Danh sách thành viên ({{ employees.length }})</div>
+                    <div
+                        class="info-section employee-section flex-8 d-flex flex-column overflow-hidden"
+                    >
+                        <div class="section-title mb-16">
+                            Danh sách thành viên ({{ employees.length }})
+                        </div>
                         <div class="member-list flex-1 d-flex flex-column overflow-hidden">
                             <ms-table
                                 :columns="employeeColumns"
@@ -285,7 +296,9 @@ onMounted(() => {
                 <div class="empty-state">
                     <div class="icon-empty mb-16"></div>
                     <span>Không tìm thấy thông tin phòng ban</span>
-                    <ms-button type="primary" class="mt-16" @click="handleClose">Quay lại</ms-button>
+                    <ms-button type="primary" class="mt-16" @click="handleClose"
+                        >Quay lại</ms-button
+                    >
                 </div>
             </div>
         </div>
@@ -415,7 +428,9 @@ onMounted(() => {
     background: #fff;
     border-radius: 12px;
     padding: 24px 32px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06);
     border: 1px solid #f1f5f9;
 }
 
@@ -574,7 +589,9 @@ onMounted(() => {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .empty-state {
@@ -607,14 +624,14 @@ onMounted(() => {
     .detail-grid {
         flex-direction: column;
     }
-    
+
     .info-column-left {
         flex: none;
         width: 100%;
         flex-direction: row;
         gap: 20px;
     }
-    
+
     .info-column-left > div {
         flex: 1;
     }
@@ -632,11 +649,11 @@ onMounted(() => {
         justify-content: flex-start;
         flex-wrap: wrap;
     }
-    
+
     .detail-header-card {
         padding: 16px;
     }
-    
+
     .info-column-left {
         flex-direction: column;
     }

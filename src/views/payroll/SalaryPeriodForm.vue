@@ -1,12 +1,5 @@
 <script setup>
-import {
-    ref,
-    defineModel,
-    watch,
-    onMounted,
-    onBeforeUnmount,
-    computed,
-} from "vue";
+import { ref, defineModel, watch, onMounted, onBeforeUnmount, computed } from "vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import MsDatePicker from "@/components/ms-date-picker/MsDatePicker.vue";
 import { createSalaryPeriod } from "@/common/model/salaryPeriodModel";
@@ -269,8 +262,6 @@ const getStatusText = (status) => {
 
     return status || "Không xác định";
 };
-
-
 </script>
 
 <template>

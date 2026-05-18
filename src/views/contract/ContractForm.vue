@@ -5,7 +5,15 @@ import MsInput from "@/components/ms-input/MsInput.vue";
 import MsSelect from "@/components/ms-select/MsSelect.vue";
 import MsTextarea from "@/components/ms-textarea/MsTextarea.vue";
 import MsRadioButton from "@/components/ms-radio-button/MsRadioButton.vue";
-import { Modal as AModal, Upload as AUpload, Button as AButton, Tag as ATag, Select as ASelect, Tabs as ATabs, TabPane as ATabPane } from "ant-design-vue";
+import {
+    Modal as AModal,
+    Upload as AUpload,
+    Button as AButton,
+    Tag as ATag,
+    Select as ASelect,
+    Tabs as ATabs,
+    TabPane as ATabPane,
+} from "ant-design-vue";
 import { PaperClipOutlined, DeleteOutlined, UploadOutlined } from "@ant-design/icons-vue";
 import MsDatePicker from "@/components/ms-date-picker/MsDatePicker.vue";
 import MsInputNumber from "@/components/ms-input-number/MsInputNumber.vue";
@@ -70,9 +78,23 @@ const {
 const activeTab = ref("1");
 
 const handleFocusField = (field) => {
-    const tab1Fields = ["contractCode", "employeeId", "templateId", "effectiveDate", "termMonths", "shiftId", "summary"];
+    const tab1Fields = [
+        "contractCode",
+        "employeeId",
+        "templateId",
+        "effectiveDate",
+        "termMonths",
+        "shiftId",
+        "summary",
+    ];
     const tab2Fields = ["baseSalary", "insuranceSalary", "salaryRatio", "allowanceIds"];
-    const tab3Fields = ["companyRepresentativeId", "companySignerTitle", "isSigned", "signedAt", "attachmentLink"];
+    const tab3Fields = [
+        "companyRepresentativeId",
+        "companySignerTitle",
+        "isSigned",
+        "signedAt",
+        "attachmentLink",
+    ];
 
     if (tab1Fields.includes(field)) {
         activeTab.value = "1";
@@ -128,7 +150,7 @@ async function loadSelectData() {
 
     allowanceOptions.value = allowances.map((item) => ({
         value: item.allowanceId,
-        label: `${item.allowanceName} (${item.calculationType === 'FIXED' ? (item.amount?.toLocaleString() + 'đ') : (item.percent + '%')})`,
+        label: `${item.allowanceName} (${item.calculationType === "FIXED" ? item.amount?.toLocaleString() + "đ" : item.percent + "%"})`,
     }));
 
     templateOptions.value = templates.map((item) => ({
@@ -163,7 +185,7 @@ watch(
         const selected = templateOptions.value.find((item) => item.value === templateId);
         if (selected) {
             form.value.contractType = selected.contractType;
-            
+
             // Lấy thông tin chi tiết mẫu để có default allowances
             try {
                 const resp = await ContractTemplatesAPI.getById(templateId);
@@ -176,8 +198,10 @@ watch(
                         }
                     } catch (e) {
                         // Nếu không phải JSON, có thể là string phân tách bằng dấu phẩy
-                        if (typeof detail.defaultAllowanceIds === 'string') {
-                            form.value.allowanceIds = detail.defaultAllowanceIds.split(',').filter(x => x);
+                        if (typeof detail.defaultAllowanceIds === "string") {
+                            form.value.allowanceIds = detail.defaultAllowanceIds
+                                .split(",")
+                                .filter((x) => x);
                         }
                     }
                 }
@@ -189,23 +213,20 @@ watch(
 );
 
 // Tự động tính ngày kết thúc
-watch(
-    [() => form.value.effectiveDate, () => form.value.termMonths],
-    ([effDate, months]) => {
-        if (!effDate || !months || months <= 0) {
-            form.value.endDate = null;
-            return;
-        }
-        
-        try {
-            const date = new Date(effDate);
-            date.setMonth(date.getMonth() + parseInt(months));
-            form.value.endDate = date.toISOString().split('T')[0];
-        } catch (e) {
-            form.value.endDate = null;
-        }
+watch([() => form.value.effectiveDate, () => form.value.termMonths], ([effDate, months]) => {
+    if (!effDate || !months || months <= 0) {
+        form.value.endDate = null;
+        return;
     }
-);
+
+    try {
+        const date = new Date(effDate);
+        date.setMonth(date.getMonth() + parseInt(months));
+        form.value.endDate = date.toISOString().split("T")[0];
+    } catch (e) {
+        form.value.endDate = null;
+    }
+});
 
 watch(
     () => form.value.companyRepresentativeId,
@@ -236,12 +257,12 @@ watch(
                 signedAt: toDateInputValue(props.data.signedAt),
                 endDate: toDateInputValue(props.data.endDate),
             };
-            
+
             // Load danh sách phụ cấp của hợp đồng hiện tại
             try {
                 const resp = await ContractsAPI.getAllowances(props.data.contractId);
                 const allowances = resp.data?.data || [];
-                form.value.allowanceIds = allowances.map(a => a.allowanceId);
+                form.value.allowanceIds = allowances.map((a) => a.allowanceId);
             } catch (e) {
                 console.error("Lỗi tải phụ cấp:", e);
             }
@@ -373,7 +394,7 @@ function buildPayload() {
 
 function handleBeforeUpload(file) {
     attachmentFile.value = file;
-    fileList.value = [{ uid: file.uid || '-1', name: file.name, status: 'done' }];
+    fileList.value = [{ uid: file.uid || "-1", name: file.name, status: "done" }];
     return false; // ngăn upload tự động
 }
 
@@ -574,7 +595,10 @@ async function handleSubmit() {
                             <div class="form-row d-flex justify-content-between align-items-start">
                                 <div class="form-label">Trích yếu</div>
                                 <div class="w-430 form-textarea">
-                                    <ms-textarea v-model="form.summary" placeholder="Tóm tắt nội dung hợp đồng..." />
+                                    <ms-textarea
+                                        v-model="form.summary"
+                                        placeholder="Tóm tắt nội dung hợp đồng..."
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -658,7 +682,9 @@ async function handleSubmit() {
                             </div>
 
                             <div class="form-row d-flex justify-content-between align-items-center">
-                                <div class="form-label form-label--required">Chức danh người ký</div>
+                                <div class="form-label form-label--required">
+                                    Chức danh người ký
+                                </div>
                                 <ms-input
                                     v-model="form.companySignerTitle"
                                     :width="430"
@@ -672,12 +698,18 @@ async function handleSubmit() {
                             <div class="form-row d-flex align-items-center justify-content-between">
                                 <div class="form-label">Trạng thái ký</div>
                                 <div class="w-430 d-flex gap-24">
-                                    <ms-radio-button v-model="form.isSigned" :value="true" name="is-signed"
-                                    >Đã ký</ms-radio-button
-                                >
-                                <ms-radio-button v-model="form.isSigned" :value="false" name="is-signed"
-                                    >Chưa ký</ms-radio-button
-                                >
+                                    <ms-radio-button
+                                        v-model="form.isSigned"
+                                        :value="true"
+                                        name="is-signed"
+                                        >Đã ký</ms-radio-button
+                                    >
+                                    <ms-radio-button
+                                        v-model="form.isSigned"
+                                        :value="false"
+                                        name="is-signed"
+                                        >Chưa ký</ms-radio-button
+                                    >
                                 </div>
                             </div>
 
@@ -697,9 +729,7 @@ async function handleSubmit() {
                             </div>
 
                             <div class="form-row d-flex justify-content-between align-items-start">
-                                <div class="form-label">
-                                    Tài liệu đính kèm
-                                </div>
+                                <div class="form-label">Tài liệu đính kèm</div>
                                 <div class="w-430">
                                     <a-upload
                                         v-model:file-list="fileList"
@@ -713,8 +743,13 @@ async function handleSubmit() {
                                             <upload-outlined />
                                             Chọn tệp đính kèm
                                         </a-button>
-                                        <div v-else-if="form.attachmentLink && !attachmentFile" class="existing-file-tag">
-                                            <paper-clip-outlined style="color: #1677ff; margin-right: 4px" />
+                                        <div
+                                            v-else-if="form.attachmentLink && !attachmentFile"
+                                            class="existing-file-tag"
+                                        >
+                                            <paper-clip-outlined
+                                                style="color: #1677ff; margin-right: 4px"
+                                            />
                                             <span
                                                 class="file-name clickable-link"
                                                 :title="'Nhấn để xem: ' + form.attachmentLink"
@@ -722,7 +757,10 @@ async function handleSubmit() {
                                             >
                                                 Tệp đính kèm cũ
                                             </span>
-                                            <delete-outlined class="remove-icon" @click.stop="removeFile" />
+                                            <delete-outlined
+                                                class="remove-icon"
+                                                @click.stop="removeFile"
+                                            />
                                         </div>
                                     </a-upload>
                                 </div>

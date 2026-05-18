@@ -1,5 +1,12 @@
 <script setup>
 import { onMounted, ref, computed, inject } from "vue";
+import {
+    CloseOutlined,
+    CheckCircleOutlined,
+    CloseCircleOutlined,
+    ClockCircleOutlined,
+    MessageOutlined,
+} from "@ant-design/icons-vue";
 import MsTable from "@/components/ms-table/MsTable.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import MsAlert from "@/components/ms-alert/MsAlert.vue";
@@ -20,10 +27,32 @@ const currentEmployeeId = computed(() => authState?.user?.employeeId || null);
 
 const columns = ref([
     { key: "requestCode", name: "Mã yêu cầu", typeFilter: "text", width: 140 },
-    { key: "requestType", name: "Loại yêu cầu", typeFilter: "text", width: 220 },
+    {
+        key: "requestType",
+        name: "Loại yêu cầu",
+        typeFilter: "status",
+        width: 220,
+        options: [
+            { value: "department_member_transfer", label: "Thuyên chuyển thành viên phòng ban" },
+            { value: "department_manager_change", label: "Đổi trưởng phòng" },
+            { value: "contract_change", label: "Thay đổi hợp đồng" },
+            { value: "leave_request", label: "Đơn nghỉ phép" },
+        ],
+    },
     { key: "title", name: "Tiêu đề", typeFilter: "text", width: 280 },
     { key: "createdByName", name: "Người tạo", typeFilter: "text", width: 180 },
-    { key: "status", name: "Trạng thái", typeFilter: "text", width: 130 },
+    {
+        key: "status",
+        name: "Trạng thái",
+        typeFilter: "status",
+        width: 130,
+        options: [
+            { value: "pending", label: "Chờ duyệt" },
+            { value: "approved", label: "Đã duyệt" },
+            { value: "rejected", label: "Từ chối" },
+            { value: "cancelled", label: "Đã hủy" },
+        ],
+    },
     { key: "effectiveDate", name: "Ngày hiệu lực", type: "date", width: 140 },
     { key: "createdAt", name: "Ngày tạo", type: "date", width: 140 },
 ]);
@@ -88,12 +117,12 @@ function findCurrentPendingStep() {
 function canApproveCurrentStep() {
     const step = findCurrentPendingStep();
     if (!step || selectedRow.value?.status !== "pending") return false;
-    
+
     // Nếu bước duyệt có quy định đích danh ID người duyệt
     if (step.approverId) {
         return step.approverId === currentEmployeeId.value;
     }
-    
+
     // Nếu không thì kiểm tra theo Role
     return step.approverRole === currentRole.value;
 }
@@ -176,7 +205,8 @@ onMounted(() => {
         <div class="d-flex flex-column gap-8">
             <div>
                 Bạn có chắc chắn muốn <strong>từ chối</strong> yêu cầu
-                <strong>{{ selectedRow?.requestCode }}</strong>?
+                <strong>{{ selectedRow?.requestCode }}</strong
+                >?
             </div>
             <textarea
                 v-model="rejectComment"
@@ -246,7 +276,9 @@ onMounted(() => {
             <div class="detail-modal">
                 <div class="detail-modal__header d-flex justify-content-between align-items-center">
                     <h3>Chi tiết yêu cầu {{ selectedRow?.requestCode }}</h3>
-                    <div class="detail-modal__close" @click="isOpenModal = false">✕</div>
+                    <div class="detail-modal__close" @click="isOpenModal = false">
+                        <close-outlined />
+                    </div>
                 </div>
 
                 <div class="detail-modal__body">
@@ -283,32 +315,46 @@ onMounted(() => {
                         </div>
 
                         <!-- Chi tiết dữ liệu thay đổi (Payload) -->
-                        <div v-if="parsedPayload" class="payload-details">
+                        <div
+                            v-if="parsedPayload && selectedRow?.requestType !== 'leave_request'"
+                            class="payload-details"
+                        >
                             <h5>Nội dung thay đổi chi tiết:</h5>
                             <div class="payload-box">
-                                <template v-if="selectedRow.requestType === 'department_member_transfer'">
+                                <template
+                                    v-if="selectedRow.requestType === 'department_member_transfer'"
+                                >
                                     <div class="payload-item">
                                         <strong>Nhân viên:</strong> {{ parsedPayload.employeeId }}
                                     </div>
                                     <div class="payload-item">
-                                        <strong>Từ phòng ban:</strong> {{ parsedPayload.fromDepartmentId || '(Chưa có)' }}
+                                        <strong>Từ phòng ban:</strong>
+                                        {{ parsedPayload.fromDepartmentId || "(Chưa có)" }}
                                     </div>
                                     <div class="payload-item">
-                                        <strong>Đến phòng ban:</strong> {{ parsedPayload.toDepartmentId }}
+                                        <strong>Đến phòng ban:</strong>
+                                        {{ parsedPayload.toDepartmentId }}
                                     </div>
                                 </template>
 
-                                <template v-else-if="selectedRow.requestType === 'department_manager_change'">
+                                <template
+                                    v-else-if="
+                                        selectedRow.requestType === 'department_manager_change'
+                                    "
+                                >
                                     <div class="payload-item">
                                         <strong>Phòng ban:</strong> {{ parsedPayload.departmentId }}
                                     </div>
                                     <div class="payload-item">
-                                        <strong>Trưởng phòng mới:</strong> {{ parsedPayload.newManagerId }}
+                                        <strong>Trưởng phòng mới:</strong>
+                                        {{ parsedPayload.newManagerId }}
                                     </div>
                                 </template>
 
                                 <template v-else>
-                                    <pre class="json-payload">{{ JSON.stringify(parsedPayload, null, 2) }}</pre>
+                                    <pre class="json-payload">{{
+                                        JSON.stringify(parsedPayload, null, 2)
+                                    }}</pre>
                                 </template>
                             </div>
                         </div>
@@ -337,21 +383,33 @@ onMounted(() => {
                                         Bước {{ step.stepOrder }}: {{ step.approverRole }}
                                     </div>
                                     <div class="step-status">
-                                        {{
-                                            step.status === "approved"
-                                                ? "✅ Đã duyệt"
-                                                : step.status === "rejected"
-                                                  ? "❌ Từ chối"
-                                                  : "⏳ Chờ duyệt"
-                                        }}
+                                        <template v-if="step.status === 'approved'">
+                                            <check-circle-outlined
+                                                style="color: #52c41a; margin-right: 4px"
+                                            />
+                                            <span>Đã duyệt</span>
+                                        </template>
+                                        <template v-else-if="step.status === 'rejected'">
+                                            <close-circle-outlined
+                                                style="color: #ff4d4f; margin-right: 4px"
+                                            />
+                                            <span>Từ chối</span>
+                                        </template>
+                                        <template v-else>
+                                            <clock-circle-outlined
+                                                style="color: #faad14; margin-right: 4px"
+                                            />
+                                            <span>Chờ duyệt</span>
+                                        </template>
                                     </div>
                                     <div v-if="step.comment" class="step-comment">
-                                        💬 {{ step.comment }}
+                                        <message-outlined
+                                            style="color: #1890ff; margin-right: 4px"
+                                        />
+                                        <span>{{ step.comment }}</span>
                                     </div>
                                     <div v-if="step.actedAt" class="step-date">
-                                        {{
-                                            new Date(step.actedAt).toLocaleString("vi-VN")
-                                        }}
+                                        {{ new Date(step.actedAt).toLocaleString("vi-VN") }}
                                     </div>
                                 </div>
                             </div>

@@ -23,7 +23,7 @@ class AttendanceAPI extends BaseAPI {
      */
     getEmployeeCalendar(employeeId, month, year) {
         return api.get(`${this.controller}/employee/${employeeId}/calendar`, {
-            params: { month, year }
+            params: { month, year },
         });
     }
 }

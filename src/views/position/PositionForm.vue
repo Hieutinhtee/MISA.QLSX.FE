@@ -162,12 +162,7 @@ watch(
 
             <div class="form-row d-flex justify-content-between align-items-center">
                 <div class="form-label">Phụ cấp (VNĐ)</div>
-                <ms-input
-                    v-model="position.allowance"
-                    :width="430"
-                    type="number"
-                    :min="0"
-                />
+                <ms-input v-model="position.allowance" :width="430" type="number" :min="0" />
             </div>
 
             <div class="form-row d-flex justify-content-between align-items-start">

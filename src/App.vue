@@ -58,8 +58,6 @@ const showAppShell = computed(() => route.path !== "/login" && route.path !== "/
 window.$dev = () => {
     isDevOpen.value = true;
 };
-
-
 </script>
 
 <template>

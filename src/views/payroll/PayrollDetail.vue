@@ -56,7 +56,18 @@ const columns = ref([
     { key: "netSalary", name: "Lương thực nhận", type: "number", width: 150 },
     { key: "workingDaysActual", name: "Ngày công thực tế", type: "number", width: 150 },
     { key: "workingDaysStandard", name: "Ngày công chuẩn", type: "number", width: 150 },
-    { key: "status", name: "Trạng thái", typeFilter: "text", width: 120 },
+    {
+        key: "status",
+        name: "Trạng thái",
+        typeFilter: "status",
+        width: 120,
+        options: [
+            { value: "draft", label: "Nháp" },
+            { value: "processing", label: "Đã tính lương" },
+            { value: "locked", label: "Đã khóa" },
+            { value: "paid", label: "Đã chi trả" },
+        ],
+    },
 ]);
 //#endregion
 
@@ -238,10 +249,7 @@ watch(
             </ms-table>
         </div>
 
-        <payroll-formula-modal
-            v-model:open="formulaModalOpen"
-            :payroll="selectedPayroll"
-        />
+        <payroll-formula-modal v-model:open="formulaModalOpen" :payroll="selectedPayroll" />
 
         <template #footer>
             <div class="d-flex justify-content-end w-100">

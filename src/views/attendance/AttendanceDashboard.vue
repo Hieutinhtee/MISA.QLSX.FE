@@ -91,7 +91,9 @@ onMounted(() => {
                 <div class="att-dashboard__board">
                     <div class="att-dashboard__board-header">
                         Nhân viên nghỉ hôm nay
-                        <span class="att-dashboard__board-count">{{ dashboardData?.absentsToday?.length || 0 }}</span>
+                        <span class="att-dashboard__board-count">{{
+                            dashboardData?.absentsToday?.length || 0
+                        }}</span>
                     </div>
                     <div class="att-dashboard__board-body">
                         <Empty
@@ -109,9 +111,13 @@ onMounted(() => {
                                 </div>
                                 <div class="att-dashboard__list-info">
                                     <div class="att-dashboard__list-name">{{ emp.fullName }}</div>
-                                    <div class="att-dashboard__list-sub">{{ emp.departmentName }}</div>
+                                    <div class="att-dashboard__list-sub">
+                                        {{ emp.departmentName }}
+                                    </div>
                                 </div>
-                                <span class="att-dashboard__badge att-dashboard__badge--danger">Vắng mặt</span>
+                                <span class="att-dashboard__badge att-dashboard__badge--danger"
+                                    >Vắng mặt</span
+                                >
                             </div>
                         </div>
                     </div>
@@ -121,7 +127,9 @@ onMounted(() => {
                 <div class="att-dashboard__board">
                     <div class="att-dashboard__board-header">
                         Xếp hạng đi muộn (Tháng này)
-                        <span class="att-dashboard__board-count">{{ dashboardData?.lateRankings?.length || 0 }}</span>
+                        <span class="att-dashboard__board-count">{{
+                            dashboardData?.lateRankings?.length || 0
+                        }}</span>
                     </div>
                     <div class="att-dashboard__board-body">
                         <Empty
@@ -145,7 +153,9 @@ onMounted(() => {
                                 </div>
                                 <div class="att-dashboard__list-info">
                                     <div class="att-dashboard__list-name">{{ rank.fullName }}</div>
-                                    <div class="att-dashboard__list-sub">{{ rank.employeeCode }}</div>
+                                    <div class="att-dashboard__list-sub">
+                                        {{ rank.employeeCode }}
+                                    </div>
                                 </div>
                                 <span class="att-dashboard__badge att-dashboard__badge--warn">
                                     {{ rank.lateCount }} lần
@@ -201,7 +211,9 @@ onMounted(() => {
     position: relative;
     overflow: hidden;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
 }
 
 .att-dashboard__card:hover {
@@ -373,9 +385,19 @@ onMounted(() => {
     flex-shrink: 0;
 }
 
-.att-dashboard__rank--1 { background: #ffd700; color: #fff; box-shadow: 0 2px 4px rgba(255, 215, 0, 0.4); }
-.att-dashboard__rank--2 { background: #c0c0c0; color: #fff; }
-.att-dashboard__rank--3 { background: #cd7f32; color: #fff; }
+.att-dashboard__rank--1 {
+    background: #ffd700;
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(255, 215, 0, 0.4);
+}
+.att-dashboard__rank--2 {
+    background: #c0c0c0;
+    color: #fff;
+}
+.att-dashboard__rank--3 {
+    background: #cd7f32;
+    color: #fff;
+}
 
 /* Badges */
 .att-dashboard__badge {

@@ -14,20 +14,14 @@ class ApprovalRequestsAPI extends BaseAPI {
      * @param {string|null} comment - Ghi chú
      */
     async approveStep(requestId, stepId, comment = null) {
-        return await api.post(
-            `${this.controller}/${requestId}/approve/${stepId}`,
-            { comment },
-        );
+        return await api.post(`${this.controller}/${requestId}/approve/${stepId}`, { comment });
     }
 
     /**
      * Từ chối 1 bước.
      */
     async rejectStep(requestId, stepId, comment = null) {
-        return await api.post(
-            `${this.controller}/${requestId}/reject/${stepId}`,
-            { comment },
-        );
+        return await api.post(`${this.controller}/${requestId}/reject/${stepId}`, { comment });
     }
 
     /**

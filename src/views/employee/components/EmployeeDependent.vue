@@ -30,7 +30,7 @@ const defaultForm = () => ({
     relationship: "Con",
     taxCode: "",
     identityNumber: "",
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: new Date().toISOString().split("T")[0],
     endDate: null,
     isActive: true,
     note: "",
@@ -42,8 +42,8 @@ function formatDate(dateStr) {
     if (!dateStr) return "";
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return dateStr;
-    const d = date.getDate().toString().padStart(2, '0');
-    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const d = date.getDate().toString().padStart(2, "0");
+    const m = (date.getMonth() + 1).toString().padStart(2, "0");
     const y = date.getFullYear();
     return `${d}/${m}/${y}`;
 }
@@ -51,18 +51,18 @@ function formatDate(dateStr) {
 const columns = [
     { title: "Họ và tên", dataIndex: "fullName", key: "fullName", width: 200 },
     { title: "Mối quan hệ", dataIndex: "relationship", key: "relationship", width: 120 },
-    { 
-        title: "Ngày sinh", 
-        dataIndex: "dateOfBirth", 
-        key: "dateOfBirth", 
+    {
+        title: "Ngày sinh",
+        dataIndex: "dateOfBirth",
+        key: "dateOfBirth",
         width: 120,
-        customRender: ({ text }) => formatDate(text)
+        customRender: ({ text }) => formatDate(text),
     },
     { title: "Mã số thuế", dataIndex: "taxCode", key: "taxCode", width: 130 },
-    { 
-        title: "Trạng thái", 
-        dataIndex: "isActive", 
-        key: "isActive", 
+    {
+        title: "Trạng thái",
+        dataIndex: "isActive",
+        key: "isActive",
         width: 100,
     },
     { title: "Thao tác", key: "action", width: 100, fixed: "right" },
@@ -77,8 +77,8 @@ const relationshipOptions = [
 
 function toDateString(value) {
     if (!value) return null;
-    if (typeof value === 'string' && value.includes('T')) {
-        return value.split('T')[0];
+    if (typeof value === "string" && value.includes("T")) {
+        return value.split("T")[0];
     }
     return value;
 }
@@ -105,7 +105,7 @@ function handleAdd() {
 
 function handleEdit(record) {
     modalTitle.value = "Sửa người phụ thuộc";
-    formState.value = { 
+    formState.value = {
         ...record,
         dateOfBirth: toDateString(record.dateOfBirth),
         startDate: toDateString(record.startDate),
@@ -126,7 +126,11 @@ async function handleDelete(id) {
 }
 
 async function handleOk() {
-    if (!formState.value.fullName || !formState.value.dateOfBirth || !formState.value.relationship) {
+    if (
+        !formState.value.fullName ||
+        !formState.value.dateOfBirth ||
+        !formState.value.relationship
+    ) {
         $toastError("Vui lòng điền đầy đủ các trường bắt buộc");
         return;
     }
@@ -158,9 +162,13 @@ async function handleOk() {
     }
 }
 
-watch(() => props.employeeId, (newId) => {
-    if (newId) loadDependents();
-}, { immediate: true });
+watch(
+    () => props.employeeId,
+    (newId) => {
+        if (newId) loadDependents();
+    },
+    { immediate: true },
+);
 
 onMounted(() => {
     if (props.employeeId) loadDependents();
@@ -177,10 +185,10 @@ onMounted(() => {
             </ms-button>
         </div>
 
-        <Table 
-            :columns="columns" 
-            :data-source="dependents" 
-            :loading="loading" 
+        <Table
+            :columns="columns"
+            :data-source="dependents"
+            :loading="loading"
             :pagination="false"
             size="small"
             bordered
@@ -188,7 +196,7 @@ onMounted(() => {
         >
             <template #bodyCell="{ column, record, text }">
                 <template v-if="column.key === 'isActive'">
-                    <Tag :color="text ? 'green' : 'red'">{{ text ? 'Hoạt động' : 'Ngừng' }}</Tag>
+                    <Tag :color="text ? 'green' : 'red'">{{ text ? "Hoạt động" : "Ngừng" }}</Tag>
                 </template>
                 <template v-if="column.key === 'action'">
                     <Space>
@@ -225,11 +233,18 @@ onMounted(() => {
                 <div class="row mb-12">
                     <div class="col-6">
                         <div class="form-label required">Mối quan hệ</div>
-                        <ms-select v-model="formState.relationship" :options="relationshipOptions" />
+                        <ms-select
+                            v-model="formState.relationship"
+                            :options="relationshipOptions"
+                        />
                     </div>
                     <div class="col-6">
                         <div class="form-label required">Ngày sinh</div>
-                        <ms-date-picker v-model="formState.dateOfBirth" format="DD/MM/YYYY" value-format="YYYY-MM-DD" />
+                        <ms-date-picker
+                            v-model="formState.dateOfBirth"
+                            format="DD/MM/YYYY"
+                            value-format="YYYY-MM-DD"
+                        />
                     </div>
                 </div>
                 <div class="row mb-12">
@@ -239,17 +254,28 @@ onMounted(() => {
                     </div>
                     <div class="col-6">
                         <div class="form-label">CCCD / Giấy khai sinh</div>
-                        <ms-input v-model="formState.identityNumber" placeholder="Nhập số định danh" />
+                        <ms-input
+                            v-model="formState.identityNumber"
+                            placeholder="Nhập số định danh"
+                        />
                     </div>
                 </div>
                 <div class="row mb-12">
                     <div class="col-6">
                         <div class="form-label required">Bắt đầu giảm trừ</div>
-                        <ms-date-picker v-model="formState.startDate" format="DD/MM/YYYY" value-format="YYYY-MM-DD" />
+                        <ms-date-picker
+                            v-model="formState.startDate"
+                            format="DD/MM/YYYY"
+                            value-format="YYYY-MM-DD"
+                        />
                     </div>
                     <div class="col-6">
                         <div class="form-label">Kết thúc giảm trừ</div>
-                        <ms-date-picker v-model="formState.endDate" format="DD/MM/YYYY" value-format="YYYY-MM-DD" />
+                        <ms-date-picker
+                            v-model="formState.endDate"
+                            format="DD/MM/YYYY"
+                            value-format="YYYY-MM-DD"
+                        />
                     </div>
                 </div>
                 <div class="row">

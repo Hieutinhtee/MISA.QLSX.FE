@@ -95,7 +95,9 @@ onMounted(() => {
                     <div class="d-flex justify-content-center w-100">
                         <span
                             class="status-badge"
-                            :class="row.isActive ? 'status-badge--active' : 'status-badge--inactive'"
+                            :class="
+                                row.isActive ? 'status-badge--active' : 'status-badge--inactive'
+                            "
                         >
                             {{ row.isActive ? "Đang sử dụng" : "Ngừng sử dụng" }}
                         </span>

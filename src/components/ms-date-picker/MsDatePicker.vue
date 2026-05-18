@@ -47,10 +47,10 @@ defineExpose({
         <template v-if="error" #title>
             <span class="tooltip-error">{{ error }}</span>
         </template>
-        <DatePicker 
+        <DatePicker
             ref="datePickerRef"
             v-bind="$attrs"
-            v-model:value="value" 
+            v-model:value="value"
             :status="error ? 'error' : ''"
             class="w-100 ms-date-picker"
             @blur="onBlurOrChange"
@@ -64,8 +64,6 @@ defineExpose({
     width: 100%;
     box-sizing: border-box;
 }
-
-
 
 .ms-date-picker--error {
     border-color: red !important;

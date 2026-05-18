@@ -9,15 +9,15 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router';
+import { useRouter } from "vue-router";
 
 const router = useRouter();
 
 const handleBackHome = () => {
     // Xóa session để thoát khỏi vòng lặp redirect vô tận
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    router.push('/login');
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    router.push("/login");
 };
 </script>
 

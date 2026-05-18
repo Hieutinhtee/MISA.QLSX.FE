@@ -2,6 +2,7 @@
 defineOptions({ name: "LeaveRequests" });
 
 import { computed, inject, onMounted, ref } from "vue";
+import { CloseOutlined } from "@ant-design/icons-vue";
 import MsTable from "@/components/ms-table/MsTable.vue";
 import MsButton from "@/components/ms-button/MsButton.vue";
 import MsForm from "@/components/ms-form/MsForm.vue";
@@ -33,7 +34,18 @@ const columns = ref([
     { key: "employeeName", name: "Nhân viên", typeFilter: "text", width: 220 },
     { key: "startDate", name: "Ngày bắt đầu", type: "date", width: 140 },
     { key: "returnDate", name: "Ngày đi làm lại", type: "date", width: 140 },
-    { key: "approvalStatus", name: "Trạng thái", typeFilter: "text", width: 140 },
+    {
+        key: "approvalStatus",
+        name: "Trạng thái",
+        typeFilter: "status",
+        width: 140,
+        options: [
+            { value: 0, label: "Chờ duyệt" },
+            { value: 1, label: "Đã duyệt" },
+            { value: 2, label: "Từ chối" },
+            { value: 3, label: "Đã hủy" },
+        ],
+    },
     { key: "reason", name: "Lý do", typeFilter: "text", width: 320 },
     { key: "createdAt", name: "Ngày tạo", type: "date", width: 140 },
 ]);
@@ -306,7 +318,9 @@ onMounted(() => {
                             {{ selectedDetail?.approvalRequest?.requestCode || "" }}
                         </div>
                     </div>
-                    <button class="leave-detail__close" @click="isDetailOpen = false">✕</button>
+                    <button class="leave-detail__close" @click="isDetailOpen = false">
+                        <close-outlined />
+                    </button>
                 </div>
 
                 <div class="leave-detail__body">
