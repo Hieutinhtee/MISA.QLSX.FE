@@ -159,6 +159,11 @@ const menu = ref([
                 path: "/employees-without-contract",
                 roles: ["ADMIN", "HR"],
             },
+            {
+                title: "Hồ sơ lưu trữ",
+                path: "/resigned-employees",
+                roles: ["ADMIN", "HR"],
+            },
         ],
     },
     {

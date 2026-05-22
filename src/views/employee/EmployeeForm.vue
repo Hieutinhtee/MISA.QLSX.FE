@@ -567,7 +567,25 @@ watch(
             return;
         }
 
-        // Thêm mới: sinh sẵn UUID để dùng cho cả upload file và tạo entity
+        // Tái tuyển dụng (typeForm="add" nhưng có data pre-fill)
+        if (props.typeForm === "add" && props.data) {
+            pendingNewId.value = crypto.randomUUID();
+            form.value = {
+                ...createEmployee(),
+                ...props.data,
+                // Reset các trường bắt buộc nhập lại
+                employeeId: pendingNewId.value,
+                employeeCode: null,
+                joinDate: null,
+                avatarUrl: "profile.jpg",
+                cvUrl: null,
+                // Đảm bảo các ngày được format đúng
+                dateOfBirth: toDateInputValue(props.data.dateOfBirth),
+            };
+            return;
+        }
+
+        // Thêm mới hoàn toàn: sinh sẵn UUID để dùng cho cả upload file và tạo entity
         pendingNewId.value = crypto.randomUUID();
         form.value = {
             ...createEmployee(),
@@ -576,6 +594,7 @@ watch(
         };
     },
 );
+
 </script>
 
 <template>

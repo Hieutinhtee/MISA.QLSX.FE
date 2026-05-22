@@ -20,6 +20,27 @@ class EmployeesAPI extends BaseAPI {
     getRepresentatives() {
         return api.get(`${this.controller}/representatives`);
     }
+
+    /**
+     * Lấy danh sách nhân viên đã nghỉ việc có phân trang
+     */
+    getPagingResigned(payload) {
+        return api.post(`${this.controller}/paging-resigned`, payload);
+    }
+
+    /**
+     * Xóa thông tin cá nhân của nhân viên
+     */
+    anonymize(id) {
+        return api.post(`${this.controller}/${id}/anonymize`);
+    }
+
+    /**
+     * Khôi phục nhân viên
+     */
+    restore(id) {
+        return api.post(`${this.controller}/${id}/restore`);
+    }
 }
 
 export default new EmployeesAPI();

@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import DashboardView from "@/views/dashboard/Index.vue";
 import ShiftView from "@/views/shift/Index.vue";
 import EmployeeView from "@/views/employee/Index.vue";
+import ResignedEmployeeView from "@/views/employee/ResignedIndex.vue";
 import ContractTemplateView from "@/views/contract-template/Index.vue";
 import ContractView from "@/views/contract/Index.vue";
 import ContractDetailView from "@/views/contract/Detail.vue";
@@ -83,6 +84,12 @@ const router = createRouter({
             name: "employees",
             component: EmployeeView,
             meta: { requiresAuth: true, roles: ["ADMIN", "HR", "MANAGER"] },
+        },
+        {
+            path: "/resigned-employees",
+            name: "resigned-employees",
+            component: ResignedEmployeeView,
+            meta: { requiresAuth: true, roles: ["ADMIN", "HR"] },
         },
         {
             path: "/contract-templates",
